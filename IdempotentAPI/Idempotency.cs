@@ -50,6 +50,8 @@ namespace IdempotentAPI
             idempotencyKey = string.Empty;
             errorActionResult = null;
 
+            // TODO: Throw Exception in all "BadRequestObjectResult" in order to be "cached" by FluentValidation or CARE
+
             // The "headerKeyName" must be provided as a Header:
             if (!httpRequest.Headers.ContainsKey(_headerKeyName))
             {
