@@ -9,7 +9,7 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System.Linq;
 using System.Reflection;
-using IdempotentAPI.Extensions;
+using IdempotentAPI.Helpers;
 
 namespace IdempotentAPI
 {
@@ -140,7 +140,7 @@ namespace IdempotentAPI
             {
                 if (objectResult.Value.isAnonymousType())
                 {
-                    resultObjects.Add("ResultValue", Helpers.AnonymousObjectToDictionary(objectResult.Value, Convert.ToString));
+                    resultObjects.Add("ResultValue", Utils.AnonymousObjectToDictionary(objectResult.Value, Convert.ToString));
                 }
                 else
                 {
@@ -160,7 +160,7 @@ namespace IdempotentAPI
 
 
             // Serialize & Compress data:
-            return Helpers.Serialize(cacheData);
+            return Utils.Serialize(cacheData);
         }
         private string getRequestsDataHash(HttpRequest httpRequest)
         {
@@ -192,7 +192,7 @@ namespace IdempotentAPI
                 requestsData.Add(httpRequest.Path.ToString());
             }
 
-            return Helpers.GetHash(_hashAlgorithm, JsonConvert.SerializeObject(requestsData));
+            return Utils.GetHash(_hashAlgorithm, JsonConvert.SerializeObject(requestsData));
         }
 
         /// <summary>
@@ -219,7 +219,7 @@ namespace IdempotentAPI
 
             // Check if idempotencyKey exists in cache and return value:
             byte[] cacheDataSerialized = _distributedCache.Get(_idempotencyKey);
-            Dictionary<string, object> cacheData = (Dictionary<string, object>)Helpers.DeSerialize(cacheDataSerialized);
+            Dictionary<string, object> cacheData = (Dictionary<string, object>)Utils.DeSerialize(cacheDataSerialized);
             if (cacheData != null)
             {
                 // 2019-07-06: Evaluate the "Request.DataHash" in order to be sure that the cached response is returned
