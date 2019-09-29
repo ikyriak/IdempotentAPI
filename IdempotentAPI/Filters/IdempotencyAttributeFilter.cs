@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc.Filters;
+﻿using IdempotentAPI.Core;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace IdempotentAPI
+namespace IdempotentAPI.Filters
 {
     public class IdempotencyAttributeFilter : IActionFilter, IResultFilter
     {

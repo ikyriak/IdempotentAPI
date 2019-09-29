@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
 
-namespace IdempotentAPI
+namespace IdempotentAPI.Middlewares
 {
     public class IdempotencyMiddleware
     {

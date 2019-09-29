@@ -11,7 +11,7 @@ using System.Linq;
 using System.Reflection;
 using IdempotentAPI.Helpers;
 
-namespace IdempotentAPI
+namespace IdempotentAPI.Core
 {
     public class Idempotency
     {
@@ -109,7 +109,7 @@ namespace IdempotentAPI
             Dictionary<string, object> cacheData = new Dictionary<string, object>();
             // Cache Request params:
             cacheData.Add("Request.Method", context.HttpContext.Request.Method);
-            cacheData.Add("Request.Path", (context.HttpContext.Request.Path.HasValue ? context.HttpContext.Request.Path.Value : String.Empty));
+            cacheData.Add("Request.Path", context.HttpContext.Request.Path.HasValue ? context.HttpContext.Request.Path.Value : string.Empty);
             cacheData.Add("Request.QueryString", context.HttpContext.Request.QueryString.ToUriComponent());
             cacheData.Add("Request.DataHash", getRequestsDataHash(context.HttpContext.Request));
 
@@ -160,7 +160,7 @@ namespace IdempotentAPI
 
 
             // Serialize & Compress data:
-            return Utils.Serialize(cacheData);
+            return cacheData.Serialize();
         }
         private string getRequestsDataHash(HttpRequest httpRequest)
         {
@@ -219,7 +219,7 @@ namespace IdempotentAPI
 
             // Check if idempotencyKey exists in cache and return value:
             byte[] cacheDataSerialized = _distributedCache.Get(_idempotencyKey);
-            Dictionary<string, object> cacheData = (Dictionary<string, object>)Utils.DeSerialize(cacheDataSerialized);
+            Dictionary<string, object> cacheData = (Dictionary<string, object>)cacheDataSerialized.DeSerialize();
             if (cacheData != null)
             {
                 // 2019-07-06: Evaluate the "Request.DataHash" in order to be sure that the cached response is returned

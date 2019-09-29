@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
 
 //TODO: Change the Namespace to include the "IKyriakidis" as company name
-namespace IdempotentAPI
+namespace IdempotentAPI.Filters
 {
     /// <summary>
     /// Use Idempotent operations on POST and PATCH http methods
