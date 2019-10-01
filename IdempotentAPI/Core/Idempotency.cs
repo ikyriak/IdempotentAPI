@@ -149,7 +149,7 @@ namespace IdempotentAPI.Core
             }
             else if (contextResult is StatusCodeResult || contextResult is ActionResult)
             {
-                // Known types that do not need additonal data
+                // Known types that do not need additional data
             }
             else
             {
@@ -209,7 +209,7 @@ namespace IdempotentAPI.Core
                 return;
             }
 
-            // Try to get the IdempotencyKey valud from header:
+            // Try to get the IdempotencyKey value from header:
             IActionResult errorActionResult;
             if (!TryGetIdempotencyKey(context.HttpContext.Request, out _idempotencyKey, out errorActionResult))
             {
@@ -233,7 +233,7 @@ namespace IdempotentAPI.Core
                 }
 
                 // Set the StatusCode and Response result (based on the IActionResult type)
-                // The response body will be created from a .NET middleware in a following step.
+                // The response body will be created from a .NET middle-ware in a following step.
                 int ResponseStatusCode = Convert.ToInt32(cacheData["Response.StatusCode"]);
 
                 Dictionary<string, object> resultObjects = (Dictionary<string, object>)cacheData["Context.Result"];
