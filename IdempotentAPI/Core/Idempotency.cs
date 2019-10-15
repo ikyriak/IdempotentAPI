@@ -9,9 +9,9 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System.Linq;
 using System.Reflection;
-using IdempotentAPI.Extensions;
+using IdempotentAPI.Helpers;
 
-namespace IdempotentAPI
+namespace IdempotentAPI.Core
 {
     public class Idempotency
     {
@@ -50,6 +50,8 @@ namespace IdempotentAPI
             idempotencyKey = string.Empty;
             errorActionResult = null;
 
+            // TODO: Throw Exception in all "BadRequestObjectResult" in order to be "cached" by FluentValidation or CARE
+
             // The "headerKeyName" must be provided as a Header:
             if (!httpRequest.Headers.ContainsKey(_headerKeyName))
             {
@@ -64,17 +66,18 @@ namespace IdempotentAPI
                 return false;
             }
 
-            if (idempotencyKeys.Count <= 0)
-            {
-                errorActionResult = new BadRequestObjectResult($"An Idempotency header value is not found");
-                return false;
-            }
-
             if (idempotencyKeys.Count > 1)
             {
                 errorActionResult = new BadRequestObjectResult($"Multiple Idempotency keys were found");
                 return false;
             }
+
+            if (idempotencyKeys.Count <= 0
+                || string.IsNullOrEmpty(idempotencyKeys.First()))
+            {
+                errorActionResult = new BadRequestObjectResult($"An Idempotency header value is not found");
+                return false;
+            }            
 
             idempotencyKey = idempotencyKeys.ToString();
             return true;
@@ -107,7 +110,7 @@ namespace IdempotentAPI
             Dictionary<string, object> cacheData = new Dictionary<string, object>();
             // Cache Request params:
             cacheData.Add("Request.Method", context.HttpContext.Request.Method);
-            cacheData.Add("Request.Path", (context.HttpContext.Request.Path.HasValue ? context.HttpContext.Request.Path.Value : String.Empty));
+            cacheData.Add("Request.Path", context.HttpContext.Request.Path.HasValue ? context.HttpContext.Request.Path.Value : string.Empty);
             cacheData.Add("Request.QueryString", context.HttpContext.Request.QueryString.ToUriComponent());
             cacheData.Add("Request.DataHash", getRequestsDataHash(context.HttpContext.Request));
 
@@ -138,7 +141,7 @@ namespace IdempotentAPI
             {
                 if (objectResult.Value.isAnonymousType())
                 {
-                    resultObjects.Add("ResultValue", Helpers.AnonymousObjectToDictionary(objectResult.Value, Convert.ToString));
+                    resultObjects.Add("ResultValue", Utils.AnonymousObjectToDictionary(objectResult.Value, Convert.ToString));
                 }
                 else
                 {
@@ -147,7 +150,7 @@ namespace IdempotentAPI
             }
             else if (contextResult is StatusCodeResult || contextResult is ActionResult)
             {
-                // Known types that do not need additonal data
+                // Known types that do not need additional data
             }
             else
             {
@@ -158,16 +161,19 @@ namespace IdempotentAPI
 
 
             // Serialize & Compress data:
-            return Helpers.Serialize(cacheData);
+            return cacheData.Serialize();
         }
         private string getRequestsDataHash(HttpRequest httpRequest)
         {
             List<object> requestsData = new List<object>();
 
             // The Request body:
+            // 2019-10-13: Use CanSeek to check if the stream does not support seeking (set position)
             if (httpRequest.ContentLength.HasValue
              && httpRequest.Body != null
-                && httpRequest.Body.CanRead)
+                && httpRequest.Body.CanRead
+                && httpRequest.Body.CanSeek
+                )
             {
                 using (MemoryStream memoryStream = new MemoryStream())
                 {
@@ -184,13 +190,39 @@ namespace IdempotentAPI
                 requestsData.Add(httpRequest.Form);
             }
 
+            // Form-Files data:
+            if (httpRequest.Form != null
+                && httpRequest.Form.Files != null
+                && httpRequest.Form.Files.Count > 0)
+            {
+                foreach (IFormFile formFile in httpRequest.Form.Files)
+                {
+                    Stream fileStream = formFile.OpenReadStream();
+                    if (fileStream.CanRead
+                        && fileStream.CanSeek
+                        && fileStream.Length > 0)
+                    {
+                        using (MemoryStream memoryStream = new MemoryStream())
+                        {
+                            fileStream.Position = 0;
+                            fileStream.CopyTo(memoryStream);
+                            requestsData.Add(memoryStream.ToArray());
+                        }
+                    }
+                    else
+                    {
+                        requestsData.Add(formFile.FileName + "_" + formFile.Length.ToString() + "_" + formFile.Name);
+                    }
+                }
+            }
+
             // The request's URL:
             if (httpRequest.Path.HasValue)
             {
                 requestsData.Add(httpRequest.Path.ToString());
             }
 
-            return Helpers.GetHash(_hashAlgorithm, JsonConvert.SerializeObject(requestsData));
+            return Utils.GetHash(_hashAlgorithm, JsonConvert.SerializeObject(requestsData));
         }
 
         /// <summary>
@@ -207,7 +239,7 @@ namespace IdempotentAPI
                 return;
             }
 
-            // Try to get the IdempotencyKey valud from header:
+            // Try to get the IdempotencyKey value from header:
             IActionResult errorActionResult;
             if (!TryGetIdempotencyKey(context.HttpContext.Request, out _idempotencyKey, out errorActionResult))
             {
@@ -217,7 +249,7 @@ namespace IdempotentAPI
 
             // Check if idempotencyKey exists in cache and return value:
             byte[] cacheDataSerialized = _distributedCache.Get(_idempotencyKey);
-            Dictionary<string, object> cacheData = (Dictionary<string, object>)Helpers.DeSerialize(cacheDataSerialized);
+            Dictionary<string, object> cacheData = (Dictionary<string, object>)cacheDataSerialized.DeSerialize();
             if (cacheData != null)
             {
                 // 2019-07-06: Evaluate the "Request.DataHash" in order to be sure that the cached response is returned
@@ -231,7 +263,7 @@ namespace IdempotentAPI
                 }
 
                 // Set the StatusCode and Response result (based on the IActionResult type)
-                // The response body will be created from a .NET middleware in a following step.
+                // The response body will be created from a .NET middle-ware in a following step.
                 int ResponseStatusCode = Convert.ToInt32(cacheData["Response.StatusCode"]);
 
                 Dictionary<string, object> resultObjects = (Dictionary<string, object>)cacheData["Context.Result"];

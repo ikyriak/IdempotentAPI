@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc.Filters;
+﻿using IdempotentAPI.Core;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace IdempotentAPI
+namespace IdempotentAPI.Filters
 {
     public class IdempotencyAttributeFilter : IActionFilter, IResultFilter
     {
@@ -27,13 +28,18 @@ namespace IdempotentAPI
         /// <param name="context"></param>
         public void OnActionExecuting(ActionExecutingContext context)
         {
-            // If the Idempotenc is disabled then stop
+            // If the Idempotency is disabled then stop
             if (!Enabled)
             {
                 return;
             }
 
-            _idempotency = new Idempotency(_distributedCache, ExpireHours);
+            // Initialize only on its null (in case of multiple executions):
+            if (_idempotency == null)
+            {
+                _idempotency = new Idempotency(_distributedCache, ExpireHours);
+            }
+
             _idempotency.ApplyPreIdempotency(context);
         }
 
@@ -55,7 +61,7 @@ namespace IdempotentAPI
         /// <param name="context"></param>
         public void OnResultExecuted(ResultExecutedContext context)
         {
-            // If the Idempotenc is disabled then stop
+            // If the Idempotency is disabled then stop
             if (!Enabled)
             {
                 return;

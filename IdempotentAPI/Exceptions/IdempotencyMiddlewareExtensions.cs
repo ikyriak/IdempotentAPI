@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using IdempotentAPI.Middlewares;
+using Microsoft.AspNetCore.Builder;
 
-namespace IdempotentAPI
+namespace IdempotentAPI.Exceptions
 {
     public static class IdempotencyMiddlewareExtensions
     {

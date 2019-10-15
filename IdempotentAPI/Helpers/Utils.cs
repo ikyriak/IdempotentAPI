@@ -10,9 +10,9 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace IdempotentAPI.Extensions
+namespace IdempotentAPI.Helpers
 {
-    internal static class Helpers
+    public static class Utils
     {
         public static string GetHash(HashAlgorithm hashAlgorithm, string input)
         {
@@ -34,7 +34,7 @@ namespace IdempotentAPI.Extensions
             // Return the hexadecimal string.
             return sBuilder.ToString();
         }
-        public static byte[] Serialize(this Object obj)
+        public static byte[] Serialize(this object obj)
         {
             if (obj == null)
             {
@@ -50,7 +50,7 @@ namespace IdempotentAPI.Extensions
                 return compressed;
             }
         }
-        public static Object DeSerialize(this byte[] arrBytes)
+        public static object DeSerialize(this byte[] arrBytes)
         {
             if (arrBytes == null)
             {
@@ -119,12 +119,12 @@ namespace IdempotentAPI.Extensions
         {
             return TypeDescriptor.GetProperties(obj)
                 .OfType<PropertyDescriptor>()
-                .ToDictionary<PropertyDescriptor, string, T>(
+                .ToDictionary(
                     prop => prop.Name,
                     prop => valueSelect(prop.GetValue(obj))
                 );
         }
-        public static bool isAnonymousType(this Object obj)
+        public static bool isAnonymousType(this object obj)
         {
             if (obj == null)
             {
