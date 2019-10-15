@@ -94,6 +94,7 @@ namespace IdempotentAPI.Core
             if (httpRequest.Method != HttpMethods.Post
             && httpRequest.Method != HttpMethods.Patch)
             {
+                Console.WriteLine($"IdempotencyFilterAttribute [Before Controller execution]: Idempotency SKIPPED, httpRequest Method is:{httpRequest.Method.ToString()}");
                 return false;
             }
 
@@ -231,7 +232,7 @@ namespace IdempotentAPI.Core
         /// <param name="context"></param>
         public void ApplyPreIdempotency(ActionExecutingContext context)
         {
-            Console.WriteLine($"IdempotencyFilterAttribute [Before]: Request for {context.HttpContext.Request.Method}: {context.HttpContext.Request.Path} received ({context.HttpContext.Request.ContentLength ?? 0} bytes)");
+            Console.WriteLine($"IdempotencyFilterAttribute [Before Controller execution]: Request for {context.HttpContext.Request.Method}: {context.HttpContext.Request.Path} received ({context.HttpContext.Request.ContentLength ?? 0} bytes)");
 
             // Check if Idempotency can be applied:
             if (!canPerformIdempotency(context.HttpContext.Request))
@@ -325,9 +326,11 @@ namespace IdempotentAPI.Core
                 //     }
                 // }
 
+                Console.WriteLine($"IdempotencyFilterAttribute [Before Controller]: Return result from idempotency cache (of type {contextResultType.ToString()})");
                 _isPreIdempotencyCacheReturned = true;
             }
 
+            Console.WriteLine($"IdempotencyFilterAttribute [Before Controller]: End");
             _isPreIdempotencyApplied = true;
         }
 
@@ -338,10 +341,11 @@ namespace IdempotentAPI.Core
         /// <param name="context"></param>
         public void ApplyPostIdempotency(ResultExecutedContext context)
         {
-            Console.WriteLine($"IdempotencyFilterAttribute [After]: Response for {context.HttpContext.Response.StatusCode} sent ({context.HttpContext.Response.ContentLength ?? 0} bytes)");
+            Console.WriteLine($"IdempotencyFilterAttribute [After Controller execution]: Response for {context.HttpContext.Response.StatusCode} sent ({context.HttpContext.Response.ContentLength ?? 0} bytes)");
 
             if (!_isPreIdempotencyApplied || _isPreIdempotencyCacheReturned)
             {
+                Console.WriteLine($"IdempotencyFilterAttribute [After Controller execution]: Result NOT cached");
                 return;
             }
 
@@ -354,6 +358,8 @@ namespace IdempotentAPI.Core
 
             // Save to cache:
             _distributedCache.Set(_idempotencyKey, cacheDataSerialized, cacheOptions);
+
+            Console.WriteLine($"IdempotencyFilterAttribute [After Controller execution]: Result is cached for idempotencyKey: {_idempotencyKey}");
         }
     }
 }
