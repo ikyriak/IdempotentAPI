@@ -66,17 +66,18 @@ namespace IdempotentAPI.Core
                 return false;
             }
 
-            if (idempotencyKeys.Count <= 0)
-            {
-                errorActionResult = new BadRequestObjectResult($"An Idempotency header value is not found");
-                return false;
-            }
-
             if (idempotencyKeys.Count > 1)
             {
                 errorActionResult = new BadRequestObjectResult($"Multiple Idempotency keys were found");
                 return false;
             }
+
+            if (idempotencyKeys.Count <= 0
+                || string.IsNullOrEmpty(idempotencyKeys.First()))
+            {
+                errorActionResult = new BadRequestObjectResult($"An Idempotency header value is not found");
+                return false;
+            }            
 
             idempotencyKey = idempotencyKeys.ToString();
             return true;
@@ -167,9 +168,12 @@ namespace IdempotentAPI.Core
             List<object> requestsData = new List<object>();
 
             // The Request body:
+            // 2019-10-13: Use CanSeek to check if the stream does not support seeking (set position)
             if (httpRequest.ContentLength.HasValue
              && httpRequest.Body != null
-                && httpRequest.Body.CanRead)
+                && httpRequest.Body.CanRead
+                && httpRequest.Body.CanSeek
+                )
             {
                 using (MemoryStream memoryStream = new MemoryStream())
                 {
@@ -184,6 +188,32 @@ namespace IdempotentAPI.Core
                 && httpRequest.Form != null)
             {
                 requestsData.Add(httpRequest.Form);
+            }
+
+            // Form-Files data:
+            if (httpRequest.Form != null
+                && httpRequest.Form.Files != null
+                && httpRequest.Form.Files.Count > 0)
+            {
+                foreach (IFormFile formFile in httpRequest.Form.Files)
+                {
+                    Stream fileStream = formFile.OpenReadStream();
+                    if (fileStream.CanRead
+                        && fileStream.CanSeek
+                        && fileStream.Length > 0)
+                    {
+                        using (MemoryStream memoryStream = new MemoryStream())
+                        {
+                            fileStream.Position = 0;
+                            fileStream.CopyTo(memoryStream);
+                            requestsData.Add(memoryStream.ToArray());
+                        }
+                    }
+                    else
+                    {
+                        requestsData.Add(formFile.FileName + "_" + formFile.Length.ToString() + "_" + formFile.Name);
+                    }
+                }
             }
 
             // The request's URL:
