@@ -12,7 +12,7 @@ using System.Text;
 
 namespace IdempotentAPI.Helpers
 {
-    internal static class Utils
+    public static class Utils
     {
         public static string GetHash(HashAlgorithm hashAlgorithm, string input)
         {
