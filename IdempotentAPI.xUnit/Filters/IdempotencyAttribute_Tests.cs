@@ -25,6 +25,15 @@ namespace IdempotentAPI.xUnit.Filters
 {
     public class IdempotencyAttribute_Tests
     {
+        private readonly string _headerKeyName;
+        private readonly string _distributedCacheKeysPrefix;
+
+        public IdempotencyAttribute_Tests()
+        {
+            _headerKeyName = "IdempotencyKey";
+            _distributedCacheKeysPrefix = "IdempAPI_";
+        }
+
         private ActionContext ArrangeActionContextMock(string httpMethod)
         {
             return ArrangeActionContextMock(httpMethod, new HeaderDictionary(), string.Empty, new HeaderDictionary(), null);
@@ -123,7 +132,7 @@ namespace IdempotentAPI.xUnit.Filters
                 Mock.Of<Controller>()
             );
 
-            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(null, false, 1);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(null, false, 1, _headerKeyName,_distributedCacheKeysPrefix);
 
             // Act
             idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
@@ -152,7 +161,7 @@ namespace IdempotentAPI.xUnit.Filters
                 Mock.Of<Controller>()
             );
 
-            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(null, true, 1);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(null, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
             // Act
             var ex = Assert.Throws<Exception>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
@@ -189,7 +198,7 @@ namespace IdempotentAPI.xUnit.Filters
             );
 
             var distributedCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
-            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
             // Act
             var ex = Assert.Throws<ArgumentNullException>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
@@ -218,7 +227,7 @@ namespace IdempotentAPI.xUnit.Filters
         {
             // Arrange
             var requestHeaders = new HeaderDictionary();
-            requestHeaders.Add("IdempotencyKey", string.Empty);
+            requestHeaders.Add(_headerKeyName, string.Empty);
             var actionContext = ArrangeActionContextMock(httpMethod, requestHeaders);
             var actionExecutingContext = new ActionExecutingContext(
                 actionContext,
@@ -228,7 +237,7 @@ namespace IdempotentAPI.xUnit.Filters
             );
 
             var distributedCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
-            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
             // Act
             var ex = Assert.Throws<ArgumentNullException>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
@@ -258,7 +267,7 @@ namespace IdempotentAPI.xUnit.Filters
             var requestHeaders = new HeaderDictionary();
             var idenpotencyKeys = new Microsoft.Extensions.Primitives.StringValues(new string[] { string.Empty, string.Empty });
 
-            requestHeaders.Add("IdempotencyKey", idenpotencyKeys);
+            requestHeaders.Add(_headerKeyName, idenpotencyKeys);
             var actionContext = ArrangeActionContextMock(httpMethod, requestHeaders);
             var actionExecutingContext = new ActionExecutingContext(
                 actionContext,
@@ -268,7 +277,7 @@ namespace IdempotentAPI.xUnit.Filters
             );
 
             var distributedCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
-            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
             // Act
             var ex = Assert.Throws<ArgumentException>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
@@ -310,7 +319,7 @@ namespace IdempotentAPI.xUnit.Filters
             );
 
             var distributedCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
-            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
             // Act
             idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
@@ -338,9 +347,10 @@ namespace IdempotentAPI.xUnit.Filters
 
             // Prepare the body and headers for the Request and Response:
             const string IDEMPOTENCY_KEY = "b8fcc234-e1bd-11e9-81b4-2a2ae2dbcce4";
+            string distributedCacheKey = _distributedCacheKeysPrefix + IDEMPOTENCY_KEY;
             string requestBodyString = @"{""message"":""This is a dummy message""}";
             var requestHeaders = new HeaderDictionary();
-            requestHeaders.Add("IdempotencyKey", IDEMPOTENCY_KEY);
+            requestHeaders.Add(_headerKeyName, IDEMPOTENCY_KEY);
                         
             var controllerExecutionResult = new OkObjectResult(new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) });
             var responseHeaders = new HeaderDictionary();
@@ -361,7 +371,7 @@ namespace IdempotentAPI.xUnit.Filters
 
 
             var distributedCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
-            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
 
             // Act Part 1 (check cache):
@@ -374,7 +384,7 @@ namespace IdempotentAPI.xUnit.Filters
             idempotencyAttributeFilter.OnResultExecuted(resultExecutedContext);
 
             // Assert Part 2:
-            byte[] cachedData = distributedCache.Get(IDEMPOTENCY_KEY);
+            byte[] cachedData = distributedCache.Get(distributedCacheKey);
             Assert.NotNull(cachedData);
         }
 
@@ -395,10 +405,11 @@ namespace IdempotentAPI.xUnit.Filters
 
             // Prepare the body and headers for the Request and Response:
             const string IDEMPOTENCY_KEY = "b8fcc234-e1bd-11e9-81b4-2a2ae2dbcce4";
+            string distributedCacheKey = _distributedCacheKeysPrefix + IDEMPOTENCY_KEY;
             string httpMethod = "POST";
             FormFile requestBodyFile = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("This is a dummy file")), 0, 0, "Data", "dummy.txt");
             var requestHeaders = new HeaderDictionary();
-            requestHeaders.Add("IdempotencyKey", IDEMPOTENCY_KEY);
+            requestHeaders.Add(_headerKeyName, IDEMPOTENCY_KEY);
 
             var controllerExecutionResult = new OkObjectResult(new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) });
             var responseHeaders = new HeaderDictionary();
@@ -419,7 +430,7 @@ namespace IdempotentAPI.xUnit.Filters
 
 
             var distributedCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
-            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
 
             // Act Part 1 (check cache):
@@ -432,7 +443,7 @@ namespace IdempotentAPI.xUnit.Filters
             idempotencyAttributeFilter.OnResultExecuted(resultExecutedContext);
 
             // Assert Part 2:
-            byte[] cachedData = distributedCache.Get(IDEMPOTENCY_KEY);
+            byte[] cachedData = distributedCache.Get(distributedCacheKey);
             Assert.NotNull(cachedData);
         }
 
@@ -454,7 +465,7 @@ namespace IdempotentAPI.xUnit.Filters
             string httpMethod = "POST";
             string requestBodyString = @"{""message"":""This is a dummy message""}";
             var requestHeaders = new HeaderDictionary();
-            requestHeaders.Add("IdempotencyKey", IDEMPOTENCY_KEY);
+            requestHeaders.Add(_headerKeyName, IDEMPOTENCY_KEY);
             
             // The expected result
             var expectedExecutionResult = new OkObjectResult(new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) });
@@ -472,7 +483,7 @@ namespace IdempotentAPI.xUnit.Filters
             var distributedCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
             distributedCache.Set(IDEMPOTENCY_KEY, cackedResponse);
             
-            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
 
             // Act
