@@ -168,7 +168,7 @@ namespace IdempotentAPI.xUnit.Filters
         /// defining the IdempotencyKey as a header variable.
         /// 
         /// Action:
-        /// Respond with a BadRequestObjectResult
+        /// Throw an ArgumentNullException
         /// 
         /// Background:
         /// Idempotency is performed only for Post and Patch HTTP requests.
@@ -177,7 +177,7 @@ namespace IdempotentAPI.xUnit.Filters
         [Theory]
         [InlineData("POST")]
         [InlineData("PATCH")]
-        public void SetsResultToBadRequest_IfIdempotencyKeyHeaderNotExistsOnPostAndPatch(string httpMethod)
+        public void ThrowsException_IfIdempotencyKeyHeaderNotExistsOnPostAndPatch(string httpMethod)
         {
             // Arrange
             var actionContext = ArrangeActionContextMock(httpMethod);
@@ -192,10 +192,10 @@ namespace IdempotentAPI.xUnit.Filters
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1);
 
             // Act
-            idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
+            var ex = Assert.Throws<ArgumentNullException>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
 
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(actionExecutingContext.Result);
+            // Assert (Exception message)
+            Assert.Equal("The Idempotency header key is not found.\r\nParameter name: IdempotencyKey", ex.Message);
         }
 
 
@@ -205,7 +205,7 @@ namespace IdempotentAPI.xUnit.Filters
         /// the IdempotencyKey as a header variable, but without a value
         /// 
         /// Action:
-        /// Respond with a BadRequestObjectResult
+        /// Throw an ArgumentNullException
         /// 
         /// Background:
         /// Idempotency is performed only for Post and Patch HTTP requests.
@@ -214,7 +214,7 @@ namespace IdempotentAPI.xUnit.Filters
         [Theory]
         [InlineData("POST")]
         [InlineData("PATCH")]
-        public void SetsResultToBadRequest_IfIdempotencyKeyHeaderExistsWithoutValueOnPostAndPatch(string httpMethod)
+        public void ThrowsException_IfIdempotencyKeyHeaderExistsWithoutValueOnPostAndPatch(string httpMethod)
         {
             // Arrange
             var requestHeaders = new HeaderDictionary();
@@ -231,10 +231,10 @@ namespace IdempotentAPI.xUnit.Filters
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1);
 
             // Act
-            idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
+            var ex = Assert.Throws<ArgumentNullException>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
 
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(actionExecutingContext.Result);
+            // Assert (Exception message)
+            Assert.Equal("An Idempotency header value is not found.\r\nParameter name: IdempotencyKey", ex.Message);
         }
 
         /// <summary>
@@ -243,7 +243,7 @@ namespace IdempotentAPI.xUnit.Filters
         /// multiple IdempotencyKey as a header variables
         /// 
         /// Action:
-        /// Respond with a BadRequestObjectResult
+        /// Throw an ArgumentException
         /// 
         /// Background:
         /// Idempotency is performed only for Post and Patch HTTP requests.
@@ -252,7 +252,7 @@ namespace IdempotentAPI.xUnit.Filters
         [Theory]
         [InlineData("POST")]
         [InlineData("PATCH")]
-        public void SetsResultToBadRequest_IfMultipleIdempotencyKeyHeaderExistsOnPostAndPatch(string httpMethod)
+        public void ThrowsException_IfMultipleIdempotencyKeyHeaderExistsOnPostAndPatch(string httpMethod)
         {
             // Arrange
             var requestHeaders = new HeaderDictionary();
@@ -271,10 +271,10 @@ namespace IdempotentAPI.xUnit.Filters
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1);
 
             // Act
-            idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
+            var ex = Assert.Throws<ArgumentException>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
 
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(actionExecutingContext.Result);
+            // Assert (Exception message)
+            Assert.Equal("Multiple Idempotency keys were found.\r\nParameter name: IdempotencyKey", ex.Message);
         }
 
 
