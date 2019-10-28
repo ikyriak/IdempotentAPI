@@ -50,33 +50,27 @@ namespace IdempotentAPI.Core
             idempotencyKey = string.Empty;
             errorActionResult = null;
 
-            // TODO: Throw Exception in all "BadRequestObjectResult" in order to be "cached" by FluentValidation or CARE
-
             // The "headerKeyName" must be provided as a Header:
             if (!httpRequest.Headers.ContainsKey(_headerKeyName))
             {
-                errorActionResult = new BadRequestObjectResult($"The Idempotency header key '{_headerKeyName}' is not found");
-                return false;
+                throw new ArgumentNullException(_headerKeyName, "The Idempotency header key is not found.");
             }
 
             Microsoft.Extensions.Primitives.StringValues idempotencyKeys;
             if (!httpRequest.Headers.TryGetValue(_headerKeyName, out idempotencyKeys))
             {
-                errorActionResult = new BadRequestObjectResult($"The Idempotency header key '{_headerKeyName}' value is not found");
-                return false;
+                throw new ArgumentException("The Idempotency header key value is not found.", _headerKeyName);
             }
 
             if (idempotencyKeys.Count > 1)
             {
-                errorActionResult = new BadRequestObjectResult($"Multiple Idempotency keys were found");
-                return false;
+                throw new ArgumentException("Multiple Idempotency keys were found.", _headerKeyName);
             }
 
             if (idempotencyKeys.Count <= 0
                 || string.IsNullOrEmpty(idempotencyKeys.First()))
             {
-                errorActionResult = new BadRequestObjectResult($"An Idempotency header value is not found");
-                return false;
+                throw new ArgumentNullException(_headerKeyName, "An Idempotency header value is not found.");
             }            
 
             idempotencyKey = idempotencyKeys.ToString();
