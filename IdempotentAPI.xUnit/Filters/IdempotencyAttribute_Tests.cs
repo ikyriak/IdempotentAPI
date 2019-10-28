@@ -23,7 +23,7 @@ using FluentAssertions;
 
 namespace IdempotentAPI.xUnit.Filters
 {
-    public class IdempotencyAttribute_OnActionExecuting_Tests
+    public class IdempotencyAttribute_Tests
     {
         private ActionContext ArrangeActionContextMock(string httpMethod)
         {
