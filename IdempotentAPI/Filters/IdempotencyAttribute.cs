@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
 
-//TODO: Change the Namespace to include the "IKyriakidis" as company name
 namespace IdempotentAPI.Filters
 {
     /// <summary>
@@ -17,13 +16,15 @@ namespace IdempotentAPI.Filters
 
         public int ExpireHours { get; set; } = 24;
 
-        //TODO: Set a prefix for the distributedCache keys (with a default eg. IKIdemp_)
+        public string DistributedCacheKeysPrefix { get; set; } = "IdempAPI_";
+
+        public string HeaderKeyName { get; set; } = "IdempotencyKey";
 
         public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
         {
             var distributedCache = (IDistributedCache)serviceProvider.GetService(typeof(IDistributedCache));
 
-            IdempotencyAttributeFilter idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, Enabled, ExpireHours);
+            IdempotencyAttributeFilter idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, Enabled, ExpireHours, HeaderKeyName, DistributedCacheKeysPrefix);
             return idempotencyAttributeFilter;
         }
     }

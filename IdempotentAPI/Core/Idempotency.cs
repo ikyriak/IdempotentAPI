@@ -16,11 +16,23 @@ namespace IdempotentAPI.Core
     public class Idempotency
     {
         private readonly string _headerKeyName;
+        private readonly string _distributedCacheKeysPrefix;
         private readonly IDistributedCache _distributedCache;
         private readonly int _expireHours;
 
 
         private string _idempotencyKey = string.Empty;
+        private string DistributedCacheKey
+        {
+            set
+            {
+                _idempotencyKey = value;
+            }
+            get
+            {
+                return _distributedCacheKeysPrefix + _idempotencyKey;
+            }
+        }
         private bool _isPreIdempotencyApplied = false;
         private bool _isPreIdempotencyCacheReturned = false;
         private HashAlgorithm _hashAlgorithm = new SHA256CryptoServiceProvider();
@@ -29,21 +41,15 @@ namespace IdempotentAPI.Core
         public Idempotency(
                     IDistributedCache distributedCache,
                     int expireHours,
-                    string headerKeyName)
+                    string headerKeyName,
+                    string distributedCacheKeysPrefix)
         {
             _distributedCache = distributedCache;
             _expireHours = expireHours;
             _headerKeyName = headerKeyName;
+            _distributedCacheKeysPrefix = distributedCacheKeysPrefix;
         }
 
-        public Idempotency(
-            IDistributedCache distributedCache,
-            int expireHours)
-        {
-            _distributedCache = distributedCache;
-            _expireHours = expireHours;
-            _headerKeyName = "IdempotencyKey";
-        }
 
         private bool TryGetIdempotencyKey(HttpRequest httpRequest, out string idempotencyKey, out IActionResult errorActionResult)
         {
@@ -243,7 +249,7 @@ namespace IdempotentAPI.Core
             }
 
             // Check if idempotencyKey exists in cache and return value:
-            byte[] cacheDataSerialized = _distributedCache.Get(_idempotencyKey);
+            byte[] cacheDataSerialized = _distributedCache.Get(DistributedCacheKey);
             Dictionary<string, object> cacheData = (Dictionary<string, object>)cacheDataSerialized.DeSerialize();
             if (cacheData != null)
             {
@@ -305,7 +311,7 @@ namespace IdempotentAPI.Core
                     throw new NotImplementedException($"ApplyPreIdempotency is not implement for IActionResult type {contextResultType.ToString()}");
                 }
 
-                //TODO: Check how to add custom headers to response:
+                //TODO: Add custom headers to response:
                 // // Add Headers (if does not exist):
                 // // https://docs.microsoft.com/en-us/aspnet/core/mvc/controllers/filters?view=aspnetcore-2.2#servicefilterattribute
                 // Dictionary<string, List<string>> headerKeyValues = (Dictionary<string, List<string>>)cacheData["Response.Headers"];
@@ -351,7 +357,7 @@ namespace IdempotentAPI.Core
             cacheOptions.AbsoluteExpirationRelativeToNow = new TimeSpan(_expireHours, 0, 0);
 
             // Save to cache:
-            _distributedCache.Set(_idempotencyKey, cacheDataSerialized, cacheOptions);
+            _distributedCache.Set(DistributedCacheKey, cacheDataSerialized, cacheOptions);
 
             Console.WriteLine($"IdempotencyFilterAttribute [After Controller execution]: Result is cached for idempotencyKey: {_idempotencyKey}");
         }

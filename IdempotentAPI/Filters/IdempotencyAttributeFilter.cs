@@ -6,8 +6,10 @@ namespace IdempotentAPI.Filters
 {
     public class IdempotencyAttributeFilter : IActionFilter, IResultFilter
     {
-        public bool Enabled { get; set; }
-        public int ExpireHours { get; set; }
+        public bool Enabled { get; private set; }
+        public int ExpireHours { get; private set; }
+        public string HeaderKeyName { get; private set; }
+        public string DistributedCacheKeysPrefix { get; private set; }
 
 
         private Idempotency _idempotency { get; set; } = null;
@@ -15,11 +17,18 @@ namespace IdempotentAPI.Filters
 
         private readonly IDistributedCache _distributedCache;
 
-        public IdempotencyAttributeFilter(IDistributedCache distributedCache, bool Enabled, int ExpireHours)
+        public IdempotencyAttributeFilter(
+            IDistributedCache distributedCache,
+            bool Enabled,
+            int ExpireHours,
+            string HeaderKeyName,
+            string DistributedCacheKeysPrefix)
         {
             _distributedCache = distributedCache;
             this.Enabled = Enabled;
             this.ExpireHours = ExpireHours;
+            this.HeaderKeyName = HeaderKeyName;
+            this.DistributedCacheKeysPrefix = DistributedCacheKeysPrefix;
         }
 
         /// <summary>
@@ -37,7 +46,7 @@ namespace IdempotentAPI.Filters
             // Initialize only on its null (in case of multiple executions):
             if (_idempotency == null)
             {
-                _idempotency = new Idempotency(_distributedCache, ExpireHours);
+                _idempotency = new Idempotency(_distributedCache, ExpireHours, HeaderKeyName, DistributedCacheKeysPrefix);
             }
 
             _idempotency.ApplyPreIdempotency(context);
