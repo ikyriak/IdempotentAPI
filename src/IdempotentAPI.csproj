@@ -1,14 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
-    <Authors>ikyriakidis</Authors>
-    <AssemblyVersion>1.0.2.0</AssemblyVersion>
-    <FileVersion>1.0.2.0</FileVersion>
+    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+    <Authors>Ioannis Kyriakidis</Authors>
+    <Company>ikyriakidis.com</Company>
+    <Version>0.1.0-beta</Version>
+    <Description>Idempotent API .NET Core library</Description>
+    <PackageTags>idempotent api;asp.net core;</PackageTags>
+    <RepositoryUrl>https://github.com/ikyriak/IdempotentAPI.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/ikyriak/IdempotentAPI</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="2.2.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
 
