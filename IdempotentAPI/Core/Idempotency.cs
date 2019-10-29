@@ -311,20 +311,18 @@ namespace IdempotentAPI.Core
                     throw new NotImplementedException($"ApplyPreIdempotency is not implement for IActionResult type {contextResultType.ToString()}");
                 }
 
-                //TODO: Add custom headers to response:
-                // // Add Headers (if does not exist):
-                // // https://docs.microsoft.com/en-us/aspnet/core/mvc/controllers/filters?view=aspnetcore-2.2#servicefilterattribute
-                // Dictionary<string, List<string>> headerKeyValues = (Dictionary<string, List<string>>)cacheData["Response.Headers"];
-                // if (headerKeyValues != null)
-                // {
-                //     foreach (KeyValuePair<string, List<string>> headerKeyValue in headerKeyValues)
-                //     {
-                //         if (!context.HttpContext.Response.Headers.ContainsKey(headerKeyValue.Key))
-                //         {
-                //             context.HttpContext.Response.Headers.Add(headerKeyValue.Key, headerKeyValue.Value.ToArray());
-                //         }
-                //     }
-                // }
+                // Include cached headers (if does not exist) at the response:
+                Dictionary<string, List<string>> headerKeyValues = (Dictionary<string, List<string>>)cacheData["Response.Headers"];
+                if (headerKeyValues != null)
+                {
+                    foreach (KeyValuePair<string, List<string>> headerKeyValue in headerKeyValues)
+                    {
+                        if (!context.HttpContext.Response.Headers.ContainsKey(headerKeyValue.Key))
+                        {
+                            context.HttpContext.Response.Headers.Add(headerKeyValue.Key, headerKeyValue.Value.ToArray());
+                        }
+                    }
+                }
 
                 Console.WriteLine($"IdempotencyFilterAttribute [Before Controller]: Return result from idempotency cache (of type {contextResultType.ToString()})");
                 _isPreIdempotencyCacheReturned = true;

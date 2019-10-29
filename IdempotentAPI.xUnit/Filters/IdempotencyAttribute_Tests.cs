@@ -19,6 +19,7 @@ using System.Text;
 using Xunit;
 using IdempotentAPI.Helpers;
 using FluentAssertions;
+using Microsoft.Extensions.Primitives;
 
 
 namespace IdempotentAPI.xUnit.Filters
@@ -91,15 +92,15 @@ namespace IdempotentAPI.xUnit.Filters
 
 
             // Mock HttpContext Response:
+            var httpResponse = new Mock<HttpResponse>();
+            httpResponse.Setup(r => r.Headers).Returns(responseHeaders);
             if (actionResult != null)
             {
-                var httpResponse = new Mock<HttpResponse>();
                 httpResponse.SetupGet(c => c.StatusCode).Returns(actionResult.StatusCode.HasValue ? actionResult.StatusCode.Value : 500);
                 httpResponse.SetupGet(c => c.ContentLength).Returns(actionResult is ObjectResult ? ((ObjectResult)actionResult).Value.Serialize().Length : 0);
                 httpResponse.SetupGet(r => r.ContentType).Returns(@"json object");
-                httpResponse.Setup(r => r.Headers).Returns(responseHeaders);
-                httpContext.SetupGet(c => c.Response).Returns(() => httpResponse.Object);
             }
+            httpContext.SetupGet(c => c.Response).Returns(() => httpResponse.Object);
 
 
             var actionContext = new ActionContext(
@@ -265,7 +266,7 @@ namespace IdempotentAPI.xUnit.Filters
         {
             // Arrange
             var requestHeaders = new HeaderDictionary();
-            var idenpotencyKeys = new Microsoft.Extensions.Primitives.StringValues(new string[] { string.Empty, string.Empty });
+            var idenpotencyKeys = new StringValues(new string[] { string.Empty, string.Empty });
 
             requestHeaders.Add(_headerKeyName, idenpotencyKeys);
             var actionContext = ArrangeActionContextMock(httpMethod, requestHeaders);
@@ -354,6 +355,8 @@ namespace IdempotentAPI.xUnit.Filters
                         
             var controllerExecutionResult = new OkObjectResult(new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) });
             var responseHeaders = new HeaderDictionary();
+            responseHeaders.Add(new KeyValuePair<string, StringValues>("CustomHeader01", new StringValues("CustomHeaderValue01")));
+            responseHeaders.Add(new KeyValuePair<string, StringValues>("CustomHeader02", new StringValues("CustomHeaderValue02")));
 
             var actionContext = ArrangeActionContextMock(httpMethod, requestHeaders, requestBodyString, responseHeaders, controllerExecutionResult);
             var actionExecutingContext = new ActionExecutingContext(
@@ -451,19 +454,20 @@ namespace IdempotentAPI.xUnit.Filters
         /// <summary>
         /// Scenario: 
         /// The Idempotency Attribute is enabled, receiving a POST request with the IdempotencyKey Header "b8fcc234-e1bd-11e9-81b4-2a2ae2dbcce4",
-        /// which exists in the DistributionCache (from previous request)
+        /// which exists in the DistributionCache (from previous request) with two response headers
         /// 
         /// Action:
-        /// Return the cached response
+        /// Return the cached response (with the two response headers)
         /// </summary>
         [Fact]
         public void SetResultFromDistributionCache_IfValidRequestIsCached()
         {
-
             // Arrange
             const string IDEMPOTENCY_KEY = "b8fcc234-e1bd-11e9-81b4-2a2ae2dbcce4";
+            string distributedCacheKey = _distributedCacheKeysPrefix + IDEMPOTENCY_KEY;
             string httpMethod = "POST";
             string requestBodyString = @"{""message"":""This is a dummy message""}";
+            int expectedResponseHeadersCount = 2;
             var requestHeaders = new HeaderDictionary();
             requestHeaders.Add(_headerKeyName, IDEMPOTENCY_KEY);
             
@@ -479,9 +483,9 @@ namespace IdempotentAPI.xUnit.Filters
             );
 
             // Mock an existing cached POST request:
-            byte[] cackedResponse = new byte[] { 31, 139, 8, 0, 0, 0, 0, 0, 0, 11, 229, 86, 205, 107, 19, 65, 20, 207, 38, 109, 154, 216, 15, 45, 45, 138, 69, 52, 234, 53, 172, 155, 207, 205, 66, 171, 182, 169, 218, 170, 105, 162, 137, 189, 148, 208, 206, 206, 190, 216, 109, 54, 187, 233, 204, 108, 105, 60, 121, 245, 42, 248, 63, 121, 244, 80, 240, 42, 42, 34, 8, 34, 8, 130, 32, 232, 188, 36, 91, 69, 106, 233, 161, 133, 74, 55, 176, 59, 243, 230, 55, 111, 126, 239, 115, 18, 82, 66, 161, 208, 79, 249, 224, 23, 159, 1, 28, 188, 85, 170, 29, 46, 160, 165, 22, 61, 199, 1, 42, 108, 207, 229, 234, 29, 112, 129, 217, 84, 157, 183, 187, 2, 194, 58, 107, 233, 149, 149, 62, 176, 42, 152, 237, 62, 78, 38, 90, 156, 122, 204, 177, 205, 100, 98, 25, 24, 151, 176, 153, 172, 170, 225, 47, 153, 40, 250, 142, 240, 25, 204, 184, 224, 11, 70, 156, 100, 162, 226, 155, 142, 77, 239, 65, 167, 230, 53, 193, 157, 49, 117, 157, 228, 104, 46, 159, 50, 50, 89, 208, 10, 70, 61, 25, 40, 47, 155, 27, 146, 196, 225, 42, 175, 15, 72, 59, 135, 250, 122, 98, 69, 175, 213, 38, 12, 88, 108, 129, 240, 245, 170, 253, 4, 70, 229, 206, 101, 226, 248, 80, 33, 54, 227, 161, 72, 40, 18, 123, 190, 159, 83, 250, 223, 91, 155, 62, 113, 108, 209, 9, 244, 173, 165, 142, 212, 67, 245, 216, 135, 253, 72, 253, 105, 195, 127, 29, 171, 149, 122, 76, 70, 43, 30, 150, 175, 113, 28, 68, 48, 81, 113, 118, 28, 99, 130, 85, 52, 132, 12, 67, 88, 74, 72, 60, 242, 254, 68, 68, 105, 224, 135, 236, 35, 39, 195, 84, 204, 189, 72, 19, 58, 131, 91, 104, 142, 18, 142, 14, 74, 193, 216, 67, 216, 244, 129, 11, 181, 4, 98, 221, 179, 162, 81, 204, 210, 74, 185, 90, 83, 190, 75, 199, 160, 115, 162, 152, 13, 35, 1, 172, 66, 196, 122, 52, 142, 249, 124, 141, 1, 247, 124, 70, 65, 249, 22, 32, 135, 165, 124, 34, 64, 62, 240, 129, 117, 122, 94, 138, 142, 116, 51, 235, 107, 128, 27, 147, 179, 51, 1, 110, 158, 8, 130, 29, 44, 122, 90, 74, 111, 166, 105, 78, 51, 40, 201, 25, 133, 76, 54, 101, 54, 104, 67, 55, 53, 200, 234, 212, 180, 180, 140, 214, 32, 52, 107, 105, 186, 149, 53, 77, 189, 144, 34, 122, 195, 4, 61, 171, 231, 53, 203, 200, 55, 140, 116, 198, 202, 231, 169, 242, 37, 56, 100, 188, 71, 134, 183, 101, 48, 65, 134, 139, 8, 159, 23, 61, 11, 98, 177, 151, 72, 230, 115, 128, 155, 144, 179, 201, 93, 92, 209, 115, 5, 184, 162, 214, 105, 67, 116, 82, 174, 12, 111, 112, 207, 77, 120, 221, 120, 40, 159, 130, 61, 103, 123, 6, 244, 247, 44, 0, 177, 100, 120, 226, 231, 80, 239, 199, 0, 115, 30, 189, 219, 85, 183, 45, 84, 137, 149, 241, 138, 79, 161, 119, 17, 182, 19, 62, 86, 151, 213, 94, 44, 238, 219, 92, 28, 117, 219, 57, 100, 117, 145, 125, 175, 71, 121, 33, 30, 207, 251, 48, 20, 220, 19, 221, 42, 153, 234, 55, 225, 112, 32, 69, 171, 226, 23, 208, 52, 124, 237, 174, 157, 144, 6, 173, 188, 11, 10, 234, 162, 52, 250, 84, 175, 144, 186, 229, 121, 73, 206, 159, 41, 37, 155, 50, 143, 123, 13, 161, 206, 242, 246, 18, 136, 162, 199, 64, 45, 109, 81, 181, 220, 236, 241, 233, 237, 72, 38, 254, 9, 196, 193, 111, 170, 105, 53, 125, 48, 170, 196, 50, 13, 221, 200, 20, 210, 134, 101, 17, 200, 107, 35, 151, 37, 159, 187, 139, 22, 180, 218, 30, 182, 144, 217, 202, 162, 186, 253, 200, 181, 229, 209, 129, 238, 212, 65, 221, 224, 250, 142, 163, 188, 9, 12, 191, 130, 125, 168, 103, 70, 55, 166, 241, 171, 82, 48, 136, 175, 27, 123, 28, 167, 206, 182, 219, 82, 23, 193, 124, 168, 2, 219, 178, 41, 112, 117, 190, 86, 230, 216, 132, 186, 13, 171, 36, 187, 160, 51, 71, 184, 77, 49, 143, 38, 166, 23, 173, 235, 205, 213, 213, 57, 66, 155, 50, 55, 110, 219, 224, 88, 83, 211, 69, 6, 68, 128, 85, 118, 255, 94, 146, 255, 14, 70, 209, 82, 76, 195, 167, 175, 118, 94, 236, 44, 189, 142, 13, 255, 2, 173, 135, 59, 73, 146, 11, 0, 0 };
+            byte[] cachedResponse = new byte[] { 31, 139, 8, 0, 0, 0, 0, 0, 0, 11, 237, 87, 223, 107, 212, 88, 20, 158, 116, 218, 52, 217, 86, 221, 82, 89, 177, 44, 50, 162, 40, 186, 99, 204, 252, 232, 164, 1, 187, 90, 167, 174, 214, 181, 206, 236, 78, 245, 165, 148, 241, 230, 230, 204, 54, 78, 38, 25, 239, 189, 41, 206, 190, 232, 171, 175, 130, 255, 147, 143, 62, 20, 21, 4, 193, 101, 89, 4, 65, 4, 97, 97, 65, 88, 239, 73, 38, 90, 181, 91, 124, 216, 98, 119, 219, 12, 76, 114, 239, 61, 247, 228, 59, 231, 124, 231, 158, 147, 140, 146, 201, 100, 254, 150, 23, 222, 241, 26, 196, 135, 223, 148, 70, 143, 11, 232, 24, 213, 208, 247, 129, 10, 47, 12, 184, 113, 30, 2, 96, 30, 53, 102, 189, 120, 130, 176, 222, 181, 226, 226, 98, 95, 176, 33, 152, 23, 252, 146, 207, 117, 56, 13, 153, 239, 57, 249, 220, 85, 96, 92, 138, 77, 151, 13, 19, 127, 249, 92, 53, 242, 69, 196, 96, 58, 128, 72, 48, 226, 231, 115, 245, 200, 241, 61, 250, 35, 244, 22, 194, 54, 4, 211, 142, 101, 145, 73, 58, 89, 41, 216, 165, 50, 152, 83, 246, 82, 62, 85, 94, 115, 174, 75, 16, 255, 174, 242, 165, 65, 105, 231, 112, 95, 143, 86, 13, 59, 93, 194, 128, 105, 23, 8, 95, 110, 120, 191, 194, 46, 185, 243, 42, 241, 35, 168, 19, 143, 241, 76, 54, 147, 213, 238, 110, 228, 148, 254, 253, 220, 141, 136, 248, 158, 232, 165, 250, 174, 21, 54, 213, 67, 75, 218, 31, 27, 129, 90, 107, 195, 127, 58, 86, 139, 75, 154, 140, 150, 62, 32, 255, 198, 240, 33, 139, 68, 197, 209, 86, 140, 9, 102, 209, 48, 34, 204, 96, 42, 33, 240, 236, 239, 219, 34, 74, 131, 111, 228, 57, 178, 61, 76, 69, 238, 101, 219, 208, 27, 90, 65, 115, 148, 1, 117, 72, 78, 236, 254, 25, 110, 68, 192, 133, 49, 15, 98, 57, 116, 85, 21, 89, 90, 175, 53, 22, 148, 191, 164, 99, 208, 57, 42, 178, 97, 52, 21, 171, 19, 177, 172, 234, 200, 231, 147, 12, 120, 24, 49, 10, 202, 159, 169, 228, 136, 156, 31, 79, 37, 127, 138, 128, 245, 18, 47, 169, 163, 49, 179, 94, 167, 114, 187, 229, 232, 235, 84, 110, 150, 8, 130, 39, 152, 186, 71, 206, 158, 41, 210, 73, 211, 166, 100, 210, 158, 42, 149, 11, 78, 139, 182, 44, 199, 132, 178, 69, 29, 215, 44, 153, 45, 66, 203, 174, 105, 185, 101, 199, 177, 166, 10, 196, 106, 57, 96, 149, 173, 138, 233, 218, 149, 150, 93, 44, 185, 149, 10, 85, 94, 165, 47, 25, 75, 192, 240, 174, 12, 38, 200, 112, 17, 17, 241, 106, 232, 130, 166, 221, 71, 48, 47, 83, 185, 113, 57, 218, 251, 78, 174, 26, 6, 2, 2, 177, 208, 235, 130, 186, 87, 174, 140, 92, 231, 97, 144, 11, 227, 120, 40, 47, 210, 61, 223, 36, 6, 244, 247, 92, 0, 226, 202, 240, 232, 251, 80, 239, 243, 84, 102, 63, 122, 55, 86, 119, 83, 24, 82, 86, 198, 75, 159, 64, 239, 162, 216, 234, 192, 150, 42, 86, 235, 161, 184, 228, 113, 177, 217, 199, 206, 78, 121, 92, 167, 60, 62, 30, 216, 98, 167, 209, 255, 132, 29, 139, 241, 9, 24, 23, 100, 172, 116, 250, 183, 152, 174, 19, 253, 146, 247, 225, 210, 1, 44, 135, 184, 254, 110, 45, 251, 112, 39, 42, 155, 147, 179, 207, 228, 97, 185, 227, 220, 205, 161, 252, 71, 37, 63, 123, 235, 11, 103, 180, 154, 139, 139, 98, 196, 69, 216, 73, 170, 166, 89, 208, 15, 98, 154, 61, 149, 44, 64, 38, 168, 135, 62, 145, 40, 234, 135, 49, 29, 15, 124, 144, 142, 219, 163, 101, 83, 158, 164, 221, 196, 17, 105, 244, 87, 73, 23, 17, 247, 38, 71, 229, 248, 142, 50, 239, 81, 22, 242, 176, 37, 140, 25, 222, 189, 12, 162, 26, 50, 48, 230, 87, 168, 81, 107, 39, 120, 146, 29, 249, 220, 63, 10, 226, 195, 123, 168, 69, 163, 248, 121, 80, 137, 235, 216, 150, 93, 154, 42, 218, 174, 75, 160, 98, 142, 30, 147, 120, 46, 206, 185, 208, 233, 134, 216, 63, 205, 212, 231, 140, 155, 87, 2, 79, 188, 215, 93, 248, 92, 55, 4, 145, 239, 43, 143, 83, 195, 143, 99, 19, 150, 152, 17, 199, 84, 255, 14, 123, 40, 228, 204, 151, 38, 51, 86, 10, 181, 233, 73, 253, 124, 168, 201, 229, 247, 183, 214, 92, 73, 180, 202, 38, 90, 211, 244, 124, 159, 175, 49, 111, 145, 194, 8, 90, 63, 177, 102, 118, 8, 109, 57, 189, 142, 215, 140, 153, 110, 87, 190, 156, 160, 81, 13, 96, 43, 30, 5, 110, 204, 46, 212, 56, 54, 146, 113, 211, 57, 47, 59, 89, 255, 44, 225, 30, 197, 116, 24, 63, 53, 231, 126, 223, 110, 54, 207, 18, 218, 150, 134, 254, 224, 129, 239, 78, 156, 170, 50, 32, 2, 220, 90, 240, 241, 146, 132, 183, 11, 3, 134, 56, 110, 63, 88, 189, 183, 122, 249, 145, 54, 150, 194, 85, 13, 84, 184, 54, 3, 99, 191, 155, 133, 177, 20, 186, 122, 114, 125, 137, 226, 200, 91, 44, 104, 38, 141, 154, 17, 0, 0 };
             var distributedCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
-            distributedCache.Set(IDEMPOTENCY_KEY, cackedResponse);
+            distributedCache.Set(distributedCacheKey, cachedResponse);
             
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
@@ -490,8 +494,14 @@ namespace IdempotentAPI.xUnit.Filters
             idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
 
 
-            // Assert
+            // Assert (result should not be null)
+            Assert.NotNull(actionExecutingContext.Result);
+
+            // Assert (result should be equal to expected value)
             expectedExecutionResult.Should().Equals(actionExecutingContext.Result);
+
+            // Assert (response headers count)
+            Assert.Equal(expectedResponseHeadersCount, actionExecutingContext.HttpContext.Response.Headers.Count);
         }
 
 
