@@ -1,6 +1,8 @@
 ﻿using IdempotentAPI.Core;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IdempotentAPI.Filters
 {
@@ -16,9 +18,11 @@ namespace IdempotentAPI.Filters
 
 
         private readonly IDistributedCache _distributedCache;
+        private readonly ILogger _logger;
 
         public IdempotencyAttributeFilter(
             IDistributedCache distributedCache,
+            ILoggerFactory loggerFactory,
             bool Enabled,
             int ExpireHours,
             string HeaderKeyName,
@@ -29,6 +33,15 @@ namespace IdempotentAPI.Filters
             this.ExpireHours = ExpireHours;
             this.HeaderKeyName = HeaderKeyName;
             this.DistributedCacheKeysPrefix = DistributedCacheKeysPrefix;
+
+            if (loggerFactory != null)
+            {
+                _logger = loggerFactory.CreateLogger<IdempotencyAttributeFilter>();
+            }
+            else
+            {
+                _logger = NullLogger.Instance;
+            }
         }
 
         /// <summary>
@@ -46,7 +59,7 @@ namespace IdempotentAPI.Filters
             // Initialize only on its null (in case of multiple executions):
             if (_idempotency == null)
             {
-                _idempotency = new Idempotency(_distributedCache, ExpireHours, HeaderKeyName, DistributedCacheKeysPrefix);
+                _idempotency = new Idempotency(_distributedCache, _logger, ExpireHours, HeaderKeyName, DistributedCacheKeysPrefix);
             }
 
             _idempotency.ApplyPreIdempotency(context);

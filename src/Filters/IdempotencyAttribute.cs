@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 
 namespace IdempotentAPI.Filters
 {
@@ -23,8 +24,9 @@ namespace IdempotentAPI.Filters
         public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
         {
             var distributedCache = (IDistributedCache)serviceProvider.GetService(typeof(IDistributedCache));
+            var loggerFactory = (ILoggerFactory)serviceProvider.GetService(typeof(ILoggerFactory));
 
-            IdempotencyAttributeFilter idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, Enabled, ExpireHours, HeaderKeyName, DistributedCacheKeysPrefix);
+            IdempotencyAttributeFilter idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, loggerFactory, Enabled, ExpireHours, HeaderKeyName, DistributedCacheKeysPrefix);
             return idempotencyAttributeFilter;
         }
     }
