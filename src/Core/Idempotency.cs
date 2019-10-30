@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using System.Linq;
 using System.Reflection;
 using IdempotentAPI.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace IdempotentAPI.Core
 {
@@ -18,6 +19,7 @@ namespace IdempotentAPI.Core
         private readonly string _headerKeyName;
         private readonly string _distributedCacheKeysPrefix;
         private readonly IDistributedCache _distributedCache;
+        private readonly ILogger _logger;
         private readonly int _expireHours;
 
 
@@ -40,6 +42,7 @@ namespace IdempotentAPI.Core
 
         public Idempotency(
                     IDistributedCache distributedCache,
+                    ILogger logger,
                     int expireHours,
                     string headerKeyName,
                     string distributedCacheKeysPrefix)
@@ -48,6 +51,7 @@ namespace IdempotentAPI.Core
             _expireHours = expireHours;
             _headerKeyName = headerKeyName;
             _distributedCacheKeysPrefix = distributedCacheKeysPrefix;
+            _logger = logger;
         }
 
 
@@ -94,7 +98,7 @@ namespace IdempotentAPI.Core
             if (httpRequest.Method != HttpMethods.Post
             && httpRequest.Method != HttpMethods.Patch)
             {
-                Console.WriteLine($"IdempotencyFilterAttribute [Before Controller execution]: Idempotency SKIPPED, httpRequest Method is:{httpRequest.Method.ToString()}");
+                _logger.LogInformation("IdempotencyFilterAttribute [Before Controller execution]: Idempotency SKIPPED, httpRequest Method is: {httpRequestMethod}", httpRequest.Method.ToString());
                 return false;
             }
 
@@ -232,7 +236,7 @@ namespace IdempotentAPI.Core
         /// <param name="context"></param>
         public void ApplyPreIdempotency(ActionExecutingContext context)
         {
-            Console.WriteLine($"IdempotencyFilterAttribute [Before Controller execution]: Request for {context.HttpContext.Request.Method}: {context.HttpContext.Request.Path} received ({context.HttpContext.Request.ContentLength ?? 0} bytes)");
+            _logger.LogInformation("IdempotencyFilterAttribute [Before Controller execution]: Request for {HttpContextRequestMethod}: {HttpContextRequestPath} received ({HttpContextRequestContentLength} bytes)", context.HttpContext.Request.Method, context.HttpContext.Request.Path, context.HttpContext.Request.ContentLength ?? 0);
 
             // Check if Idempotency can be applied:
             if (!canPerformIdempotency(context.HttpContext.Request))
@@ -324,11 +328,11 @@ namespace IdempotentAPI.Core
                     }
                 }
 
-                Console.WriteLine($"IdempotencyFilterAttribute [Before Controller]: Return result from idempotency cache (of type {contextResultType.ToString()})");
+                _logger.LogInformation("IdempotencyFilterAttribute [Before Controller]: Return result from idempotency cache (of type {contextResultType})", contextResultType.ToString());
                 _isPreIdempotencyCacheReturned = true;
             }
 
-            Console.WriteLine($"IdempotencyFilterAttribute [Before Controller]: End");
+            _logger.LogInformation("IdempotencyFilterAttribute [Before Controller]: End");
             _isPreIdempotencyApplied = true;
         }
 
@@ -339,11 +343,11 @@ namespace IdempotentAPI.Core
         /// <param name="context"></param>
         public void ApplyPostIdempotency(ResultExecutedContext context)
         {
-            Console.WriteLine($"IdempotencyFilterAttribute [After Controller execution]: Response for {context.HttpContext.Response.StatusCode} sent ({context.HttpContext.Response.ContentLength ?? 0} bytes)");
+            _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: Response for {HttpContextResponseStatusCode} sent ({HttpContextResponseContentLength} bytes)", context.HttpContext.Response.StatusCode, context.HttpContext.Response.ContentLength ?? 0);
 
             if (!_isPreIdempotencyApplied || _isPreIdempotencyCacheReturned)
             {
-                Console.WriteLine($"IdempotencyFilterAttribute [After Controller execution]: Result NOT cached");
+                _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: SKIPPED (isPreIdempotencyApplied:{_isPreIdempotencyApplied}, isPreIdempotencyCacheReturned:{_isPreIdempotencyCacheReturned})", _isPreIdempotencyApplied, _isPreIdempotencyCacheReturned);
                 return;
             }
 
@@ -357,7 +361,7 @@ namespace IdempotentAPI.Core
             // Save to cache:
             _distributedCache.Set(DistributedCacheKey, cacheDataSerialized, cacheOptions);
 
-            Console.WriteLine($"IdempotencyFilterAttribute [After Controller execution]: Result is cached for idempotencyKey: {_idempotencyKey}");
+            _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: Result is cached for idempotencyKey: {idempotencyKey}", _idempotencyKey);
         }
     }
 }
