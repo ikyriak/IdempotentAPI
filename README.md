@@ -20,7 +20,7 @@ The IdempotentAPI library performs additional validation of the request's hash-k
 
 The following image shows an example of the IdempotentAPI library flow for two same POST requests. As shown in this image, IdempotentAPI library includes two additional steps, one prior to the controller's execution and one after the construction of the controller's response.
 
-![IdempotentAPI library flow example](etc\IdempotentAPI_FlowExample.png)
+![IdempotentAPI library flow example](./etc/IdempotentAPI_FlowExample.png)
 
 ### Persistent Storage and Cache Expiration
 
