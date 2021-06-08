@@ -111,3 +111,6 @@ public Task<IActionResult> Create([FromBody] WeatherForecast weatherForecastDto)
 | HeaderKeyName              | string | IdempotencyKey | The name of the Idempotency-Key header.                      |
 | DistributedCacheKeysPrefix | string | IdempAPI_      | A prefix for the key names that will be used in the DistributedCache. |
 
+
+## License
+The IdempotentAPI is [MIT licensed](./LICENSE.md).
