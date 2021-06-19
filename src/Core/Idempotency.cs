@@ -196,7 +196,8 @@ namespace IdempotentAPI.Core
             }
 
             // Form-Files data:
-            if (httpRequest.Form != null
+            if (httpRequest.HasFormContentType
+                && httpRequest.Form != null
                 && httpRequest.Form.Files != null
                 && httpRequest.Form.Files.Count > 0)
             {
