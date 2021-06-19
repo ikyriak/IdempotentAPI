@@ -4,14 +4,14 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using IdempotentAPI.Filters;
-using WebApi_3_1.DTOs;
+using WebApi_5_0.DTOs;
 
-namespace WebApi_3_1.Controllers
+namespace WebApi_5_0.Controllers
 {
-    [ApiController]
+    [ApiController]    
     [Route("[controller]")]
-    [Consumes("application/json")]
-    [Produces("application/json")]
+    //[Consumes("application/json")]
+    //[Produces("application/json")]
     [Idempotent(Enabled = true)]
     public class SimpleController : ControllerBase
     {
@@ -48,7 +48,6 @@ namespace WebApi_3_1.Controllers
         }
 
         [HttpPost]
-        [Idempotent(ExpireHours = 48)]
         public IActionResult Post([FromBody] SimpleRequest simpleRequest)
         {
             // Perform some simple input validations
@@ -71,8 +70,12 @@ namespace WebApi_3_1.Controllers
                 Message = $"A Simple string message (as created)!"
             };
 
-            return CreatedAtRoute("GetById", new { Id = simpleResponse.Id }, simpleResponse);
+            return Ok(simpleResponse);
+            //return CreatedAtRoute("GetById", new { Id = simpleResponse.Id }, simpleResponse);
         }
+
+
+
 
     }
 }
