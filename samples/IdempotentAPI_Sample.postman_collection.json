@@ -1,0 +1,125 @@
+{
+	"info": {
+		"_postman_id": "7a4242d3-c586-454b-8304-448a58f6f3e8",
+		"name": "IdempotentAPI_Sample",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get All Results (Idempodent by default)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:44396/Simple/2359",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "44396",
+					"path": [
+						"Simple",
+						"2359"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create a New Entity",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "IdempotencyKey",
+						"value": "26f61187-2a9c-4df7-9388-1a3aaf68a9db",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"message\": \"A Request message!\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:44396/simple",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "44396",
+					"path": [
+						"simple"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Error at Creatin a New Entity (empty IdempotencyKey)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"message\": \"A Request message!\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:44396/simple",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "44396",
+					"path": [
+						"simple"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Error at Creating a New Entity (empty request message)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "IdempotencyKey",
+						"value": "36f61187-2a9c-4df7-9388-1a3aaf68a9db",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"message\": \"\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:44396/simple",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "44396",
+					"path": [
+						"simple"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
