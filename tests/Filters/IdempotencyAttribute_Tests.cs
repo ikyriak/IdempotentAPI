@@ -66,6 +66,13 @@ namespace IdempotentAPI.xUnit.Filters
             // Mock Request's Headers (if any):
             request.Setup(r => r.Headers).Returns(requestHeaders);
 
+            // Set the Content-Type based on the request headers.
+            string contentType = "json object";
+            if (requestHeaders.ContainsKey("Content-Type"))
+            {
+                contentType = requestHeaders["Content-Type"];
+            }
+
             switch (requestBody)
             {
                 case string requestBodyString:
@@ -75,7 +82,11 @@ namespace IdempotentAPI.xUnit.Filters
                         request.SetupGet(r => r.QueryString).Returns(new QueryString());
                         request.SetupGet(c => c.ContentLength).Returns(requestBodyString.Length);
                         request.SetupGet(r => r.Body).Returns(new MemoryStream(Encoding.UTF8.GetBytes(requestBodyString)));
-                        request.SetupGet(r => r.ContentType).Returns(@"json object");
+                        request.SetupGet(r => r.ContentType).Returns(contentType);
+
+                        // The Form throws an exception when the Content-Type is not supported.
+                        request.SetupGet(r => r.HasFormContentType).Returns(false);
+                        request.SetupGet(r => r.Form).Throws(new InvalidOperationException($"Incorrect Content-Type: {contentType}"));
                     }
                     break;
                 // Mock Request's File:
@@ -83,9 +94,8 @@ namespace IdempotentAPI.xUnit.Filters
                     if (requestBodyFile != null)
                     {
                         request.SetupGet(r => r.Path).Returns("/resource");
-                        request.SetupGet(r => r.QueryString).Returns(new QueryString());
+                       request.SetupGet(r => r.QueryString).Returns(new QueryString());
                         request.SetupGet(c => c.ContentLength).Returns(requestBodyFile.Length);
-                        //request.SetupGet(r => r.Body).Returns(new MemoryStream(requestBodyFile.Serialize()));
                         request.Setup(r => r.Form.Files).Returns(new FormFileCollection() { requestBodyFile });
                         request.SetupGet(r => r.ContentType).Returns("multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW");
                     }
@@ -112,7 +122,7 @@ namespace IdempotentAPI.xUnit.Filters
             {
                 httpResponse.SetupGet(c => c.StatusCode).Returns(actionResult.StatusCode.HasValue ? actionResult.StatusCode.Value : 500);
                 httpResponse.SetupGet(c => c.ContentLength).Returns(actionResult is ObjectResult ? ((ObjectResult)actionResult).Value.Serialize().Length : 0);
-                httpResponse.SetupGet(r => r.ContentType).Returns(@"json object");
+                httpResponse.SetupGet(r => r.ContentType).Returns(contentType);
             }
             httpContext.SetupGet(c => c.Response).Returns(() => httpResponse.Object);
 
@@ -392,6 +402,7 @@ namespace IdempotentAPI.xUnit.Filters
             string distributedCacheKey = _distributedCacheKeysPrefix + idempotencyKey;
             string requestBodyString = @"{""message"":""This is a dummy message""}";
             var requestHeaders = new HeaderDictionary();
+            requestHeaders.Add("Content-Type", "application/json");
             requestHeaders.Add(_headerKeyName, idempotencyKey);
                         
             var controllerExecutionResult = new OkObjectResult(new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) });
@@ -506,10 +517,10 @@ namespace IdempotentAPI.xUnit.Filters
         public void SetResultFromDistributionCache_IfValidRequestIsCached(string httpMethod, string idempotencyKey)
         {
             // Arrange
-            string distributedCacheKey = _distributedCacheKeysPrefix + idempotencyKey;
             string requestBodyString = @"{""message"":""This is a dummy message""}";
             int expectedResponseHeadersCount = 2;
             var requestHeaders = new HeaderDictionary();
+            requestHeaders.Add("Content-Type", "application/json");
             requestHeaders.Add(_headerKeyName, idempotencyKey);
             
             // The expected result
