@@ -94,7 +94,7 @@ namespace IdempotentAPI.xUnit.Filters
                     if (requestBodyFile != null)
                     {
                         request.SetupGet(r => r.Path).Returns("/resource");
-                       request.SetupGet(r => r.QueryString).Returns(new QueryString());
+                        request.SetupGet(r => r.QueryString).Returns(new QueryString());
                         request.SetupGet(c => c.ContentLength).Returns(requestBodyFile.Length);
                         request.Setup(r => r.Form.Files).Returns(new FormFileCollection() { requestBodyFile });
                         request.SetupGet(r => r.ContentType).Returns("multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW");
@@ -102,7 +102,7 @@ namespace IdempotentAPI.xUnit.Filters
                     break;
             }
 
-            
+
 
             // Mock Request's File:
             //FormFile txtFile = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("This is a dummy file")), 0, 0, "Data", "dummy.txt");
@@ -157,7 +157,7 @@ namespace IdempotentAPI.xUnit.Filters
                 Mock.Of<Controller>()
             );
 
-            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(null, _loggerFactory, false, 1, _headerKeyName,_distributedCacheKeysPrefix);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(null, _loggerFactory, false, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
             // Act
             idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
@@ -404,7 +404,7 @@ namespace IdempotentAPI.xUnit.Filters
             var requestHeaders = new HeaderDictionary();
             requestHeaders.Add("Content-Type", "application/json");
             requestHeaders.Add(_headerKeyName, idempotencyKey);
-                        
+
             var controllerExecutionResult = new OkObjectResult(new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) });
             var responseHeaders = new HeaderDictionary();
             responseHeaders.Add(new KeyValuePair<string, StringValues>("CustomHeader01", new StringValues("CustomHeaderValue01")));
@@ -522,7 +522,7 @@ namespace IdempotentAPI.xUnit.Filters
             var requestHeaders = new HeaderDictionary();
             requestHeaders.Add("Content-Type", "application/json");
             requestHeaders.Add(_headerKeyName, idempotencyKey);
-            
+
             // The expected result
             var expectedExecutionResult = new OkObjectResult(new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) });
 
@@ -551,6 +551,88 @@ namespace IdempotentAPI.xUnit.Filters
             Assert.Equal(expectedResponseHeadersCount, actionExecutingContext.HttpContext.Response.Headers.Count);
         }
 
+        /// <summary>
+        /// Scenario: 
+        /// The Idempotency Attribute is enabled, receiving a POST or PATCH request with an IdempotencyKey Header,
+        /// which doesn't exist in the DistributionCache. Then check a second request while the first in still in flight
+        /// 
+        /// Action:
+        /// Part1: Check that do not exist in the DistributionCache [OnActionExecuting]
+        /// Part2: Send the same request and check a 409 is returned
+        /// Part3: Save in the DistributionCache [OnActionExecuted]
+        /// Part4: Resend the same request and ensure the response is the same as part 3
+        /// </summary>
+        [Theory]
+        [InlineData("POST", "b8fcc234-e1bd-11e9-81b4-2a2ae2dbcce4")]
+        [InlineData("PATCH", "c45ca868-fa74-11e9-8f0b-362b9e155667")]
+        public void SetInDistributionCache_IfValidRequestNotCached_WithInflight(string httpMethod, string idempotencyKey)
+        {
+            // Arrange
 
+            // Prepare the body and headers for the Request and Response:
+            string distributedCacheKey = _distributedCacheKeysPrefix + idempotencyKey;
+            string requestBodyString = @"{""message"":""This is a dummy message""}";
+            var requestHeaders = new HeaderDictionary();
+            requestHeaders.Add("Content-Type", "application/json");
+            requestHeaders.Add(_headerKeyName, idempotencyKey);
+
+            // Execution Result
+            var controllerExecutionResult = new OkObjectResult(new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) });
+
+            var responseHeaders = new HeaderDictionary();
+            responseHeaders.Add(new KeyValuePair<string, StringValues>("CustomHeader01", new StringValues("CustomHeaderValue01")));
+            responseHeaders.Add(new KeyValuePair<string, StringValues>("CustomHeader02", new StringValues("CustomHeaderValue02")));
+
+            var actionContext = ArrangeActionContextMock(httpMethod, requestHeaders, requestBodyString, responseHeaders, controllerExecutionResult);
+            var actionExecutingContext = new ActionExecutingContext(
+                actionContext,
+                new List<IFilterMetadata>(),
+                new Dictionary<string, object>(),
+                Mock.Of<Controller>()
+            );
+
+            var inflightExecutingContext = new ActionExecutingContext(
+                actionContext,
+                new List<IFilterMetadata>(),
+                new Dictionary<string, object>(),
+                Mock.Of<Controller>()
+            );
+
+            var resultExecutedContext = new ResultExecutedContext(
+                actionContext,
+                new List<IFilterMetadata>(),
+                controllerExecutionResult,
+                Mock.Of<Controller>());
+
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(_sharedDistributedCache.Cache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
+
+            var idempotencyAttributeFilterRequest2 = new IdempotencyAttributeFilter(_sharedDistributedCache.Cache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
+
+            // Act Part 1 (check cache):
+            idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
+
+            // Assert Part 1:
+            Assert.Null(actionExecutingContext.Result);
+
+            // Act Part 2 - since we haven't called OnResultExecuted the result of the first request should still be inflight and we should have a 409 result
+            idempotencyAttributeFilterRequest2.OnActionExecuting(inflightExecutingContext);
+            Assert.NotNull(inflightExecutingContext.Result);
+            Assert.Equal(409, ((ConflictResult)inflightExecutingContext.Result).StatusCode);
+
+            // Act Part 3:
+            idempotencyAttributeFilter.OnResultExecuted(resultExecutedContext);
+
+            // Assert Part 3:
+            byte[] cachedData = _sharedDistributedCache.Cache.Get(distributedCacheKey);
+            Assert.NotNull(cachedData);
+
+            // Act 4 rerun the request that failed cause the first was in flight
+            idempotencyAttributeFilterRequest2.OnActionExecuting(inflightExecutingContext);
+
+            //Assert : Part 4
+            // The result of the above should be coming from the cache so we should have a result
+            Assert.Equal(200, ((OkObjectResult)inflightExecutingContext.Result).StatusCode);       
+
+        }
     }
 }
