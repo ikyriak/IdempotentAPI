@@ -355,7 +355,7 @@ namespace IdempotentAPI.Core
                 DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
                 cacheOptions.AbsoluteExpirationRelativeToNow = new TimeSpan(_expireHours, 0, 0);
 
-                byte[] requestInFlightCacaheDataSerialied = generateRequestInFlightCacaheDataSerialied(context);
+                byte[] requestInFlightCacaheDataSerialied = generateRequestInFlightCacaheDataSerialized(context);
                 _distributedCache.Set(DistributedCacheKey, requestInFlightCacaheDataSerialied, cacheOptions);
             }
             _logger.LogInformation("IdempotencyFilterAttribute [Before Controller]: End");
