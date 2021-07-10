@@ -632,7 +632,9 @@ namespace IdempotentAPI.xUnit.Filters
 
             //Assert : Part 4
             // The result of the above should be coming from the cache so we should have a result
-            Assert.Equal(200, ((OkObjectResult)inflightExecutingContext.Result).StatusCode);       
+            Assert.Equal(typeof(OkObjectResult), inflightExecutingContext.Result.GetType());
+            Assert.Equal(typeof(ResponseModelBasic), ((OkObjectResult)inflightExecutingContext.Result).Value.GetType());                                    
+            Assert.Equal(200, ((OkObjectResult)inflightExecutingContext.Result).StatusCode);
 
         }
     }
