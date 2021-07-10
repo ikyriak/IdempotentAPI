@@ -563,8 +563,8 @@ namespace IdempotentAPI.xUnit.Filters
         /// Part4: Resend the same request and ensure the response is the same as part 3
         /// </summary>
         [Theory]
-        [InlineData("POST", "b8fcc234-e1bd-11e9-81b4-2a2ae2dbcce4")]
-        [InlineData("PATCH", "c45ca868-fa74-11e9-8f0b-362b9e155667")]
+        [InlineData("POST", "3e692c04-c19d-419b-b60c-3cdb6c577686")]
+        [InlineData("PATCH", "9099b60c-000d-4e83-9f9e-f342f6ad0f04")]
         public void SetInDistributionCache_IfValidRequestNotCached_WithInflight(string httpMethod, string idempotencyKey)
         {
             // Arrange
