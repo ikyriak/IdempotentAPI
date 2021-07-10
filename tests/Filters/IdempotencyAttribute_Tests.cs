@@ -617,6 +617,7 @@ namespace IdempotentAPI.xUnit.Filters
             // Act Part 2 - since we haven't called OnResultExecuted the result of the first request should still be inflight and we should have a 409 result
             idempotencyAttributeFilterRequest2.OnActionExecuting(inflightExecutingContext);
             Assert.NotNull(inflightExecutingContext.Result);
+            Assert.Equal(typeof(ConflictResult), inflightExecutingContext.Result.GetType());
             Assert.Equal(409, ((ConflictResult)inflightExecutingContext.Result).StatusCode);
 
             // Act Part 3:
