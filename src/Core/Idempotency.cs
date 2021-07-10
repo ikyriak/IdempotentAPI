@@ -111,7 +111,7 @@ namespace IdempotentAPI.Core
             return true;
         }
 
-        private byte[] generateRequestInFlightCacaheDataSerialied(ActionExecutingContext context)
+        private byte[] generateRequestInFlightCacaheDataSerialized(ActionExecutingContext context)
         {
             Dictionary<string, object> cacheData = new Dictionary<string, object>();
             cacheData.Add("Request.Inflight", new RequestinFlightPlaceHolder());
