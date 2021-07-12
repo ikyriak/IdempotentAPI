@@ -4,14 +4,14 @@
     <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
     <Authors>Ioannis Kyriakidis</Authors>
     <Company>ikyriakidis.com</Company>
-    <Version>0.2.0-beta</Version>
+    <Version>0.2.1-beta</Version>
     <Description>IdempotentAPI is an ASP.NET Core attribute by which any HTTP write operations (POST and PATCH) can have effect only once for the given request data.</Description>
     <PackageTags>idempotent api;idempotency;asp.net core;attribute;middleware;rest</PackageTags>
     <RepositoryUrl>https://github.com/ikyriak/IdempotentAPI.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/ikyriak/IdempotentAPI</PackageProjectUrl>
-    <AssemblyVersion>0.2.0.0</AssemblyVersion>
-    <FileVersion>0.2.0.0</FileVersion>
+    <AssemblyVersion>0.2.1.0</AssemblyVersion>
+    <FileVersion>0.2.1.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
