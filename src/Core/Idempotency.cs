@@ -54,7 +54,6 @@ namespace IdempotentAPI.Core
             _logger = logger;
         }
 
-
         private bool TryGetIdempotencyKey(HttpRequest httpRequest, out string idempotencyKey, out IActionResult errorActionResult)
         {
             idempotencyKey = string.Empty;
@@ -86,6 +85,7 @@ namespace IdempotentAPI.Core
             idempotencyKey = idempotencyKeys.ToString();
             return true;
         }
+
         private bool canPerformIdempotency(HttpRequest httpRequest)
         {
             // If distributedCache is not configured
@@ -110,6 +110,15 @@ namespace IdempotentAPI.Core
 
             return true;
         }
+
+        private byte[] generateRequestInFlightCacaheDataSerialized(ActionExecutingContext context)
+        {
+            Dictionary<string, object> cacheData = new Dictionary<string, object>();
+            cacheData.Add("Request.Inflight", new RequestinFlightPlaceHolder());
+
+            return cacheData.Serialize();
+        }
+
         private byte[] generateCacheData(ResultExecutedContext context)
         {
             Dictionary<string, object> cacheData = new Dictionary<string, object>();
@@ -168,6 +177,7 @@ namespace IdempotentAPI.Core
             // Serialize & Compress data:
             return cacheData.Serialize();
         }
+
         private string getRequestsDataHash(HttpRequest httpRequest)
         {
             List<object> requestsData = new List<object>();
@@ -258,6 +268,13 @@ namespace IdempotentAPI.Core
             Dictionary<string, object> cacheData = (Dictionary<string, object>)cacheDataSerialized.DeSerialize();
             if (cacheData != null)
             {
+                // RPG - 2021-07-05 - Check if there is a copy of this request in flight, if so return a 409 Http Conflict response
+                if(cacheData.ContainsKey("Request.Inflight") && cacheData["Request.Inflight"] is RequestinFlightPlaceHolder)
+                {
+                    context.Result = new ConflictResult();
+                    return;
+                }
+
                 // 2019-07-06: Evaluate the "Request.DataHash" in order to be sure that the cached response is returned
                 //  for the same combination of IdempotencyKey and Request
                 string cachedRequestDataHash = cacheData["Request.DataHash"].ToString();
@@ -276,7 +293,7 @@ namespace IdempotentAPI.Core
                 Type contextResultType = Type.GetType(resultObjects["ResultType"].ToString());
                 if (contextResultType == null)
                 {
-                    throw new NotImplementedException($"ApplyPreIdempotency, ResultType {resultObjects["ResultType"].ToString()} is not recornized");
+                    throw new NotImplementedException($"ApplyPreIdempotency, ResultType {resultObjects["ResultType"].ToString()} is not recognized");
                 }
 
 
@@ -313,7 +330,7 @@ namespace IdempotentAPI.Core
                 }
                 else
                 {
-                    throw new NotImplementedException($"ApplyPreIdempotency is not implement for IActionResult type {contextResultType.ToString()}");
+                    throw new NotImplementedException($"ApplyPreIdempotency is not implemented for IActionResult type {contextResultType.ToString()}");
                 }
 
                 // Include cached headers (if does not exist) at the response:
@@ -332,7 +349,15 @@ namespace IdempotentAPI.Core
                 _logger.LogInformation("IdempotencyFilterAttribute [Before Controller]: Return result from idempotency cache (of type {contextResultType})", contextResultType.ToString());
                 _isPreIdempotencyCacheReturned = true;
             }
+            else
+            {
+                _logger.LogInformation("IdempotencyFilterAttribute [Before Controller]: Add request into inflight cache");
+                DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
+                cacheOptions.AbsoluteExpirationRelativeToNow = new TimeSpan(_expireHours, 0, 0);
 
+                byte[] requestInFlightCacaheDataSerialied = generateRequestInFlightCacaheDataSerialized(context);
+                _distributedCache.Set(DistributedCacheKey, requestInFlightCacaheDataSerialied, cacheOptions);
+            }
             _logger.LogInformation("IdempotencyFilterAttribute [Before Controller]: End");
             _isPreIdempotencyApplied = true;
         }
