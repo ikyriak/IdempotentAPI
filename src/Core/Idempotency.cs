@@ -39,6 +39,11 @@ namespace IdempotentAPI.Core
         private bool _isPreIdempotencyCacheReturned = false;
         private HashAlgorithm _hashAlgorithm = new SHA256CryptoServiceProvider();
 
+        /// <summary>
+        /// The read-only list of HTTP Header Keys will be handled from the selected HTTP Server and
+        /// not included in the cache.
+        /// </summary>
+        private readonly IReadOnlyList<string> _excludeHttpHeaderKeys = new List<string>() { "Transfer-Encoding" };
 
         public Idempotency(
                     IDistributedCache distributedCache,
@@ -132,7 +137,10 @@ namespace IdempotentAPI.Core
             cacheData.Add("Response.StatusCode", context.HttpContext.Response.StatusCode);
             cacheData.Add("Response.ContentType", context.HttpContext.Response.ContentType);
 
-            Dictionary<string, List<string>> Headers = context.HttpContext.Response.Headers.ToDictionary(h => h.Key, h => h.Value.ToList());
+            Dictionary<string, List<string>> Headers = context.HttpContext.Response.Headers
+                .Where(h=> !_excludeHttpHeaderKeys.Contains(h.Key))
+                .ToDictionary(h => h.Key, h => h.Value.ToList());
+
             cacheData.Add("Response.Headers", Headers);
 
 
