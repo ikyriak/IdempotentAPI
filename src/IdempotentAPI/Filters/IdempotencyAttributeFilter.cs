@@ -1,6 +1,6 @@
 ﻿using IdempotentAPI.Core;
+using IdempotentAPI.Cache;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -14,14 +14,13 @@ namespace IdempotentAPI.Filters
         public string DistributedCacheKeysPrefix { get; private set; }
 
 
-        private Idempotency _idempotency { get; set; } = null;
+        private Idempotency? _idempotency = null;
 
-
-        private readonly IDistributedCache _distributedCache;
+        private readonly IIdempotencyCache _distributedCache;
         private readonly ILogger<Idempotency> _logger;
-        
+
         public IdempotencyAttributeFilter(
-            IDistributedCache distributedCache,
+            IIdempotencyCache distributedCache,
             ILoggerFactory loggerFactory,
             bool Enabled,
             int ExpireHours,
