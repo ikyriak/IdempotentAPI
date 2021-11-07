@@ -1,4 +1,13 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+using FluentAssertions;
+using IdempotentAPI.Cache;
 using IdempotentAPI.Filters;
+using IdempotentAPI.Helpers;
+using IdempotentAPI.Tests.Helpers;
 using IdempotentAPI.xUnit.ApplicationServices.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Internal;
@@ -7,22 +16,11 @@ using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
-using Moq;
-using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.IO;
-using System.Text;
-using Xunit;
-using IdempotentAPI.Helpers;
-using FluentAssertions;
-using Microsoft.Extensions.Primitives;
-using IdempotentAPI.Tests.Helpers;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
+using Moq;
+using Xunit;
 
 namespace IdempotentAPI.xUnit.Filters
 {
@@ -33,7 +31,7 @@ namespace IdempotentAPI.xUnit.Filters
         private readonly ILoggerFactory _loggerFactory;
 
         // DistributedCache that will be used from different sequential tests.
-        private MemoryDistributedCacheFixture _sharedDistributedCache;
+        private readonly MemoryDistributedCacheFixture _sharedDistributedCache;
 
         public IdempotencyAttribute_Tests(MemoryDistributedCacheFixture sharedDistributedCache)
         {
@@ -189,10 +187,10 @@ namespace IdempotentAPI.xUnit.Filters
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(null, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
             // Act
-            var ex = Assert.Throws<Exception>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
-
+            var ex = Assert.Throws<ArgumentNullException>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
+            
             // Assert (Exception message)
-            Assert.Equal("An IDistributedCache is not configured.", ex.Message);
+            Assert.Equal($"Value cannot be null. (Parameter 'An {nameof(IIdempotencyCache)} is not configured. You should register the required services by using the \"AddIdempotentAPIUsing{{YourCacheProvider}}\" function.')", ex.Message);
         }
 
 
@@ -209,9 +207,11 @@ namespace IdempotentAPI.xUnit.Filters
         /// </summary>
         /// <param name="httpMethod"></param>
         [Theory]
-        [InlineData("POST")]
-        [InlineData("PATCH")]
-        public void ThrowsException_IfIdempotencyKeyHeaderNotExistsOnPostAndPatch(string httpMethod)
+        [InlineData("POST", CacheImplementationEnum.DistributedCache)]
+        [InlineData("PATCH", CacheImplementationEnum.DistributedCache)]
+        [InlineData("POST", CacheImplementationEnum.FusionCache)]
+        [InlineData("PATCH", CacheImplementationEnum.FusionCache)]
+        public void ThrowsException_IfIdempotencyKeyHeaderNotExistsOnPostAndPatch(string httpMethod, CacheImplementationEnum cacheImplementation)
         {
             // Arrange
             var actionContext = ArrangeActionContextMock(httpMethod);
@@ -231,7 +231,7 @@ namespace IdempotentAPI.xUnit.Filters
             // .NET Core 3.0  Exception Message:
             expectedExceptionMessages.Add("The Idempotency header key is not found. (Parameter 'IdempotencyKey')");
 
-            var distributedCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
+            IIdempotencyCache distributedCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation);
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
             // Act
@@ -255,9 +255,11 @@ namespace IdempotentAPI.xUnit.Filters
         /// </summary>
         /// <param name="httpMethod"></param>
         [Theory]
-        [InlineData("POST")]
-        [InlineData("PATCH")]
-        public void ThrowsException_IfIdempotencyKeyHeaderExistsWithoutValueOnPostAndPatch(string httpMethod)
+        [InlineData("POST", CacheImplementationEnum.DistributedCache)]
+        [InlineData("PATCH", CacheImplementationEnum.DistributedCache)]
+        [InlineData("POST", CacheImplementationEnum.FusionCache)]
+        [InlineData("PATCH", CacheImplementationEnum.FusionCache)]
+        public void ThrowsException_IfIdempotencyKeyHeaderExistsWithoutValueOnPostAndPatch(string httpMethod, CacheImplementationEnum cacheImplementation)
         {
             // Arrange
             var requestHeaders = new HeaderDictionary();
@@ -280,7 +282,7 @@ namespace IdempotentAPI.xUnit.Filters
             expectedExceptionMessages.Add("An Idempotency header value is not found. (Parameter 'IdempotencyKey')");
 
 
-            var distributedCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
+            IIdempotencyCache distributedCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation);
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
             // Act
@@ -303,9 +305,11 @@ namespace IdempotentAPI.xUnit.Filters
         /// </summary>
         /// <param name="httpMethod"></param>
         [Theory]
-        [InlineData("POST")]
-        [InlineData("PATCH")]
-        public void ThrowsException_IfMultipleIdempotencyKeyHeaderExistsOnPostAndPatch(string httpMethod)
+        [InlineData("POST", CacheImplementationEnum.DistributedCache)]
+        [InlineData("PATCH", CacheImplementationEnum.DistributedCache)]
+        [InlineData("POST", CacheImplementationEnum.FusionCache)]
+        [InlineData("PATCH", CacheImplementationEnum.FusionCache)]
+        public void ThrowsException_IfMultipleIdempotencyKeyHeaderExistsOnPostAndPatch(string httpMethod, CacheImplementationEnum cacheImplementation)
         {
             // Arrange
             var requestHeaders = new HeaderDictionary();
@@ -329,7 +333,7 @@ namespace IdempotentAPI.xUnit.Filters
             // .NET Core 3.0  Exception Message:
             expectedExceptionMessages.Add("Multiple Idempotency keys were found. (Parameter 'IdempotencyKey')");
 
-            var distributedCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
+            IIdempotencyCache distributedCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation);
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
             // Act
@@ -353,14 +357,21 @@ namespace IdempotentAPI.xUnit.Filters
         /// </summary>
         /// <param name="httpMethod"></param>
         [Theory]
-        [InlineData("GET")]
-        [InlineData("CONNECT")]
-        [InlineData("DELETE")]
-        [InlineData("HEAD")]
-        [InlineData("OPTIONS")]
-        [InlineData("PUT")]
-        [InlineData("TRACE")]
-        public void SetsContextResultToNull_IfHttpRequestMethodIsNotPostOrPatch(string httpMethod)
+        [InlineData("GET", CacheImplementationEnum.DistributedCache)]
+        [InlineData("CONNECT", CacheImplementationEnum.DistributedCache)]
+        [InlineData("DELETE", CacheImplementationEnum.DistributedCache)]
+        [InlineData("HEAD", CacheImplementationEnum.DistributedCache)]
+        [InlineData("OPTIONS", CacheImplementationEnum.DistributedCache)]
+        [InlineData("PUT", CacheImplementationEnum.DistributedCache)]
+        [InlineData("TRACE", CacheImplementationEnum.DistributedCache)]
+        [InlineData("GET", CacheImplementationEnum.FusionCache)]
+        [InlineData("CONNECT", CacheImplementationEnum.FusionCache)]
+        [InlineData("DELETE", CacheImplementationEnum.FusionCache)]
+        [InlineData("HEAD", CacheImplementationEnum.FusionCache)]
+        [InlineData("OPTIONS", CacheImplementationEnum.FusionCache)]
+        [InlineData("PUT", CacheImplementationEnum.FusionCache)]
+        [InlineData("TRACE", CacheImplementationEnum.FusionCache)]
+        public void SetsContextResultToNull_IfHttpRequestMethodIsNotPostOrPatch(string httpMethod, CacheImplementationEnum cacheImplementation)
         {
             // Arrange
             var actionContext = ArrangeActionContextMock(httpMethod);
@@ -371,7 +382,7 @@ namespace IdempotentAPI.xUnit.Filters
                 Mock.Of<Controller>()
             );
 
-            var distributedCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
+            IIdempotencyCache distributedCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation);
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
             // Act
@@ -392,9 +403,11 @@ namespace IdempotentAPI.xUnit.Filters
         /// Part2: Save in the DistributionCache [OnActionExecuted]
         /// </summary>
         [Theory]
-        [InlineData("POST", "b8fcc234-e1bd-11e9-81b4-2a2ae2dbcce4")]
-        [InlineData("PATCH", "c45ca868-fa74-11e9-8f0b-362b9e155667")]
-        public void SetInDistributionCache_IfValidRequestNotCached(string httpMethod, string idempotencyKey)
+        [InlineData("POST", "b8fcc234-e1bd-11e9-81b4-2a2ae2dbcce4", CacheImplementationEnum.DistributedCache)]
+        [InlineData("PATCH", "c45ca868-fa74-11e9-8f0b-362b9e155667", CacheImplementationEnum.DistributedCache)]
+        [InlineData("POST", "b8fcc234-e1bd-11e9-81b4-2a2ae2dbcce4", CacheImplementationEnum.FusionCache)]
+        [InlineData("PATCH", "c45ca868-fa74-11e9-8f0b-362b9e155667", CacheImplementationEnum.FusionCache)]
+        public void SetInDistributionCache_IfValidRequestNotCached(string httpMethod, string idempotencyKey, CacheImplementationEnum cacheImplementation)
         {
             // Arrange
 
@@ -424,8 +437,9 @@ namespace IdempotentAPI.xUnit.Filters
                 controllerExecutionResult,
                 Mock.Of<Controller>());
 
+            IIdempotencyCache idempotencyCache = _sharedDistributedCache.GetIdempotencyCache(cacheImplementation);
 
-            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(_sharedDistributedCache.Cache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(idempotencyCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
 
             // Act Part 1 (check cache):
@@ -437,8 +451,13 @@ namespace IdempotentAPI.xUnit.Filters
             // Act Part 2:
             idempotencyAttributeFilter.OnResultExecuted(resultExecutedContext);
 
-            // Assert Part 2:
-            byte[] cachedData = _sharedDistributedCache.Cache.Get(distributedCacheKey);
+            // Assert Part 2:            
+            byte[] cachedDataBytes = idempotencyCache.GetOrDefault(
+                distributedCacheKey,
+                defaultValue: null);
+
+            IReadOnlyDictionary<string, object> cachedData = cachedDataBytes.DeSerialize<IReadOnlyDictionary<string, object>>();
+
             Assert.NotNull(cachedData);
         }
 
@@ -452,8 +471,10 @@ namespace IdempotentAPI.xUnit.Filters
         /// Part1: Check that do not exist in the DistributionCache [OnActionExecuting]
         /// Part2: Save in the DistributionCache [OnActionExecuted]
         /// </summary>
-        [Fact]
-        public void SetInDistributionCache_IfValidFormFileRequestNotCached()
+        [Theory]
+        [InlineData(CacheImplementationEnum.DistributedCache)]
+        [InlineData(CacheImplementationEnum.FusionCache)]
+        public void SetInDistributionCache_IfValidFormFileRequestNotCached(CacheImplementationEnum cacheImplementation)
         {
             // Arrange
 
@@ -483,7 +504,7 @@ namespace IdempotentAPI.xUnit.Filters
                 Mock.Of<Controller>());
 
 
-            var distributedCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
+            IIdempotencyCache distributedCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation);
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
 
@@ -497,7 +518,12 @@ namespace IdempotentAPI.xUnit.Filters
             idempotencyAttributeFilter.OnResultExecuted(resultExecutedContext);
 
             // Assert Part 2:
-            byte[] cachedData = distributedCache.Get(distributedCacheKey);
+            byte[] cachedDataBytes = distributedCache.GetOrDefault(
+                distributedCacheKey,
+                defaultValue: null);
+
+            IReadOnlyDictionary<string, object> cachedData = cachedDataBytes.DeSerialize<IReadOnlyDictionary<string, object>>();
+
             Assert.NotNull(cachedData);
         }
 
@@ -512,9 +538,11 @@ namespace IdempotentAPI.xUnit.Filters
         /// Return the cached response (with the two response headers)
         /// </summary>
         [Theory]
-        [InlineData("POST", "b8fcc234-e1bd-11e9-81b4-2a2ae2dbcce4")]
-        [InlineData("PATCH", "c45ca868-fa74-11e9-8f0b-362b9e155667")]
-        public void SetResultFromDistributionCache_IfValidRequestIsCached(string httpMethod, string idempotencyKey)
+        [InlineData("POST", "b8fcc234-e1bd-11e9-81b4-2a2ae2dbcce4", CacheImplementationEnum.DistributedCache)]
+        [InlineData("PATCH", "c45ca868-fa74-11e9-8f0b-362b9e155667", CacheImplementationEnum.DistributedCache)]
+        [InlineData("POST", "b8fcc234-e1bd-11e9-81b4-2a2ae2dbcce4", CacheImplementationEnum.FusionCache)]
+        [InlineData("PATCH", "c45ca868-fa74-11e9-8f0b-362b9e155667", CacheImplementationEnum.FusionCache)]
+        public void SetResultFromDistributionCache_IfValidRequestIsCached(string httpMethod, string idempotencyKey, CacheImplementationEnum cacheImplementation)
         {
             // Arrange
             string requestBodyString = @"{""message"":""This is a dummy message""}";
@@ -534,7 +562,9 @@ namespace IdempotentAPI.xUnit.Filters
                 Mock.Of<Controller>()
             );
 
-            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(_sharedDistributedCache.Cache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
+            IIdempotencyCache idempotencyCache = _sharedDistributedCache.GetIdempotencyCache(cacheImplementation);  
+
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(idempotencyCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
 
             // Act
@@ -542,13 +572,13 @@ namespace IdempotentAPI.xUnit.Filters
 
 
             // Assert (result should not be null)
-            Assert.NotNull(actionExecutingContext.Result);
+            actionExecutingContext.Result.Should().NotBeNull();
 
             // Assert (result should be equal to expected value)
-            expectedExecutionResult.Should().Equals(actionExecutingContext.Result);
+            actionExecutingContext.Result.Should().BeEquivalentTo(expectedExecutionResult);
 
             // Assert (response headers count)
-            Assert.Equal(expectedResponseHeadersCount, actionExecutingContext.HttpContext.Response.Headers.Count);
+            actionExecutingContext.HttpContext.Response.Headers.Count.Should().Be(expectedResponseHeadersCount);
         }
 
         /// <summary>
@@ -563,9 +593,11 @@ namespace IdempotentAPI.xUnit.Filters
         /// Part4: Resend the same request and ensure the response is the same as part 3
         /// </summary>
         [Theory]
-        [InlineData("POST", "3e692c04-c19d-419b-b60c-3cdb6c577686")]
-        [InlineData("PATCH", "9099b60c-000d-4e83-9f9e-f342f6ad0f04")]
-        public void SetInDistributionCache_IfValidRequestNotCached_WithInflight(string httpMethod, string idempotencyKey)
+        [InlineData("POST", "3e692c04-c19d-419b-b60c-3cdb6c577686", CacheImplementationEnum.DistributedCache)]
+        [InlineData("PATCH", "9099b60c-000d-4e83-9f9e-f342f6ad0f04", CacheImplementationEnum.DistributedCache)]
+        [InlineData("POST", "3e692c04-c19d-419b-b60c-3cdb6c577686", CacheImplementationEnum.FusionCache)]
+        [InlineData("PATCH", "9099b60c-000d-4e83-9f9e-f342f6ad0f04", CacheImplementationEnum.FusionCache)]
+        public void SetInDistributionCache_IfValidRequestNotCached_WithInflight(string httpMethod, string idempotencyKey, CacheImplementationEnum cacheImplementation)
         {
             // Arrange
 
@@ -604,9 +636,11 @@ namespace IdempotentAPI.xUnit.Filters
                 controllerExecutionResult,
                 Mock.Of<Controller>());
 
-            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(_sharedDistributedCache.Cache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
+            IIdempotencyCache idempotencyCache = _sharedDistributedCache.GetIdempotencyCache(cacheImplementation);
 
-            var idempotencyAttributeFilterRequest2 = new IdempotencyAttributeFilter(_sharedDistributedCache.Cache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(idempotencyCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
+
+            var idempotencyAttributeFilterRequest2 = new IdempotencyAttributeFilter(idempotencyCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
 
             // Act Part 1 (check cache):
             idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
@@ -614,7 +648,8 @@ namespace IdempotentAPI.xUnit.Filters
             // Assert Part 1:
             Assert.Null(actionExecutingContext.Result);
 
-            // Act Part 2 - since we haven't called OnResultExecuted the result of the first request should still be inflight and we should have a 409 result
+            // Act Part 2 - Since we haven't called OnResultExecuted the result of the first request
+            // should still be inflight and we should have a 409 Conflict result.
             idempotencyAttributeFilterRequest2.OnActionExecuting(inflightExecutingContext);
             Assert.NotNull(inflightExecutingContext.Result);
             Assert.Equal(typeof(ConflictResult), inflightExecutingContext.Result.GetType());
@@ -624,7 +659,12 @@ namespace IdempotentAPI.xUnit.Filters
             idempotencyAttributeFilter.OnResultExecuted(resultExecutedContext);
 
             // Assert Part 3:
-            byte[] cachedData = _sharedDistributedCache.Cache.Get(distributedCacheKey);
+            byte[] cachedDataBytes = idempotencyCache.GetOrDefault(
+                distributedCacheKey,
+                defaultValue: null);
+
+            IReadOnlyDictionary<string, object> cachedData = cachedDataBytes.DeSerialize<IReadOnlyDictionary<string, object>>();
+
             Assert.NotNull(cachedData);
 
             // Act 4 rerun the request that failed cause the first was in flight
@@ -633,9 +673,103 @@ namespace IdempotentAPI.xUnit.Filters
             //Assert : Part 4
             // The result of the above should be coming from the cache so we should have a result
             Assert.Equal(typeof(OkObjectResult), inflightExecutingContext.Result.GetType());
-            Assert.Equal(typeof(ResponseModelBasic), ((OkObjectResult)inflightExecutingContext.Result).Value.GetType());                                    
+            Assert.Equal(typeof(ResponseModelBasic), ((OkObjectResult)inflightExecutingContext.Result).Value.GetType());
             Assert.Equal(200, ((OkObjectResult)inflightExecutingContext.Result).StatusCode);
 
+        }
+
+
+        /// <summary>
+        /// Scenario:
+        /// The Idempotency Attribute is enabled, receiving concurrent POST or PATCH requests
+        /// with the same IdempotencyKey Header, which doesn't exist in the DistributionCache.
+        /// In such a case, a race condition occurs on getting and setting the value at the distributed cache.
+        /// 
+        /// Expected Behavior:
+        /// The controller action should be executed only once (in the first request),
+        /// and the subsequent requests should return a 409 Conflict HTTP error code.
+        /// </summary>
+        /// <param name="httpMethod"></param>
+        /// <param name="idempotencyKey"></param>
+        [Theory]
+        [InlineData("POST", "77f29e49-35b1-464b-bb89-7bae6b013640", CacheImplementationEnum.DistributedCache)]
+        [InlineData("PATCH", "973d55be-9365-48ac-b56a-9284f9b43c31", CacheImplementationEnum.DistributedCache)]
+        [InlineData("POST", "77f29e49-35b1-464b-bb89-7bae6b013640", CacheImplementationEnum.FusionCache)]
+        [InlineData("PATCH", "973d55be-9365-48ac-b56a-9284f9b43c31", CacheImplementationEnum.FusionCache)]
+        public void SetInDistributionCache_IfValidConcurrentRequestsNotCached_WithInflight(string httpMethod, string idempotencyKey, CacheImplementationEnum cacheImplementation)
+        {
+            // Arrange
+
+            // Prepare the body and headers for the Request and Response:
+            string distributedCacheKey = _distributedCacheKeysPrefix + idempotencyKey;
+            string requestBodyString = @"{""message"":""This is a dummy message""}";
+            var requestHeaders = new HeaderDictionary();
+            requestHeaders.Add("Content-Type", "application/json");
+            requestHeaders.Add(_headerKeyName, idempotencyKey);
+
+            // Execution Result
+            var controllerExecutionResult = new OkObjectResult(new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) });
+
+            var responseHeaders = new HeaderDictionary();
+            responseHeaders.Add(new KeyValuePair<string, StringValues>("CustomHeader01", new StringValues("CustomHeaderValue01")));
+            responseHeaders.Add(new KeyValuePair<string, StringValues>("CustomHeader02", new StringValues("CustomHeaderValue02")));
+
+            var actionContext = ArrangeActionContextMock(httpMethod, requestHeaders, requestBodyString, responseHeaders, controllerExecutionResult);
+            var firstRequestExecutingContext = new ActionExecutingContext(
+                actionContext,
+                new List<IFilterMetadata>(),
+                new Dictionary<string, object>(),
+                Mock.Of<Controller>()
+            );
+
+            var secondRequestExecutingContext = new ActionExecutingContext(
+                actionContext,
+                new List<IFilterMetadata>(),
+                new Dictionary<string, object>(),
+                Mock.Of<Controller>()
+            );
+
+            var resultExecutedContext = new ResultExecutedContext(
+                actionContext,
+                new List<IFilterMetadata>(),
+                controllerExecutionResult,
+                Mock.Of<Controller>());
+
+            IIdempotencyCache idempotencyCache = _sharedDistributedCache.GetIdempotencyCache(cacheImplementation);
+
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(idempotencyCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
+            var idempotencyAttributeFilterRequest2 = new IdempotencyAttributeFilter(idempotencyCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
+
+            // Act with concurrent requests (check cache):
+            var firstRequestTask = Task.Run(() => idempotencyAttributeFilter.OnActionExecuting(firstRequestExecutingContext));
+            var secondRequestTask = Task.Run(() => idempotencyAttributeFilterRequest2.OnActionExecuting(secondRequestExecutingContext));
+
+            Task.WaitAll(firstRequestTask, secondRequestTask);
+
+            // One of the requests should pass, and the other should return a 409 Conflict result.
+            IActionResult passedActionResult;
+            IActionResult conflictedActionResult;
+
+            if (firstRequestExecutingContext.Result is null)
+            {
+                passedActionResult = firstRequestExecutingContext.Result;
+                conflictedActionResult = secondRequestExecutingContext.Result;
+            }
+            else
+            {
+                passedActionResult = secondRequestExecutingContext.Result;
+                conflictedActionResult = firstRequestExecutingContext.Result;
+            }
+
+            // Assert Part 1 (passed request):
+            Assert.Null(passedActionResult);
+
+            // Act Part 2 (409 Conflict result.): Since we haven't called OnResultExecuted the
+            // result of the first request should still be inflight and we should have a 409
+            // Conflict result.
+            Assert.NotNull(conflictedActionResult);
+            Assert.Equal(typeof(ConflictResult), conflictedActionResult.GetType());
+            Assert.Equal(409, ((ConflictResult)conflictedActionResult).StatusCode);
         }
     }
 }

@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+<PropertyGroup>
+	<TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+	<Authors>Ioannis Kyriakidis</Authors>
+	<Company>ikyriakidis.com</Company>
+	<Version>1.0.0-rc-01</Version>
+	<Description>The cache definition of the IdempotentAPI project.</Description>
+	<PackageTags>cache;idempotent api;idempotency;asp.net core;attribute;middleware;rest</PackageTags>
+	<RepositoryUrl>https://github.com/ikyriak/IdempotentAPI.git</RepositoryUrl>
+	<RepositoryType>git</RepositoryType>
+	<PackageProjectUrl>https://github.com/ikyriak/IdempotentAPI/src/IdempotentAPI.Cache</PackageProjectUrl>
+	<AssemblyVersion>1.0.0.0</AssemblyVersion>
+	<FileVersion>1.0.0.0</FileVersion>
+	<LangVersion>latest</LangVersion>
+	<Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

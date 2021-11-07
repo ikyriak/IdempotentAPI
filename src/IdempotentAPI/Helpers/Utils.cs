@@ -42,7 +42,7 @@ namespace IdempotentAPI.Helpers
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public static byte[] Serialize(this object obj)
+        public static byte[]? Serialize(this object obj)
         {
             if (obj is null)
             {
@@ -62,14 +62,14 @@ namespace IdempotentAPI.Helpers
         /// <typeparam name="T"></typeparam>
         /// <param name="compressedBytes"></param>
         /// <returns></returns>
-        public static T DeSerialize<T>(this byte[] compressedBytes)
+        public static T? DeSerialize<T>(this byte[]? compressedBytes)
         {
             if (compressedBytes is null)
             {
                 return default;
             }
 
-            byte[] encodedData = Decompress(compressedBytes);
+            byte[]? encodedData = Decompress(compressedBytes);
 
             string jsonString = Encoding.UTF8.GetString(encodedData);
 
@@ -77,7 +77,7 @@ namespace IdempotentAPI.Helpers
         }
 
 
-        public static byte[] Compress(byte[] input)
+        public static byte[]? Compress(byte[] input)
         {
             if (input is null)
             {
@@ -99,7 +99,7 @@ namespace IdempotentAPI.Helpers
             return compressesData;
         }
 
-        public static byte[] Decompress(byte[] input)
+        public static byte[]? Decompress(byte[]? input)
         {
             if (input is null)
             {
@@ -125,8 +125,8 @@ namespace IdempotentAPI.Helpers
         }
 
         public static IDictionary<string, T> AnonymousObjectToDictionary<T>(
-            object obj, Func<object, T> valueSelect
-        )
+            object obj,
+            Func<object, T> valueSelect)
         {
             return TypeDescriptor.GetProperties(obj)
                 .OfType<PropertyDescriptor>()
@@ -136,7 +136,7 @@ namespace IdempotentAPI.Helpers
                 );
         }
 
-        public static bool isAnonymousType(this object obj)
+        public static bool IsAnonymousType(this object obj)
         {
             if (obj is null)
             {
