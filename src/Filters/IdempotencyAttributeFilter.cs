@@ -18,8 +18,8 @@ namespace IdempotentAPI.Filters
 
 
         private readonly IDistributedCache _distributedCache;
-        private readonly ILogger _logger;
-
+        private readonly ILogger<Idempotency> _logger;
+        
         public IdempotencyAttributeFilter(
             IDistributedCache distributedCache,
             ILoggerFactory loggerFactory,
@@ -36,11 +36,11 @@ namespace IdempotentAPI.Filters
 
             if (loggerFactory != null)
             {
-                _logger = loggerFactory.CreateLogger<IdempotencyAttributeFilter>();
+                _logger = loggerFactory.CreateLogger<Idempotency>();
             }
             else
             {
-                _logger = NullLogger.Instance;
+                _logger = NullLogger<Idempotency>.Instance;
             }
         }
 
