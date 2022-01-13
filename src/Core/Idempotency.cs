@@ -280,7 +280,7 @@ namespace IdempotentAPI.Core
 
             // Check if idempotencyKey exists in cache and return value:
             byte[] cacheDataSerialized = _distributedCache.Get(DistributedCacheKey);
-            Dictionary<string, object> cacheData = (Dictionary<string, object>)cacheDataSerialized.DeSerialize();
+            Dictionary<string, object> cacheData = cacheDataSerialized.DeSerialize<Dictionary<string, object>>();
             if (cacheData != null)
             {
                 // RPG - 2021-07-05 - Check if there is a copy of this request in flight, if so return a 409 Http Conflict response
