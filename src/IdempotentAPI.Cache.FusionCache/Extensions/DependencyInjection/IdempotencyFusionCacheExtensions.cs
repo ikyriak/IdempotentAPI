@@ -24,9 +24,7 @@ namespace IdempotentAPI.Cache.FusionCache.Extensions.DependencyInjection
             // Register the FusionCache implementation of for the IIdempotencyCache
             serviceCollection.AddSingleton<IIdempotencyCache, IdempotencyFusionCache>();
 
-            // Register the fusion cache serializer
-            serviceCollection.AddFusionCacheNewtonsoftJsonSerializer();
-
+            
             // Register the FusionCache
             serviceCollection.AddFusionCache(options =>
             {
