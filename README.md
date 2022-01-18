@@ -1,6 +1,4 @@
-﻿﻿﻿﻿﻿﻿# Idempotent API <sup>1.0.0-RC-01</sup>
-
-
+# Idempotent API <sup>1.0.0-RC-01</sup>
 
 ## Understanding Idempotency
 
