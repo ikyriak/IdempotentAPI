@@ -112,11 +112,11 @@ namespace IdempotentAPI.Core
                 {
                     _logger.LogInformation("IdempotencyFilterAttribute [Before Controller execution]: Idempotency SKIPPED, httpRequest Method is: {httpRequestMethod}", httpRequest.Method.ToString());
                 }
-                
+
                 return false;
             }
 
-            // For multiple executions of the PreStep: 
+            // For multiple executions of the PreStep:
             if (_isPreIdempotencyApplied)
             {
                 return false;
@@ -290,7 +290,7 @@ namespace IdempotentAPI.Core
                 context.Result = null;
                 return;
             }
-            
+
             // Check if idempotencyKey exists in cache and return value:
             Guid uniqueRequesId = Guid.NewGuid();
             byte[] cacheDataBytes = _distributedCache.GetOrSet(
@@ -346,7 +346,8 @@ namespace IdempotentAPI.Core
 
                     context.Result = new CreatedAtRouteResult(routeName, RouteValues, value);
                 }
-                else if (contextResultType.BaseType == typeof(ObjectResult))
+                else if (contextResultType.BaseType == typeof(ObjectResult)
+                    || contextResultType == typeof(ObjectResult))
                 {
                     object value = resultObjects["ResultValue"];
                     ConstructorInfo ctor = contextResultType.GetConstructor(new[] { typeof(object) });

@@ -1,4 +1,6 @@
-# Idempotent API <sup>1.0.0-RC-01</sup>
+﻿﻿﻿﻿﻿﻿﻿# Idempotent API <sup>1.0.1</sup>
+
+
 
 ## Understanding Idempotency
 
@@ -70,23 +72,23 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 - 🔍 **Validations**: Performs validation of the request’s hash-key to ensure that the cached response is returned for the same combination of Idempotency-Key and Request to prevent accidental misuse.
 - 🌍 **Use it anywhere!**: `IdempotentAPI` targets .NET Standard 2.0. So, we can use it in any compatible .NET implementation (.NET Framework, .NET Core, etc.). Click [here](https://docs.microsoft.com/en-us/dotnet/standard/net-standard#net-implementation-support) to see the minimum .NET implementation versions that support each .NET Standard version.
 - ⚙ **Configurable**: Customize the idempotency in your needs.
-	- Configuration Options (see [below](#idempotent-attribute-options) for more details)
-	- Logging Level configuration
+    - Configuration Options (see [below](#idempotent-attribute-options) for more details)
+    - Logging Level configuration
 - 🔧 **Caching Implementation based on your needs.**
-	- 🏠 `DistributedCache`:  A build-in caching that is based on the standard `IDistributedCache` interface.
-	- 🦥 [FusionCache](https://github.com/jodydonetti/ZiggyCreatures.FusionCache):   A high performance and robust cache with an optional distributed 2nd layer and some advanced features.
-	- ... or you could use your own implementation 😉
+    - 🏠 `DistributedCache`:  A build-in caching that is based on the standard `IDistributedCache` interface.
+    - 🦥 [FusionCache](https://github.com/jodydonetti/ZiggyCreatures.FusionCache):   A high performance and robust cache with an optional distributed 2nd layer and some advanced features.
+    - ... or you could use your own implementation 😉
 
 
 
 ## 📦 NuGet Packages
 
-| Package Name                         | Description                                                  | Release |
-| ------------------------------------ | ------------------------------------------------------------ | ------- |
-| IdempotentAPI                        | The implementation of the  `IdempotentAPI` library.          |         |
-| IdempotentAPI.Cache                  | Defines the caching abstraction (`IIdempotencyCache`) that `IdempotentAPI` is based. |         |
-| IdempotentAPI.Cache.DistributedCache | The default caching implementation, based on the standard `IDistributedCache` interface. |         |
-| IdempotentAPI.Cache.FusionCache      | Supports caching via the [FusionCache](https://github.com/jodydonetti/ZiggyCreatures.FusionCache) third-party library. |         |
+| Package Name                                                 | Description                                                  | Release |
+| ------------------------------------------------------------ | ------------------------------------------------------------ | ------- |
+| [IdempotentAPI](https://www.nuget.org/packages/IdempotentAPI/) | The implementation of the  `IdempotentAPI` library.          |         |
+| [IdempotentAPI.Cache](https://www.nuget.org/packages/IdempotentAPI.Cache/) | Defines the caching abstraction (`IIdempotencyCache`) that `IdempotentAPI` is based. |         |
+| [IdempotentAPI.Cache.DistributedCache](https://www.nuget.org/packages/IdempotentAPI.Cache.DistributedCache/) | The default caching implementation, based on the standard `IDistributedCache` interface. |         |
+| [IdempotentAPI.Cache.FusionCache](https://www.nuget.org/packages/IdempotentAPI.Cache.FusionCache/) | Supports caching via the [FusionCache](https://github.com/jodydonetti/ZiggyCreatures.FusionCache) third-party library. |         |
 
 
 
@@ -95,7 +97,7 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 Let's see how we could use the NuGet packages in a Web API project. For more examples and code, you can check the [sample projects](https://github.com/ikyriak/IdempotentAPI/tree/master/samples). The `IdempotentAPI` can be installed via the NuGet UI or the NuGet package manager console:
 
 ```powershell
-PM> Install-Package IdempotentAPI -Version 1.0.0-rc-01
+PM> Install-Package IdempotentAPI -Version 1.0.1
 ```
 
 
@@ -108,10 +110,10 @@ Currently, we support the following two implementations (see the following table
 
 Thus, we can define our caching storage service in the `IDistributedCache`, such as in Memory, SQL Server, Redis, NCache, etc. See the [Distributed caching in the ASP.NET Core](https://docs.microsoft.com/en-us/aspnet/core/performance/caching/distributed?view=aspnetcore-5.0#establish-distributed-caching-services) article for more details about the available framework-provided implementations.
 
-|                                                | Support Concurrent Requests | Primary Cache     |      2nd-Level Cache       | Advanced Features |
-| ---------------------------------------------- | :-------------------------: | ----------------- | :------------------------: | :---------------: |
-| IdempotentAPI.Cache.DistributedCache (Default) |              ✔️              | IDistributedCache |             ❌              |         ❌         |
-| IdempotentAPI.Cache.FusionCache                |              ✔️              | Memory Cache      | ✔️<br />(IDistributedCache) |         ✔️         |
+|                                                              | Support Concurrent Requests | Primary Cache     |      2nd-Level Cache       | Advanced Features |
+| ------------------------------------------------------------ | :-------------------------: | ----------------- | :------------------------: | :---------------: |
+| [IdempotentAPI.Cache.DistributedCache](https://www.nuget.org/packages/IdempotentAPI.Cache.DistributedCache/) (Default) |              ✔️              | IDistributedCache |             ❌              |         ❌         |
+| [IdempotentAPI.Cache.FusionCache](https://www.nuget.org/packages/IdempotentAPI.Cache.FusionCache/) |              ✔️              | Memory Cache      | ✔️<br />(IDistributedCache) |         ✔️         |
 
 
 
@@ -149,7 +151,7 @@ services.AddIdempotentAPIUsingFusionCache();
 // For this example, we are using Redis.
 services.AddStackExchangeRedisCache(options =>
 {
-	options.Configuration = "YOUR CONNECTION STRING HERE, FOR EXAMPLE:localhost:6379";
+    options.Configuration = "YOUR CONNECTION STRING HERE, FOR EXAMPLE:localhost:6379";
 });
 
 // Register the FusionCache Serialization (e.g. NewtonsoftJson).
@@ -219,7 +221,7 @@ By using the Idempotent attribute on each action (HTTP POST or PATCH), we can ch
 ```c#
 [HttpPost]
 [Idempotent(ExpireHours = 48)]
-ublic IActionResult Post([FromBody] SimpleRequest simpleRequest)
+public IActionResult Post([FromBody] SimpleRequest simpleRequest)
 {
     // ...
 }
