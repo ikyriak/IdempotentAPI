@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿# Idempotent API <sup>1.0.1</sup>
+﻿﻿﻿﻿﻿﻿﻿﻿# Idempotent API <sup>1.0.1</sup>
 
 
 
@@ -83,12 +83,12 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 
 ## 📦 NuGet Packages
 
-| Package Name                                                 | Description                                                  | Release |
-| ------------------------------------------------------------ | ------------------------------------------------------------ | ------- |
-| [IdempotentAPI](https://www.nuget.org/packages/IdempotentAPI/) | The implementation of the  `IdempotentAPI` library.          |         |
-| [IdempotentAPI.Cache](https://www.nuget.org/packages/IdempotentAPI.Cache/) | Defines the caching abstraction (`IIdempotencyCache`) that `IdempotentAPI` is based. |         |
-| [IdempotentAPI.Cache.DistributedCache](https://www.nuget.org/packages/IdempotentAPI.Cache.DistributedCache/) | The default caching implementation, based on the standard `IDistributedCache` interface. |         |
-| [IdempotentAPI.Cache.FusionCache](https://www.nuget.org/packages/IdempotentAPI.Cache.FusionCache/) | Supports caching via the [FusionCache](https://github.com/jodydonetti/ZiggyCreatures.FusionCache) third-party library. |         |
+| Package Name                                                 | Description                                                  | Release                                                      |
+| ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [IdempotentAPI](https://www.nuget.org/packages/IdempotentAPI/) | The implementation of the  `IdempotentAPI` library.          | [![Nuget](https://img.shields.io/nuget/v/IdempotentAPI)](https://www.nuget.org/packages/IdempotentAPI/) |
+| [IdempotentAPI.Cache](https://www.nuget.org/packages/IdempotentAPI.Cache/) | Defines the caching abstraction (`IIdempotencyCache`) that `IdempotentAPI` is based. | [![Nuget](https://img.shields.io/nuget/v/IdempotentAPI.Cache)](https://www.nuget.org/packages/IdempotentAPI.Cache/) |
+| [IdempotentAPI.Cache.DistributedCache](https://www.nuget.org/packages/IdempotentAPI.Cache.DistributedCache/) | The default caching implementation, based on the standard `IDistributedCache` interface. | [![Nuget](https://img.shields.io/nuget/v/IdempotentAPI.Cache.DistributedCache)](https://www.nuget.org/packages/IdempotentAPI.Cache.DistributedCache/) |
+| [IdempotentAPI.Cache.FusionCache](https://www.nuget.org/packages/IdempotentAPI.Cache.FusionCache/) | Supports caching via the [FusionCache](https://github.com/jodydonetti/ZiggyCreatures.FusionCache) third-party library. | [![Nuget](https://img.shields.io/nuget/v/IdempotentAPI.Cache.FusionCache)](https://www.nuget.org/packages/IdempotentAPI.Cache.FusionCache/) |
 
 
 
