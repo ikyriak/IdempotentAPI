@@ -14,7 +14,6 @@ using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -882,6 +881,159 @@ namespace IdempotentAPI.xUnit.Filters
             Assert.NotNull(conflictedActionResult);
             Assert.Equal(typeof(ConflictResult), conflictedActionResult.GetType());
             Assert.Equal(409, ((ConflictResult)conflictedActionResult).StatusCode);
+        }
+
+        /// <summary>
+        /// Scenario (Issue #37):
+        /// The Idempotency Attribute is enabled, receiving a POST or PATCH request with an IdempotencyKey Header,
+        /// which doesn't exist in the DistributionCache.
+        /// - On a failure execution (i.e, HTTP Error (5xx, 4xx, etc.), Exceptions (e.g. Timeout, etc.), we remove the in-flight flag data.
+        /// - Thus, a subsequent request should be accepted.
+        /// </summary>
+        [Theory]
+        [InlineData("POST", "86a402f8-b025-4ac2-8528-9cdd95ebee2e", CacheImplementationEnum.DistributedCache)]
+        [InlineData("POST", "86a402f8-b025-4ac2-8528-9cdd95ebee2e", CacheImplementationEnum.FusionCache)]
+        [InlineData("PATCH", "49db5069-1433-44c9-a76e-27e18911d0fb", CacheImplementationEnum.DistributedCache)]
+        [InlineData("PATCH", "49db5069-1433-44c9-a76e-27e18911d0fb", CacheImplementationEnum.FusionCache)]
+        public void OnFailedExecutions_TheInflightShouldBeCleared_ToAcceptSubsequentRequest(string httpMethod, string idempotencyKey, CacheImplementationEnum cacheImplementation)
+        {
+            // Arrange
+
+            // Prepare the body and headers for the Request and Response:
+            string distributedCacheKey = _distributedCacheKeysPrefix + idempotencyKey;
+            string requestBodyString = @"{""message"":""This is a dummy message""}";
+            var requestHeaders = new HeaderDictionary
+            {
+                { "Content-Type", "application/json" },
+                { _headerKeyName, idempotencyKey }
+            };
+
+            // Execution Result
+            var expectedCachedModel = new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) };
+            ObjectResult controllerExecutionResult = new OkObjectResult(expectedCachedModel);
+            var responseHeaders = new HeaderDictionary();
+
+            var actionContext = ArrangeActionContextMock(httpMethod, requestHeaders, requestBodyString, responseHeaders, controllerExecutionResult, null);
+            var inflightExecutingContext = new ActionExecutingContext(
+                actionContext,
+                new List<IFilterMetadata>(),
+                new Dictionary<string, object>(),
+                Mock.Of<Controller>()
+            );
+
+            IIdempotencyCache idempotencyCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(idempotencyCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
+
+
+            // Act & Assert Part 1: Before the execution of the controller we store in-flight data (cache exists)
+            idempotencyAttributeFilter.OnActionExecuting(inflightExecutingContext);
+            byte[] cachedDataBytes = idempotencyCache.GetOrDefault(distributedCacheKey, defaultValue: null);
+            Assert.NotNull(cachedDataBytes);
+            Assert.Null(inflightExecutingContext.Result);
+
+            // Act & Assert Part 2: On a failure execution, we remove the in-flight flag data.
+            idempotencyAttributeFilter.OnActionExecuted(new ActionExecutedContext(actionContext, new List<IFilterMetadata>(), Mock.Of<Controller>())
+            {
+                Exception = new Exception("A dummy exception"),
+            });
+
+            cachedDataBytes = idempotencyCache.GetOrDefault(distributedCacheKey, defaultValue: null);
+            Assert.Null(cachedDataBytes);
+        }
+
+        /// <summary>
+        /// Scenario (Issue #37):
+        /// The Idempotency Attribute is enabled, receiving a POST or PATCH request with an IdempotencyKey Header,
+        /// which doesn't exist in the DistributionCache. The following scenarios should be asserted
+        ///  - When the response is an error, but an exception is NOT thrown, the cached data continue to exist.
+        ///  - When cacheOnlySuccessResponses is Enabled, we DO NOT cache the response.
+        /// </summary>
+        [Theory]
+        [InlineData("POST", "86a402f8-b025-4ac2-8528-9cdd95ebee2e", CacheImplementationEnum.DistributedCache, true)]
+        [InlineData("POST", "86a402f8-b025-4ac2-8528-9cdd95ebee2e", CacheImplementationEnum.FusionCache, true)]
+        [InlineData("PATCH", "49db5069-1433-44c9-a76e-27e18911d0fb", CacheImplementationEnum.DistributedCache, true)]
+        [InlineData("PATCH", "49db5069-1433-44c9-a76e-27e18911d0fb", CacheImplementationEnum.FusionCache, true)]
+
+        [InlineData("POST", "86a402f8-b025-4ac2-8528-9cdd95ebee2e", CacheImplementationEnum.DistributedCache, false)]
+        [InlineData("POST", "86a402f8-b025-4ac2-8528-9cdd95ebee2e", CacheImplementationEnum.FusionCache, false)]
+        [InlineData("PATCH", "49db5069-1433-44c9-a76e-27e18911d0fb", CacheImplementationEnum.DistributedCache, false)]
+        [InlineData("PATCH", "49db5069-1433-44c9-a76e-27e18911d0fb", CacheImplementationEnum.FusionCache, false)]
+        public void OnFailedExecutions_ClearCachedResponseBasedOnTheTheCacheOnlySuccessResponsesConfig_ToAcceptSubsequentRequest(
+            string httpMethod,
+            string idempotencyKey,
+            CacheImplementationEnum cacheImplementation,
+            bool cacheOnlySuccessResponses)
+        {
+            // Arrange
+
+            // Prepare the body and headers for the Request and Response:
+            string distributedCacheKey = _distributedCacheKeysPrefix + idempotencyKey;
+            string requestBodyString = @"{""message"":""This is a dummy message""}";
+            var requestHeaders = new HeaderDictionary
+            {
+                { "Content-Type", "application/json" },
+                { _headerKeyName, idempotencyKey }
+            };
+
+            // Execution Result
+            var expectedCachedModel = new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) };
+
+            ObjectResult controllerExecutionResult = new OkObjectResult(expectedCachedModel);
+
+            int expectedStatusCode = StatusCodes.Status500InternalServerError;
+            var responseHeaders = new HeaderDictionary();
+
+            var actionContextWithError = ArrangeActionContextMock(httpMethod, requestHeaders, requestBodyString, responseHeaders, controllerExecutionResult, expectedStatusCode);
+
+            var inflightExecutingContextWithError = new ActionExecutingContext(
+                actionContextWithError,
+                new List<IFilterMetadata>(),
+                new Dictionary<string, object>(),
+                Mock.Of<Controller>()
+            );
+
+            var resultExecutedContextWithError = new ResultExecutedContext(
+                actionContextWithError,
+                new List<IFilterMetadata>(),
+                controllerExecutionResult,
+                Mock.Of<Controller>());
+
+            IIdempotencyCache idempotencyCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation);
+
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(idempotencyCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix, cacheOnlySuccessResponses);
+
+
+            // Act & Assert Part 1: Before the execution of the controller we store in-flight data (cache exists)
+            idempotencyAttributeFilter.OnActionExecuting(inflightExecutingContextWithError);
+            byte[] cachedDataBytes = idempotencyCache.GetOrDefault(distributedCacheKey, defaultValue: null);
+            Assert.NotNull(cachedDataBytes);
+            Assert.Null(inflightExecutingContextWithError.Result);
+
+
+            // Act & Assert Part 2: When the response is an error, but an exception is NOT thrown, the cached data continue to exist.
+            idempotencyAttributeFilter.OnActionExecuted(new ActionExecutedContext(inflightExecutingContextWithError, new List<IFilterMetadata>(), Mock.Of<Controller>()));
+            cachedDataBytes = idempotencyCache.GetOrDefault(distributedCacheKey, defaultValue: null);
+            Assert.NotNull(cachedDataBytes);
+            Assert.Null(inflightExecutingContextWithError.Result);
+
+
+            // Assert Part 3: When cacheOnlySuccessResponses is Enabled, we DO NOT cache the response.
+            idempotencyAttributeFilter.OnResultExecuted(resultExecutedContextWithError);
+            cachedDataBytes = idempotencyCache.GetOrDefault(distributedCacheKey, defaultValue: null);
+
+
+            if (cacheOnlySuccessResponses)
+            {
+                Assert.Null(cachedDataBytes);
+                Assert.Null(inflightExecutingContextWithError.Result);
+            }
+            else
+            {
+                Assert.NotNull(cachedDataBytes);
+                IReadOnlyDictionary<string, object> cacheData = cachedDataBytes.DeSerialize<IReadOnlyDictionary<string, object>>();
+                Assert.NotNull(cacheData);
+                cacheData.Should().NotContainKey("Request.Inflight");
+            }
         }
 
     }

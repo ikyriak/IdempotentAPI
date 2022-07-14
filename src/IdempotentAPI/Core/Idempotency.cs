@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using IdempotentAPI.Cache;
+using IdempotentAPI.Extensions;
 using IdempotentAPI.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -25,6 +26,7 @@ namespace IdempotentAPI.Core
         private readonly int _expireHours;
         private readonly HashAlgorithm _hashAlgorithm;
         private readonly object _cacheEntryOptions;
+        private readonly bool _cacheOnlySuccessResponses;
 
         /// <summary>
         /// The read-only list of HTTP Header Keys will be handled from the selected HTTP Server and
@@ -53,7 +55,8 @@ namespace IdempotentAPI.Core
             ILogger<Idempotency> logger,
             int expireHours,
             string headerKeyName,
-            string distributedCacheKeysPrefix)
+            string distributedCacheKeysPrefix,
+            bool cacheOnlySuccessResponses)
         {
             _distributedCache = distributedCache ?? throw new ArgumentNullException($"An {nameof(IIdempotencyCache)} is not configured. You should register the required services by using the \"AddIdempotentAPIUsing{{YourCacheProvider}}\" function.");
             _expireHours = expireHours;
@@ -63,6 +66,7 @@ namespace IdempotentAPI.Core
 
             _hashAlgorithm = new SHA256CryptoServiceProvider();
             _cacheEntryOptions = _distributedCache.CreateCacheEntryOptions(_expireHours);
+            _cacheOnlySuccessResponses = cacheOnlySuccessResponses;
         }
 
         private bool TryGetIdempotencyKey(HttpRequest httpRequest, out string idempotencyKey)
@@ -422,6 +426,19 @@ namespace IdempotentAPI.Core
                 return;
             }
 
+            // Return when the current response is unsuccessful, and we should accept only the success status codes.
+            if (_cacheOnlySuccessResponses
+                && !context.HttpContext.Response.IsSuccessStatusCode())
+            {
+                _distributedCache.Remove(DistributedCacheKey);
+
+                if (IsLoggerEnabled(LogLevel.Information))
+                {
+                    _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: SKIPPED (Status Code {StatusCode} is not success 2xx).", context.HttpContext.Response.StatusCode);
+                }
+                return;
+            }
+
             // Generate the data to be cached
             byte[]? cacheDataBytes = GenerateCacheData(context);
 
@@ -431,6 +448,21 @@ namespace IdempotentAPI.Core
             if (IsLoggerEnabled(LogLevel.Information))
             {
                 _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: Result is cached for idempotencyKey: {idempotencyKey}", _idempotencyKey);
+            }
+        }
+
+
+        /// <summary>
+        /// Cancel the idempotency by removing the related cached data. For example, this function
+        /// can be used when exceptions occur.
+        /// </summary>
+        public void CancelIdempotency()
+        {
+            _distributedCache.Remove(DistributedCacheKey);
+
+            if (IsLoggerEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: SKIPPED (An exception occurred).");
             }
         }
 

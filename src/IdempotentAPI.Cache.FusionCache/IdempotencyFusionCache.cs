@@ -62,6 +62,16 @@ namespace IdempotentAPI.Cache.FusionCache
             return _fusionCache.GetOrSet(key, defaultValue, (FusionCacheEntryOptions?)options, token);
         }
 
+        public void Remove(string key, CancellationToken token = default)
+        {
+            if (key is null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
+            _fusionCache.Remove(key, token: token);
+        }
+
         /// <inheritdoc/>
         /// <exception cref="ArgumentNullException"></exception>
         public void Set(

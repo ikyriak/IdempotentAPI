@@ -21,13 +21,24 @@ namespace IdempotentAPI.Filters
 
         public string HeaderKeyName { get; set; } = "IdempotencyKey";
 
+        /// <summary>
+        /// When true, only the responses with 2xx HTTP status codes will be cached.
+        /// </summary>
+        public bool CacheOnlySuccessResponses { get; set; } = true;
+
         public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
         {
             var distributedCache = (IIdempotencyCache)serviceProvider.GetService(typeof(IIdempotencyCache));
             var loggerFactory = (ILoggerFactory)serviceProvider.GetService(typeof(ILoggerFactory));
 
-            IdempotencyAttributeFilter idempotencyAttributeFilter = new IdempotencyAttributeFilter(distributedCache, loggerFactory, Enabled, ExpireHours, HeaderKeyName, DistributedCacheKeysPrefix);
-            return idempotencyAttributeFilter;
+            return new IdempotencyAttributeFilter(
+                distributedCache,
+                loggerFactory,
+                Enabled,
+                ExpireHours,
+                HeaderKeyName,
+                DistributedCacheKeysPrefix,
+                CacheOnlySuccessResponses);
         }
     }
 }

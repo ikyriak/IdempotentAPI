@@ -54,5 +54,8 @@ namespace IdempotentAPI.Cache
         /// <param name="expireHours">The number of hours that the value will be saved in the cache.</param>
         /// <returns></returns>
         object CreateCacheEntryOptions(int expireHours);
+
+
+        void Remove(string key, CancellationToken token = default);
     }
 }

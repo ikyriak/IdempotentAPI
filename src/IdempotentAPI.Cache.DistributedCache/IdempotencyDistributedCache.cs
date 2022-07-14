@@ -81,6 +81,19 @@ namespace IdempotentAPI.Cache.DistributedCache
             }
         }
 
+        public void Remove(string key, CancellationToken token = default)
+        {
+            if (key is null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
+            using (var valuelocker = new ValueLocker(key))
+            {
+                _distributedCache.Remove(key);
+            }
+        }
+
         /// <inheritdoc/>
         /// <exception cref="ArgumentNullException"></exception>
         public void Set(
