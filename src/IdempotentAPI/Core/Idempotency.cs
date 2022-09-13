@@ -216,14 +216,20 @@ namespace IdempotentAPI.Core
             // The Request body:
             // 2019-10-13: Use CanSeek to check if the stream does not support seeking (set position)
             if (httpRequest.ContentLength.HasValue
-                && httpRequest.Body != null
-                && httpRequest.Body.CanRead
-                && httpRequest.Body.CanSeek)
+                && httpRequest.Body != null)
             {
-                using (MemoryStream memoryStream = new())
+                // 2022-08-18: Enable buffering for large body requests and then read the buffer asynchronously.
+                httpRequest.EnableBuffering();
+
+                if (httpRequest.Body.CanRead
+                    && httpRequest.Body.CanSeek)
                 {
+                    using MemoryStream memoryStream = new();
                     httpRequest.Body.Position = 0;
-                    httpRequest.Body.CopyTo(memoryStream);
+
+                    var copyTask = httpRequest.Body.CopyToAsync(memoryStream);
+                    copyTask.Wait();
+
                     requestsData.Add(memoryStream.ToArray());
                 }
             }
