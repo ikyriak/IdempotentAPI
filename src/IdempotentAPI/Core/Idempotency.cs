@@ -361,7 +361,7 @@ namespace IdempotentAPI.Core
                 {
                     object value = resultObjects["ResultValue"];
                     ConstructorInfo ctor = contextResultType.GetConstructor(new[] { typeof(object) });
-                    if (ctor != null)
+                    if (ctor != null && ctor.DeclaringType != typeof(ObjectResult))
                     {
                         context.Result = (IActionResult)ctor.Invoke(new object[] { value });
                     }

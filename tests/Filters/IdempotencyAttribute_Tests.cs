@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -482,16 +483,39 @@ namespace IdempotentAPI.xUnit.Filters
             // Prepare the body and headers for the Request and Response:
             string distributedCacheKey = _distributedCacheKeysPrefix + idempotencyKey;
             string requestBodyString = @"{""message"":""This is a dummy message""}";
-            var requestHeaders = new HeaderDictionary();
-            requestHeaders.Add("Content-Type", "application/json");
-            requestHeaders.Add(_headerKeyName, idempotencyKey);
+            var requestHeaders = new HeaderDictionary
+            {
+                { "Content-Type", "application/json" },
+                { _headerKeyName, idempotencyKey }
+            };
 
-            var controllerExecutionResult = new ObjectResult(new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) });
-            var responseHeaders = new HeaderDictionary();
-            responseHeaders.Add(new KeyValuePair<string, StringValues>("CustomHeader01", new StringValues("CustomHeaderValue01")));
-            responseHeaders.Add(new KeyValuePair<string, StringValues>("CustomHeader02", new StringValues("CustomHeaderValue02")));
+            bool cacheOnlySuccessResponses = true;
+            int statusCode = StatusCodes.Status200OK;
 
-            var actionContext = ArrangeActionContextMock(httpMethod, requestHeaders, requestBodyString, responseHeaders, controllerExecutionResult, StatusCodes.Status200OK);
+            var controllerExecutionResult = new ObjectResult(
+                new ResponseModelBasic()
+                {
+                    Id = 1,
+                    CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25)
+                })
+            {
+                StatusCode = statusCode,
+            };
+
+            var responseHeaders = new HeaderDictionary
+            {
+                new KeyValuePair<string, StringValues>("CustomHeader01", new StringValues("CustomHeaderValue01")),
+                new KeyValuePair<string, StringValues>("CustomHeader02", new StringValues("CustomHeaderValue02"))
+            };
+
+            var actionContext = ArrangeActionContextMock(
+                httpMethod,
+                requestHeaders,
+                requestBodyString,
+                responseHeaders,
+                controllerExecutionResult,
+                statusCode);
+
             var actionExecutingContext = new ActionExecutingContext(
                 actionContext,
                 new List<IFilterMetadata>(),
@@ -507,7 +531,7 @@ namespace IdempotentAPI.xUnit.Filters
 
             IIdempotencyCache idempotencyCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation);
 
-            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(idempotencyCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(idempotencyCache, _loggerFactory, true, 1, _headerKeyName, _distributedCacheKeysPrefix, cacheOnlySuccessResponses);
 
 
             // Act Part 1 (check cache):
@@ -528,6 +552,230 @@ namespace IdempotentAPI.xUnit.Filters
 
             Assert.NotNull(cachedData);
         }
+
+
+        /// <summary>
+        /// Scenario:
+        /// The Idempotency Attribute is enabled, receiving a POST or PATCH request with an IdempotencyKey Header
+        /// which doesn't exist in the DistributionCache. We test consecutively *failed* requests by setting the
+        /// `CacheOnlySuccessResponses` to `False`. In such a case, we are caching the response of the first request.
+        ///
+        /// Action:
+        /// Part 1 & 2 : Perform a request to cache a 406-NotAcceptable Object result (CacheOnlySuccessResponses == False)
+        /// Part 3: Perform a consecutive request with the same IdempotencyKey.
+        ///
+        /// Expectation:
+        /// - The response of the first request should be cached.
+        /// - The result of the consecutive requests should have the same response data and HTTP status code as the
+        ///   response of the first request.
+        /// </summary>
+        [Theory]
+        [InlineData("POST", "d8fcc234-e1bd-11e9-81b4-2a2ae2dbcca1", CacheImplementationEnum.DistributedCache)]
+        [InlineData("PATCH", "e45ca868-fa74-11e9-8f0b-362b9e1556a2", CacheImplementationEnum.DistributedCache)]
+        [InlineData("POST", "d8fcc234-e1bd-11e9-81b4-2a2ae2dbcca1", CacheImplementationEnum.FusionCache)]
+        [InlineData("PATCH", "e45ca868-fa74-11e9-8f0b-362b9e1556a2", CacheImplementationEnum.FusionCache)]
+        public void SetInDistributionCache_WithObjectResultAndDisabledCacheOnlySuccessResponses_IfValidRequestNotCached(string httpMethod, string idempotencyKey, CacheImplementationEnum cacheImplementation)
+        {
+            // Arrange
+
+            // Prepare the body and headers for the Request and Response:
+            string distributedCacheKey = _distributedCacheKeysPrefix + idempotencyKey;
+            string requestBodyString = @"{""message"":""This is a dummy message""}";
+            var requestHeaders = new HeaderDictionary
+            {
+                { "Content-Type", "application/json" },
+                { _headerKeyName, idempotencyKey }
+            };
+
+            bool cacheOnlySuccessResponses = false;
+            HttpStatusCode httpStatusCode = HttpStatusCode.NotAcceptable;
+            HttpStatusCode expectedResponseStatusCode = HttpStatusCode.NotAcceptable;
+            int statusCode = (int)httpStatusCode;
+
+            var controllerExecutionResult = new ObjectResult(new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) })
+            {
+                StatusCode = statusCode,
+            };
+
+            var responseHeaders = new HeaderDictionary();
+
+            var actionContext = ArrangeActionContextMock(
+                httpMethod,
+                requestHeaders,
+                requestBodyString,
+                responseHeaders,
+                controllerExecutionResult,
+                statusCode);
+
+            var actionExecutingContext = new ActionExecutingContext(
+                actionContext,
+                new List<IFilterMetadata>(),
+                new Dictionary<string, object>(),
+                Mock.Of<Controller>()
+            );
+
+            var resultExecutedContext = new ResultExecutedContext(
+                actionContext,
+                new List<IFilterMetadata>(),
+                controllerExecutionResult,
+                Mock.Of<Controller>());
+
+            IIdempotencyCache idempotencyCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation);
+
+            var idempotencyRequest1 = new IdempotencyAttributeFilter(
+                idempotencyCache,
+                _loggerFactory,
+                true,
+                1,
+                _headerKeyName,
+                _distributedCacheKeysPrefix,
+                cacheOnlySuccessResponses);
+
+            var idempotencyRequest2 = new IdempotencyAttributeFilter(
+                idempotencyCache,
+                _loggerFactory,
+                true,
+                1,
+                _headerKeyName,
+                _distributedCacheKeysPrefix,
+                cacheOnlySuccessResponses);
+
+            // Act Part 1 (check cache):
+            idempotencyRequest1.OnActionExecuting(actionExecutingContext);
+
+            // Assert Part 1:
+            Assert.Null(actionExecutingContext.Result);
+
+            // Act Part 2:
+            idempotencyRequest1.OnResultExecuted(resultExecutedContext);
+
+            // Assert Part 2:
+            byte[] cachedDataBytes = idempotencyCache.GetOrDefault(
+                distributedCacheKey,
+                defaultValue: null);
+
+            IReadOnlyDictionary<string, object> cachedData = cachedDataBytes.DeSerialize<IReadOnlyDictionary<string, object>>();
+            Assert.NotNull(cachedData);
+
+            // Act Part 3: Re-Execute the Request and check the response.
+            idempotencyRequest2.OnActionExecuting(actionExecutingContext);
+
+            Assert.NotNull(actionExecutingContext.Result);
+
+            Assert.IsType<ObjectResult>(actionExecutingContext.Result);
+            actionExecutingContext.Result.Should().BeEquivalentTo(controllerExecutionResult);
+
+            Assert.Equal((int)expectedResponseStatusCode, ((ObjectResult)actionExecutingContext.Result).StatusCode);
+        }
+
+
+        /// <summary>
+        /// Scenario:
+        /// The Idempotency Attribute is enabled, receiving a POST or PATCH request with an IdempotencyKey Header
+        /// which doesn't exist in the DistributionCache. We test consecutively *failed* requests by setting the
+        /// `CacheOnlySuccessResponses` to `True`. In such a case, we are NOT caching the response of the first request.
+        ///
+        /// Action:
+        /// Part 1 & 2 : Perform a request to cache a 406-NotAcceptable Object result (CacheOnlySuccessResponses == True)
+        /// Part 3: Perform a consecutive *success* request with the same IdempotencyKey.
+        ///
+        /// Expectation:
+        /// - The response of the first request should NOT be cached.
+        /// - The result of the consecutive requests can be different.
+        /// </summary>
+        [Theory]
+        [InlineData("POST", "d8fcc234-e1bd-11e9-81b4-2a2ae2dbcca1", CacheImplementationEnum.DistributedCache)]
+        [InlineData("PATCH", "e45ca868-fa74-11e9-8f0b-362b9e1556a2", CacheImplementationEnum.DistributedCache)]
+        [InlineData("POST", "d8fcc234-e1bd-11e9-81b4-2a2ae2dbcca1", CacheImplementationEnum.FusionCache)]
+        [InlineData("PATCH", "e45ca868-fa74-11e9-8f0b-362b9e1556a2", CacheImplementationEnum.FusionCache)]
+        public void SetInDistributionCache_WithObjectResultAndEnabledCacheOnlySuccessResponses_IfValidRequestNotCached(string httpMethod, string idempotencyKey, CacheImplementationEnum cacheImplementation)
+        {
+            // Arrange
+
+            // Prepare the body and headers for the Request and Response:
+            string distributedCacheKey = _distributedCacheKeysPrefix + idempotencyKey;
+            string requestBodyString = @"{""message"":""This is a dummy message""}";
+            var requestHeaders = new HeaderDictionary
+            {
+                { "Content-Type", "application/json" },
+                { _headerKeyName, idempotencyKey }
+            };
+
+            bool cacheOnlySuccessResponses = true;
+            HttpStatusCode httpStatusCode = HttpStatusCode.NotAcceptable;
+            int statusCode = (int)httpStatusCode;
+
+            var controllerExecutionResult = new ObjectResult(new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) })
+            {
+                StatusCode = statusCode,
+            };
+
+            var responseHeaders = new HeaderDictionary();
+
+            var actionContext = ArrangeActionContextMock(
+                httpMethod,
+                requestHeaders,
+                requestBodyString,
+                responseHeaders,
+                controllerExecutionResult,
+                statusCode);
+
+            var actionExecutingContext = new ActionExecutingContext(
+                actionContext,
+                new List<IFilterMetadata>(),
+                new Dictionary<string, object>(),
+                Mock.Of<Controller>()
+            );
+
+            var resultExecutedContext = new ResultExecutedContext(
+                actionContext,
+                new List<IFilterMetadata>(),
+                controllerExecutionResult,
+                Mock.Of<Controller>());
+
+            IIdempotencyCache idempotencyCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation);
+
+            var idempotencyRequest1 = new IdempotencyAttributeFilter(
+                idempotencyCache,
+                _loggerFactory,
+                true,
+                1,
+                _headerKeyName,
+                _distributedCacheKeysPrefix,
+                cacheOnlySuccessResponses);
+
+            var idempotencyRequest2 = new IdempotencyAttributeFilter(
+                idempotencyCache,
+                _loggerFactory,
+                true,
+                1,
+                _headerKeyName,
+                _distributedCacheKeysPrefix,
+                cacheOnlySuccessResponses);
+
+            // Act Part 1 (check cache):
+            idempotencyRequest1.OnActionExecuting(actionExecutingContext);
+
+            // Assert Part 1:
+            Assert.Null(actionExecutingContext.Result);
+
+            // Act Part 2:
+            idempotencyRequest1.OnResultExecuted(resultExecutedContext);
+
+            // Assert Part 2:
+            byte[] cachedDataBytes = idempotencyCache.GetOrDefault(
+                distributedCacheKey,
+                defaultValue: null);
+
+            IReadOnlyDictionary<string, object> cachedData = cachedDataBytes.DeSerialize<IReadOnlyDictionary<string, object>>();
+            Assert.Null(cachedData);
+
+            // Act Part 3: Re-Execute the Request and check the response.
+            idempotencyRequest2.OnActionExecuting(actionExecutingContext);
+            Assert.Null(actionExecutingContext.Result);
+        }
+
+
 
         /// <summary>
         /// Scenario:
@@ -639,7 +887,10 @@ namespace IdempotentAPI.xUnit.Filters
                     expectedObjectResultType = typeof(OkObjectResult);
                     break;
                 default:
-                    controllerExecutionResult = new ObjectResult(expectedCachedModel);
+                    controllerExecutionResult = new ObjectResult(expectedCachedModel)
+                    {
+                        StatusCode = expectedStatusCode,
+                    };
                     expectedObjectResultType = typeof(ObjectResult);
                     break;
             }
@@ -749,6 +1000,7 @@ namespace IdempotentAPI.xUnit.Filters
             requestHeaders.Add(_headerKeyName, idempotencyKey);
 
             // The expected result
+            int statusCode = StatusCodes.Status200OK;
             var expectedCachedModel = new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) };
 
             ObjectResult expectedExecutionResult;
@@ -758,12 +1010,22 @@ namespace IdempotentAPI.xUnit.Filters
                     expectedExecutionResult = new OkObjectResult(expectedCachedModel);
                     break;
                 default:
-                    expectedExecutionResult = new ObjectResult(expectedCachedModel);
+                    expectedExecutionResult = new ObjectResult(expectedCachedModel)
+                    {
+                        StatusCode = statusCode,
+                    };
                     break;
             }
 
 
-            var actionContext = ArrangeActionContextMock(httpMethod, requestHeaders, requestBodyString, new HeaderDictionary(), null, StatusCodes.Status200OK);
+            var actionContext = ArrangeActionContextMock(
+                httpMethod,
+                requestHeaders,
+                requestBodyString,
+                new HeaderDictionary(),
+                null,
+                statusCode);
+
             var actionExecutingContext = new ActionExecutingContext(
                 actionContext,
                 new List<IFilterMetadata>(),
