@@ -4,9 +4,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [1.0.1] - 2022-03-12
+
+## [2.0.0-RC.1] - 2022-10-02 - BREAKING
+
 ### Fixed
-- Idemptotency did not work as expected when the return type on the controller action was a custom object and not an `ActionResult`. ([#33](https://github.com/ikyriak/IdempotentAPI/issues/33))
+
+- ✅ There were two cases in which the IdempotentAPI didn't respond as expected. For that reason, we made some corrections and improvements. Thanks to [@kvuong](https://github.com/khoavn) for reporting this issue ([#37](https://github.com/ikyriak/IdempotentAPI/issues/37)) 💪🙏.
+
+  - When the controller returns a non-successful response (4xx, 5xx,  etc.), the IdempotentAPI cache the error response. In some cases, maybe we would like this behavior. For that reason, we have added the `CacheOnlySuccessResponses` attribute option to set it per case (default value: `True`).
+  - When an exception occurs in the controller, the IdempotentAPI stack is in the in-flight mode by returning a `409 Conflict` response in the subsequent requests. Thus, we have made a fix to remove the in-flight request on exceptions.
+  - However, as long as a request is in inflight mode (running), all other requests will still get a `409 Conflict` response. For that reason, we should be careful when configuring the request timeout.
+- ✅ There was a bug when a request body was big enough (e.g., 30kb+). The cache couldn't appropriately be fetched because of a different hash string. Thanks, [@bernardiego](https://github.com/bernardiego), for taking the time to report and provide a fix for this issue ([#38](https://github.com/ikyriak/IdempotentAPI/issues/38)) 🙏❤.
+- ✅ Fix a bug in the reconstruction of the `ObjectResult` responses. Thanks to [@MohamadTahir](https://github.com/MohamadTahir) for reporting this issue ([#39](https://github.com/ikyriak/IdempotentAPI/issues/39)) and providing a workaround 🙏.
+
+### Added
+
+- ❗ The `CacheOnlySuccessResponses` attribute option is included (default value: `True`) to cache only 2xx HTTP responses.
+
+- 🌟 Support idempotency in a **Cluster Environment** (i.e., a group of multiple server instances) using **Distributed Locks**. Refactoring has been performed to include additional abstractions and distinguish the Caching (`IIdempotencyCache`), Distributed Locks (`IDistributedAccessLockProvider`), and Accessing of them (`IIdempotencyAccessCache`). Thanks to [@Rast1234](https://github.com/Rast1234) for showing the need for this feature 💪🙏. Currently, we support the following two implementations. 
+
+  - 🌟 The `DistributedLockTimeoutMilli` attribute option is included to configure the time the distributed lock will wait for the lock to be acquired (in milliseconds).
+
+  |                                                              | Supported Technologies                                       | DI Registration                                              |
+  | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+  | [samcook/RedLock.net](https://github.com/samcook/RedLock.net) | [Redis Redlock](https://redis.io/docs/reference/patterns/distributed-locks/) | `services.AddRedLockNetDistributedAccessLock(redisEndpoints);` |
+  | [madelson/DistributedLock](https://github.com/madelson/DistributedLock) | Redis, SqlServer, Postgres and many [more](https://github.com/madelson/DistributedLock#implementations). | `services.AddMadelsonDistributedAccessLock();`               |
+
+### Changed
+
+- ❗ **IMPORTANT**: We should register the IdempotentAPI Core services.
+
+  - ```c#
+    services.AddIdempotentAPI();
+    ```
+
+- Dependency Updates
+
+  - Update `Newtonsoft.Json` from `12.0.3` to `13.0.1`.
+  - Update `Microsoft.Extensions.Caching.Abstractions` from `3.1.21` to `6.0.0`.
+  - Update `Microsoft.Extensions.DependencyInjection.Abstractions` from `3.1.22` to `6.0.0`.
+  - Update `ZiggyCreatures.FusionCache` from `0.1.7` to `0.13.0`.
+  - Update `ZiggyCreatures.FusionCache.Serialization.NewtonsoftJson` from `0.1.7` to `0.13.0`.
+
+
+
+## [1.0.1] - 2022-03-12
+
+### Fixed
+- Idempotency did not work as expected when the return type on the controller action was a custom object and not an `ActionResult`. ([#33](https://github.com/ikyriak/IdempotentAPI/issues/33))
 - Thanks to @MohamadTahir for reporting and investigating this issue 🙏.
 
 

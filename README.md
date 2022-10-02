@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿# Idempotent API <sup>1.0.1</sup>
+# Idempotent API (v2.0.0-rc-01)
 
 
 
@@ -78,10 +78,13 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
     - 🏠 `DistributedCache`:  A build-in caching that is based on the standard `IDistributedCache` interface.
     - 🦥 [FusionCache](https://github.com/jodydonetti/ZiggyCreatures.FusionCache):   A high performance and robust cache with an optional distributed 2nd layer and some advanced features.
     - ... or you could use your own implementation 😉
+- ✳ **NEW** ✳- 🔀 Support idempotency in a **Cluster Environment** (i.e., a group of multiple server instances) using **Distributed Locks**.
+    - [samcook/RedLock.net](https://github.com/samcook/RedLock.net): Supports the [Redis Redlock](https://redis.io/docs/reference/patterns/distributed-locks/) algorithm.
+    - [madelson/DistributedLock](https://github.com/madelson/DistributedLock): Supports multiple technologies such as Redis, SqlServer, Postgres and many [more](https://github.com/madelson/DistributedLock#implementations).
 
 
 
-## 📦 NuGet Packages
+## 📦 NuGet Packages (v1.0.1)
 
 | Package Name                                                 | Description                                                  | Release                                                      |
 | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -97,12 +100,18 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 Let's see how we could use the NuGet packages in a Web API project. For more examples and code, you can check the [sample projects](https://github.com/ikyriak/IdempotentAPI/tree/master/samples). The `IdempotentAPI` can be installed via the NuGet UI or the NuGet package manager console:
 
 ```powershell
-PM> Install-Package IdempotentAPI -Version 1.0.1
+PM> Install-Package IdempotentAPI -Version 2.0.0-rc-01
+```
+
+and, register the IdempotentAPI Core services:
+
+```c#
+services.AddIdempotentAPI();
 ```
 
 
 
-### Step 1️⃣: Register the Caching Storage
+### Step 1️⃣.🅰: Register the Caching Storage
 
 As we have seen, storing-caching data is necessary for idempotency. Therefore, the IdempotentAPI library needs an implementation of the `IIdempotencyCache` to be registered in the `Program.cs` or `Startup.cs` file depending on the used style (.NET 6.0 or older). The `IIdempotencyCache` defines the caching storage service for the idempotency needs.
 
@@ -161,6 +170,58 @@ services.AddFusionCacheNewtonsoftJsonSerializer();
 // Register the IdempotentAPI.Cache.FusionCache.
 // Optionally: Configure the FusionCacheEntryOptions.
 services.AddIdempotentAPIUsingFusionCache();
+```
+
+
+
+### Step 1️⃣.🅱: Register the Distributed Locks for Cluster Environment (Optional)
+
+Currently, we support the following two implementations to support idempotency in a **Cluster Environment** (i.e., a group of multiple server instances) using **Distributed Locks**. 
+
+The `DistributedLockTimeoutMilli` attribute option should be used to set the time the distributed lock will wait for the lock to be acquired (in milliseconds).
+
+|                                                              | Supported Technologies                                       |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [samcook/RedLock.net](https://github.com/samcook/RedLock.net) | [Redis Redlock](https://redis.io/docs/reference/patterns/distributed-locks/) |
+| [madelson/DistributedLock](https://github.com/madelson/DistributedLock) | Redis, SqlServer, Postgres and many [more](https://github.com/madelson/DistributedLock#implementations). |
+
+
+
+#### Choice 1:  None
+
+If you do not need to support idempotency in a Cluster Environment, you do not have to register anything. So, skip this step 😉.
+
+
+
+#### Choice 2:  samcook/RedLock.net (Redis)
+
+Install the `IdempotentAPI.DistributedAccessLock.RedLockNet` via the NuGet UI or the NuGet package manager console. The [samcook/RedLock.net](https://github.com/samcook/RedLock.net) supports the [Redis Redlock](https://redis.io/docs/reference/patterns/distributed-locks/) algorithm.
+
+```c#
+// Define the Redis endpoints:
+List<DnsEndPoint> redisEndpoints = new List<DnsEndPoint>()
+{
+	new DnsEndPoint("localhost", 6379)
+};
+
+// Register the IdempotentAPI.DistributedAccessLock.RedLockNet:
+services.AddRedLockNetDistributedAccessLock(redisEndpoints);
+```
+
+
+
+#### Choice 3:  madelson/DistributedLock (Multiple Techonologies)
+
+Install the `IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock` via the NuGet UI or the NuGet package manager console. The [madelson/DistributedLock](https://github.com/madelson/DistributedLock) supports multiple technologies such as Redis, SqlServer, Postgres and many [more](https://github.com/madelson/DistributedLock#implementations).
+
+```c#
+// Register the distributed lock technology.
+// For this example, we are using Redis.
+var redicConnection = ConnectionMultiplexer.Connect("localhost:6379");
+services.AddSingleton<IDistributedLockProvider>(_ => new RedisDistributedSynchronizationProvider(redicConnection.GetDatabase()));
+
+// Register the IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock
+services.AddMadelsonDistributedAccessLock();
 ```
 
 
@@ -235,12 +296,14 @@ The Idempotent attribute provides a list of options, as shown in the following t
 
 *Table 2. - Idempotent attribute options*
 
-| **Name**                   | **Type** | **Default Value** | **Description**                                              |
-| -------------------------- | -------- | ----------------- | ------------------------------------------------------------ |
-| Enabled                    | bool     | true              | Enable or Disable the Idempotent operation on an API Controller’s  class or method. |
-| ExpireHours                | int      | 24                | The retention period (in hours) of the idempotent cached data. |
-| HeaderKeyName              | string   | IdempotencyKey    | The name of the Idempotency-Key header.                      |
-| DistributedCacheKeysPrefix | string   | IdempAPI_         | A prefix for the DistributedCache key names.                 |
+| **Name**                    | **Type** | **Default Value** | **Description**                                              |
+| --------------------------- | -------- | ----------------- | ------------------------------------------------------------ |
+| Enabled                     | bool     | true              | Enable or Disable the Idempotent operation on an API Controller’s  class or method. |
+| ExpireHours                 | int      | 24                | The retention period (in hours) of the idempotent cached data. |
+| HeaderKeyName               | string   | IdempotencyKey    | The name of the Idempotency-Key header.                      |
+| DistributedCacheKeysPrefix  | string   | IdempAPI_         | A prefix for the DistributedCache key names.                 |
+| CacheOnlySuccessResponses   | bool     | True              | When true, only the responses with 2xx HTTP status codes will be cached. |
+| DistributedLockTimeoutMilli | double   | NULL              | The time the distributed lock will wait for the lock to be acquired (in milliseconds). This is Required when a `IDistributedAccessLockProvider` is provided. |
 
  
 
