@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Caching.Distributed;
+﻿using IdempotentAPI.Cache.Abstractions;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace IdempotentAPI.Cache.DistributedCache.Extensions.DependencyInjection
@@ -12,7 +13,6 @@ namespace IdempotentAPI.Cache.DistributedCache.Extensions.DependencyInjection
         /// <returns></returns>
         public static IServiceCollection AddIdempotentAPIUsingDistributedCache(this IServiceCollection serviceCollection)
         {
-            // Register the DistributedCache implementation of for the IIdempotencyCache
             serviceCollection.AddSingleton<IIdempotencyCache, IdempotencyDistributedCache>();
 
             return serviceCollection;

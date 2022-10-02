@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="DistributedLock.Redis" Version="1.0.2" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="6.0.9" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\IdempotentAPI.Cache.DistributedCache\IdempotentAPI.Cache.DistributedCache.csproj" />
+		<ProjectReference Include="..\..\src\IdempotentAPI.Cache.FusionCache\IdempotentAPI.Cache.FusionCache.csproj" />
+		<ProjectReference Include="..\..\src\IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock\IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock.csproj" />
+		<ProjectReference Include="..\..\src\IdempotentAPI.DistributedAccessLock.RedLockNet\IdempotentAPI.DistributedAccessLock.RedLockNet.csproj" />
+		<ProjectReference Include="..\..\src\IdempotentAPI\IdempotentAPI.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="IdempotentAPI.IntegrationTests" />
+	</ItemGroup>
+
+</Project>

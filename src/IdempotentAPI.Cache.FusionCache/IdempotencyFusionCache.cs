@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using IdempotentAPI.Cache.Abstractions;
 using ZiggyCreatures.Caching.Fusion;
 
 namespace IdempotentAPI.Cache.FusionCache
