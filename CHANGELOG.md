@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
     services.AddIdempotentAPI();
     ```
 
+- ❗ **IMPORTANT**: The `IdempotentAPI.Cache` has been renamed to `IdempotentAPI.Cache.Abstractions`. So, you should remove the `IdempotentAPI.Cache` NuGet package and use the `IdempotentAPI.Cache.Abstractions` when needed.
 - Dependency Updates
 
   - Update `Newtonsoft.Json` from `12.0.3` to `13.0.1`.
