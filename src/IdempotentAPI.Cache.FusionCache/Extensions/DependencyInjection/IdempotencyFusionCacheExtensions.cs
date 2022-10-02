@@ -1,4 +1,5 @@
 ﻿using System;
+using IdempotentAPI.Cache.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using ZiggyCreatures.Caching.Fusion;
 
@@ -10,7 +11,7 @@ namespace IdempotentAPI.Cache.FusionCache.Extensions.DependencyInjection
         /// Register and configure the FusionCache services that the IdempotentAPI library needs.
         /// <list type="bullet">
         ///     <item>TIP: If the FusionCache services are already registered, then you should use the <see cref="AddIdempotentAPIUsingRegisteredFusionCache"/>.</item>
-        /// </list> 
+        /// </list>
         /// </summary>
         /// <param name="serviceCollection"></param>
         /// <param name="cacheEntryOptions">Read the following URL for instructions: https://github.com/jodydonetti/ZiggyCreatures.FusionCache/blob/main/docs/StepByStep.md</param>
@@ -24,7 +25,6 @@ namespace IdempotentAPI.Cache.FusionCache.Extensions.DependencyInjection
             // Register the FusionCache implementation of for the IIdempotencyCache
             serviceCollection.AddSingleton<IIdempotencyCache, IdempotencyFusionCache>();
 
-            
             // Register the FusionCache
             serviceCollection.AddFusionCache(options =>
             {
@@ -32,7 +32,7 @@ namespace IdempotentAPI.Cache.FusionCache.Extensions.DependencyInjection
                 if (cacheEntryOptions != null)
                     options.DefaultEntryOptions = cacheEntryOptions;
 
-                // Distibuted cache circuit-breaker
+                // Distributed cache circuit-breaker
                 if (distributedCacheCircuitBreakerDuration.HasValue)
                     options.DistributedCacheCircuitBreakerDuration = distributedCacheCircuitBreakerDuration.Value;
             });

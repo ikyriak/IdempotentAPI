@@ -1,4 +1,5 @@
-﻿using IdempotentAPI.Cache;
+﻿using System;
+using IdempotentAPI.AccessCache;
 using IdempotentAPI.Core;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
@@ -12,26 +13,29 @@ namespace IdempotentAPI.Filters
         private readonly int _expireHours;
         private readonly string _headerKeyName;
         private readonly string _distributedCacheKeysPrefix;
+        private readonly TimeSpan? _distributedLockTimeout;
         private readonly bool _cacheOnlySuccessResponses;
-        private readonly IIdempotencyCache _distributedCache;
+        private readonly IIdempotencyAccessCache _distributedCache;
         private readonly ILogger<Idempotency> _logger;
 
         private Idempotency? _idempotency = null;
 
         public IdempotencyAttributeFilter(
-            IIdempotencyCache distributedCache,
+            IIdempotencyAccessCache distributedCache,
             ILoggerFactory loggerFactory,
             bool enabled,
             int expireHours,
             string headerKeyName,
             string distributedCacheKeysPrefix,
-            bool cacheOnlySuccessResponses = true)
+            TimeSpan? distributedLockTimeout,
+            bool cacheOnlySuccessResponses)
         {
             _distributedCache = distributedCache;
             _enabled = enabled;
             _expireHours = expireHours;
             _headerKeyName = headerKeyName;
             _distributedCacheKeysPrefix = distributedCacheKeysPrefix;
+            _distributedLockTimeout = distributedLockTimeout;
             _cacheOnlySuccessResponses = cacheOnlySuccessResponses;
 
             if (loggerFactory != null)
@@ -65,6 +69,7 @@ namespace IdempotentAPI.Filters
                     _expireHours,
                     _headerKeyName,
                     _distributedCacheKeysPrefix,
+                    _distributedLockTimeout,
                     _cacheOnlySuccessResponses);
             }
 

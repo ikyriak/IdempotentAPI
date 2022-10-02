@@ -5,7 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
-using IdempotentAPI.Cache;
+using IdempotentAPI.AccessCache;
+using IdempotentAPI.AccessCache.Exceptions;
 using IdempotentAPI.Extensions;
 using IdempotentAPI.Helpers;
 using Microsoft.AspNetCore.Http;
@@ -19,20 +20,47 @@ namespace IdempotentAPI.Core
 {
     public class Idempotency
     {
-        private readonly string _headerKeyName;
-        private readonly string _distributedCacheKeysPrefix;
-        private readonly IIdempotencyCache _distributedCache;
-        private readonly ILogger<Idempotency>? _logger;
-        private readonly int _expireHours;
-        private readonly HashAlgorithm _hashAlgorithm;
         private readonly object _cacheEntryOptions;
         private readonly bool _cacheOnlySuccessResponses;
-
+        private readonly IIdempotencyAccessCache _distributedCache;
+        private readonly string _distributedCacheKeysPrefix;
+        private readonly TimeSpan? _distributedLockTimeout;
         /// <summary>
         /// The read-only list of HTTP Header Keys will be handled from the selected HTTP Server and
         /// not included in the cache.
         /// </summary>
         private readonly IReadOnlyList<string> _excludeHttpHeaderKeys = new List<string>() { "Transfer-Encoding" };
+
+        private readonly int _expireHours;
+        private readonly HashAlgorithm _hashAlgorithm;
+        private readonly string _headerKeyName;
+        private readonly ILogger<Idempotency>? _logger;
+        private string _idempotencyKey = string.Empty;
+
+        private bool _isPreIdempotencyApplied = false;
+
+        private bool _isPreIdempotencyCacheReturned = false;
+
+        public Idempotency(
+            IIdempotencyAccessCache distributedCache,
+            ILogger<Idempotency> logger,
+            int expireHours,
+            string headerKeyName,
+            string distributedCacheKeysPrefix,
+            TimeSpan? distributedLockTimeout,
+            bool cacheOnlySuccessResponses)
+        {
+            _distributedCache = distributedCache ?? throw new ArgumentNullException($"An {nameof(IIdempotencyAccessCache)} is not configured. You should register the required services by using the \"AddIdempotentAPIUsing{{YourCacheProvider}}\" function.");
+            _expireHours = expireHours;
+            _headerKeyName = headerKeyName;
+            _distributedCacheKeysPrefix = distributedCacheKeysPrefix;
+            _distributedLockTimeout = distributedLockTimeout;
+            _logger = logger;
+
+            _hashAlgorithm = new SHA256CryptoServiceProvider();
+            _cacheEntryOptions = _distributedCache.CreateCacheEntryOptions(_expireHours);
+            _cacheOnlySuccessResponses = cacheOnlySuccessResponses;
+        }
 
         private string DistributedCacheKey
         {
@@ -45,236 +73,64 @@ namespace IdempotentAPI.Core
                 return _distributedCacheKeysPrefix + _idempotencyKey;
             }
         }
-        private bool _isPreIdempotencyApplied = false;
-        private bool _isPreIdempotencyCacheReturned = false;
-        private string _idempotencyKey = string.Empty;
 
-
-        public Idempotency(
-            IIdempotencyCache distributedCache,
-            ILogger<Idempotency> logger,
-            int expireHours,
-            string headerKeyName,
-            string distributedCacheKeysPrefix,
-            bool cacheOnlySuccessResponses)
+        /// <summary>
+        /// Cache the Response in relation to the provided idempotencyKey
+        /// </summary>
+        /// <param name="context"></param>
+        public void ApplyPostIdempotency(ResultExecutedContext context)
         {
-            _distributedCache = distributedCache ?? throw new ArgumentNullException($"An {nameof(IIdempotencyCache)} is not configured. You should register the required services by using the \"AddIdempotentAPIUsing{{YourCacheProvider}}\" function.");
-            _expireHours = expireHours;
-            _headerKeyName = headerKeyName;
-            _distributedCacheKeysPrefix = distributedCacheKeysPrefix;
-            _logger = logger;
-
-            _hashAlgorithm = new SHA256CryptoServiceProvider();
-            _cacheEntryOptions = _distributedCache.CreateCacheEntryOptions(_expireHours);
-            _cacheOnlySuccessResponses = cacheOnlySuccessResponses;
-        }
-
-        private bool TryGetIdempotencyKey(HttpRequest httpRequest, out string idempotencyKey)
-        {
-            idempotencyKey = string.Empty;
-
-            // The "headerKeyName" must be provided as a Header:
-            if (!httpRequest.Headers.ContainsKey(_headerKeyName))
+            if (IsLoggerEnabled(LogLevel.Information))
             {
-                throw new ArgumentNullException(_headerKeyName, "The Idempotency header key is not found.");
+                _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: Response for {HttpContextResponseStatusCode} sent ({HttpContextResponseContentLength} bytes)", context.HttpContext.Response.StatusCode, context.HttpContext.Response.ContentLength ?? 0);
             }
 
-            StringValues idempotencyKeys;
-            if (!httpRequest.Headers.TryGetValue(_headerKeyName, out idempotencyKeys))
-            {
-                throw new ArgumentException("The Idempotency header key value is not found.", _headerKeyName);
-            }
-
-            if (idempotencyKeys.Count > 1)
-            {
-                throw new ArgumentException("Multiple Idempotency keys were found.", _headerKeyName);
-            }
-
-            if (idempotencyKeys.Count <= 0
-                || string.IsNullOrEmpty(idempotencyKeys.First()))
-            {
-                throw new ArgumentNullException(_headerKeyName, "An Idempotency header value is not found.");
-            }
-
-            idempotencyKey = idempotencyKeys.ToString();
-            return true;
-        }
-
-        private bool CanPerformIdempotency(HttpRequest httpRequest)
-        {
-            // If distributedCache is not configured
-            if (_distributedCache == null)
-            {
-                throw new Exception("An IDistributedCache is not configured.");
-            }
-
-            // Idempotency is applied on Post & Patch Http methods:
-            if (httpRequest.Method != HttpMethods.Post
-                && httpRequest.Method != HttpMethods.Patch)
+            if (!_isPreIdempotencyApplied || _isPreIdempotencyCacheReturned)
             {
                 if (IsLoggerEnabled(LogLevel.Information))
                 {
-                    _logger.LogInformation("IdempotencyFilterAttribute [Before Controller execution]: Idempotency SKIPPED, httpRequest Method is: {httpRequestMethod}", httpRequest.Method.ToString());
+                    _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: SKIPPED (isPreIdempotencyApplied:{_isPreIdempotencyApplied}, isPreIdempotencyCacheReturned:{_isPreIdempotencyCacheReturned})", _isPreIdempotencyApplied, _isPreIdempotencyCacheReturned);
                 }
-
-                return false;
+                return;
             }
 
-            // For multiple executions of the PreStep:
-            if (_isPreIdempotencyApplied)
+            // Return when the current response is unsuccessful, and we should accept only the success status codes.
+            if (_cacheOnlySuccessResponses
+                && !context.HttpContext.Response.IsSuccessStatusCode())
             {
-                return false;
-            }
-
-            return true;
-        }
-
-        private byte[] GenerateRequestInFlightCacheData(Guid guid)
-        {
-            Dictionary<string, object> inFlightCacheData = new()
-            {
-                { "Request.Inflight", guid }
-            };
-
-            byte[]? serializedCacheData = inFlightCacheData.Serialize();
-            if (serializedCacheData is null)
-                throw new Exception("Cannot Serialize the inFlightCacheData.");
-
-            return serializedCacheData;
-        }
-
-        private byte[] GenerateCacheData(ResultExecutedContext context)
-        {
-            Dictionary<string, object> cacheData = new();
-            // Cache Request params:
-            cacheData.Add("Request.Method", context.HttpContext.Request.Method);
-            cacheData.Add("Request.Path", context.HttpContext.Request.Path.HasValue ? context.HttpContext.Request.Path.Value : string.Empty);
-            cacheData.Add("Request.QueryString", context.HttpContext.Request.QueryString.ToUriComponent());
-            cacheData.Add("Request.DataHash", GetRequestsDataHash(context.HttpContext.Request));
-
-            //Cache Response params:
-            cacheData.Add("Response.StatusCode", context.HttpContext.Response.StatusCode);
-            cacheData.Add("Response.ContentType", context.HttpContext.Response.ContentType);
-
-            Dictionary<string, List<string>> Headers = context.HttpContext.Response.Headers
-                .Where(h => !_excludeHttpHeaderKeys.Contains(h.Key))
-                .ToDictionary(h => h.Key, h => h.Value.ToList());
-
-            cacheData.Add("Response.Headers", Headers);
-
-
-            // 2019-07-05: Response.Body cannot be accessed because its not yet created.
-            // We are saving the Context.Result, because based on this the Response.Body is created.
-            Dictionary<string, object> resultObjects = new();
-            var contextResult = context.Result;
-            resultObjects.Add("ResultType", contextResult.GetType().AssemblyQualifiedName);
-
-            if (contextResult is CreatedAtRouteResult route)
-            {
-                //CreatedAtRouteResult.CreatedAtRouteResult(string routeName, object routeValues, object value)
-                resultObjects.Add("ResultValue", route.Value);
-                resultObjects.Add("ResultRouteName", route.RouteName);
-
-                Dictionary<string, string> RouteValues = route.RouteValues.ToDictionary(r => r.Key, r => r.Value.ToString());
-                resultObjects.Add("ResultRouteValues", RouteValues);
-            }
-            else if (contextResult is ObjectResult objectResult)
-            {
-                if (objectResult.Value.IsAnonymousType())
+                try
                 {
-                    resultObjects.Add("ResultValue", Utils.AnonymousObjectToDictionary(objectResult.Value, Convert.ToString));
+                    _distributedCache.Remove(DistributedCacheKey, _distributedLockTimeout);
                 }
-                else
+                catch (DistributedLockNotAcquiredException distributedLockNotAcquiredException)
                 {
-                    resultObjects.Add("ResultValue", objectResult.Value);
+                    LogDistributedLockNotAcquiredException("After Controller execution", distributedLockNotAcquiredException);
                 }
-            }
-            else if (contextResult is StatusCodeResult || contextResult is ActionResult)
-            {
-                // Known types that do not need additional data
-            }
-            else
-            {
-                throw new NotImplementedException($"ApplyPostIdempotency.generateCacheData is not implement for IActionResult type {contextResult.GetType()}");
-            }
 
-            cacheData.Add("Context.Result", resultObjects);
-
-
-            byte[]? serializedCacheData = cacheData.Serialize();
-
-            if (serializedCacheData is null)
-                throw new Exception("Cannot Serialize the inFlightCacheData.");
-
-            return serializedCacheData;
-        }
-
-        private string GetRequestsDataHash(HttpRequest httpRequest)
-        {
-            List<object> requestsData = new();
-
-            // The Request body:
-            // 2019-10-13: Use CanSeek to check if the stream does not support seeking (set position)
-            if (httpRequest.ContentLength.HasValue
-                && httpRequest.Body != null)
-            {
-                // 2022-08-18: Enable buffering for large body requests and then read the buffer asynchronously.
-                httpRequest.EnableBuffering();
-
-                if (httpRequest.Body.CanRead
-                    && httpRequest.Body.CanSeek)
+                if (IsLoggerEnabled(LogLevel.Information))
                 {
-                    using MemoryStream memoryStream = new();
-                    httpRequest.Body.Position = 0;
-
-                    var copyTask = httpRequest.Body.CopyToAsync(memoryStream);
-                    copyTask.Wait();
-
-                    requestsData.Add(memoryStream.ToArray());
+                    _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: SKIPPED (Status Code {StatusCode} is not success 2xx).", context.HttpContext.Response.StatusCode);
                 }
+                return;
             }
 
-            // The Form data:
-            if (httpRequest.HasFormContentType
-                && httpRequest.Form != null)
+            // Generate the data to be cached
+            byte[]? cacheDataBytes = GenerateCacheData(context);
+
+            // Save to cache:
+            try
             {
-                requestsData.Add(httpRequest.Form);
+                _distributedCache.Set(DistributedCacheKey, cacheDataBytes, _cacheEntryOptions, _distributedLockTimeout);
             }
-
-            // Form-Files data:
-            if (httpRequest.HasFormContentType
-                && httpRequest.Form != null
-                && httpRequest.Form.Files != null
-                && httpRequest.Form.Files.Count > 0)
+            catch (DistributedLockNotAcquiredException distributedLockNotAcquiredException)
             {
-                foreach (IFormFile formFile in httpRequest.Form.Files)
-                {
-                    Stream fileStream = formFile.OpenReadStream();
-                    if (fileStream.CanRead
-                        && fileStream.CanSeek
-                        && fileStream.Length > 0)
-                    {
-                        using (MemoryStream memoryStream = new())
-                        {
-                            fileStream.Position = 0;
-                            fileStream.CopyTo(memoryStream);
-                            requestsData.Add(memoryStream.ToArray());
-                        }
-                    }
-                    else
-                    {
-                        requestsData.Add(formFile.FileName + "_" + formFile.Length.ToString() + "_" + formFile.Name);
-                    }
-                }
+                LogDistributedLockNotAcquiredException("After Controller execution", distributedLockNotAcquiredException);
             }
 
-            // The request's URL:
-            if (httpRequest.Path.HasValue)
+            if (IsLoggerEnabled(LogLevel.Information))
             {
-                requestsData.Add(httpRequest.Path.ToString());
+                _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: Result is cached for idempotencyKey: {idempotencyKey}", _idempotencyKey);
             }
-
-            return Utils.GetHash(_hashAlgorithm, JsonConvert.SerializeObject(requestsData));
         }
 
         /// <summary>
@@ -303,15 +159,28 @@ namespace IdempotentAPI.Core
 
             // Check if idempotencyKey exists in cache and return value:
             Guid uniqueRequesId = Guid.NewGuid();
-            byte[] cacheDataBytes = _distributedCache.GetOrSet(
-                DistributedCacheKey,
-                defaultValue: GenerateRequestInFlightCacheData(uniqueRequesId),
-                options: _cacheEntryOptions);
+            byte[] cacheDataBytes;
+
+            try
+            {
+                cacheDataBytes = _distributedCache.GetOrSet(
+                    DistributedCacheKey,
+                    defaultValue: GenerateRequestInFlightCacheData(uniqueRequesId),
+                    options: _cacheEntryOptions,
+                    distributedLockTimeout: _distributedLockTimeout);
+            }
+            catch (DistributedLockNotAcquiredException distributedLockNotAcquiredException)
+            {
+                LogDistributedLockNotAcquiredException("Before Controller", distributedLockNotAcquiredException);
+
+                context.Result = new ConflictResult();
+                return;
+            }
 
             IReadOnlyDictionary<string, object>? cacheData = cacheDataBytes.DeSerialize<IReadOnlyDictionary<string, object>>();
-            if(cacheData is null)
+            if (cacheData is null)
             {
-                throw new Exception("Cannon DeSerialize cache data.");
+                throw new Exception("Cannot DeSerialize cached data.");
             }
 
             // RPG - 2021-07-05 - Check if there is a copy of this request in flight,
@@ -411,60 +280,20 @@ namespace IdempotentAPI.Core
             _isPreIdempotencyApplied = true;
         }
 
-
-        /// <summary>
-        /// Cache the Response in relation to the provided idempotencyKey
-        /// </summary>
-        /// <param name="context"></param>
-        public void ApplyPostIdempotency(ResultExecutedContext context)
-        {
-            if (IsLoggerEnabled(LogLevel.Information))
-            {
-                _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: Response for {HttpContextResponseStatusCode} sent ({HttpContextResponseContentLength} bytes)", context.HttpContext.Response.StatusCode, context.HttpContext.Response.ContentLength ?? 0);
-            }
-
-            if (!_isPreIdempotencyApplied || _isPreIdempotencyCacheReturned)
-            {
-                if (IsLoggerEnabled(LogLevel.Information))
-                {
-                    _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: SKIPPED (isPreIdempotencyApplied:{_isPreIdempotencyApplied}, isPreIdempotencyCacheReturned:{_isPreIdempotencyCacheReturned})", _isPreIdempotencyApplied, _isPreIdempotencyCacheReturned);
-                }
-                return;
-            }
-
-            // Return when the current response is unsuccessful, and we should accept only the success status codes.
-            if (_cacheOnlySuccessResponses
-                && !context.HttpContext.Response.IsSuccessStatusCode())
-            {
-                _distributedCache.Remove(DistributedCacheKey);
-
-                if (IsLoggerEnabled(LogLevel.Information))
-                {
-                    _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: SKIPPED (Status Code {StatusCode} is not success 2xx).", context.HttpContext.Response.StatusCode);
-                }
-                return;
-            }
-
-            // Generate the data to be cached
-            byte[]? cacheDataBytes = GenerateCacheData(context);
-
-            // Save to cache:
-            _distributedCache.Set(DistributedCacheKey, cacheDataBytes, _cacheEntryOptions);
-
-            if (IsLoggerEnabled(LogLevel.Information))
-            {
-                _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: Result is cached for idempotencyKey: {idempotencyKey}", _idempotencyKey);
-            }
-        }
-
-
         /// <summary>
         /// Cancel the idempotency by removing the related cached data. For example, this function
         /// can be used when exceptions occur.
         /// </summary>
         public void CancelIdempotency()
         {
-            _distributedCache.Remove(DistributedCacheKey);
+            try
+            {
+                _distributedCache.Remove(DistributedCacheKey, _distributedLockTimeout);
+            }
+            catch (DistributedLockNotAcquiredException distributedLockNotAcquiredException)
+            {
+                LogDistributedLockNotAcquiredException("After Controller execution", distributedLockNotAcquiredException);
+            }
 
             if (IsLoggerEnabled(LogLevel.Information))
             {
@@ -472,9 +301,232 @@ namespace IdempotentAPI.Core
             }
         }
 
+        private bool CanPerformIdempotency(HttpRequest httpRequest)
+        {
+            // If distributedCache is not configured
+            if (_distributedCache == null)
+            {
+                throw new Exception("An IDistributedCache is not configured.");
+            }
+
+            // Idempotency is applied on Post & Patch Http methods:
+            if (httpRequest.Method != HttpMethods.Post
+                && httpRequest.Method != HttpMethods.Patch)
+            {
+                if (IsLoggerEnabled(LogLevel.Information))
+                {
+                    _logger.LogInformation("IdempotencyFilterAttribute [Before Controller execution]: Idempotency SKIPPED, httpRequest Method is: {httpRequestMethod}", httpRequest.Method.ToString());
+                }
+
+                return false;
+            }
+
+            // For multiple executions of the PreStep:
+            if (_isPreIdempotencyApplied)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private byte[] GenerateCacheData(ResultExecutedContext context)
+        {
+            Dictionary<string, object> cacheData = new();
+            // Cache Request params:
+            cacheData.Add("Request.Method", context.HttpContext.Request.Method);
+            cacheData.Add("Request.Path", context.HttpContext.Request.Path.HasValue ? context.HttpContext.Request.Path.Value : string.Empty);
+            cacheData.Add("Request.QueryString", context.HttpContext.Request.QueryString.ToUriComponent());
+            cacheData.Add("Request.DataHash", GetRequestsDataHash(context.HttpContext.Request));
+
+            //Cache Response params:
+            cacheData.Add("Response.StatusCode", context.HttpContext.Response.StatusCode);
+            cacheData.Add("Response.ContentType", context.HttpContext.Response.ContentType);
+
+            Dictionary<string, List<string>> Headers = context.HttpContext.Response.Headers
+                .Where(h => !_excludeHttpHeaderKeys.Contains(h.Key))
+                .ToDictionary(h => h.Key, h => h.Value.ToList());
+
+            cacheData.Add("Response.Headers", Headers);
+
+
+            // 2019-07-05: Response.Body cannot be accessed because its not yet created.
+            // We are saving the Context.Result, because based on this the Response.Body is created.
+            Dictionary<string, object> resultObjects = new();
+            var contextResult = context.Result;
+            resultObjects.Add("ResultType", contextResult.GetType().AssemblyQualifiedName);
+
+            if (contextResult is CreatedAtRouteResult route)
+            {
+                //CreatedAtRouteResult.CreatedAtRouteResult(string routeName, object routeValues, object value)
+                resultObjects.Add("ResultValue", route.Value);
+                resultObjects.Add("ResultRouteName", route.RouteName);
+
+                Dictionary<string, string> RouteValues = route.RouteValues.ToDictionary(r => r.Key, r => r.Value.ToString());
+                resultObjects.Add("ResultRouteValues", RouteValues);
+            }
+            else if (contextResult is ObjectResult objectResult)
+            {
+                if (objectResult.Value.IsAnonymousType())
+                {
+                    resultObjects.Add("ResultValue", Utils.AnonymousObjectToDictionary(objectResult.Value, Convert.ToString));
+                }
+                else
+                {
+                    resultObjects.Add("ResultValue", objectResult.Value);
+                }
+            }
+            else if (contextResult is StatusCodeResult || contextResult is ActionResult)
+            {
+                // Known types that do not need additional data
+            }
+            else
+            {
+                throw new NotImplementedException($"ApplyPostIdempotency.generateCacheData is not implement for IActionResult type {contextResult.GetType()}");
+            }
+
+            cacheData.Add("Context.Result", resultObjects);
+
+
+            byte[]? serializedCacheData = cacheData.Serialize();
+
+            if (serializedCacheData is null)
+                throw new Exception("Cannot Serialize the inFlightCacheData.");
+
+            return serializedCacheData;
+        }
+
+        private byte[] GenerateRequestInFlightCacheData(Guid guid)
+        {
+            Dictionary<string, object> inFlightCacheData = new()
+            {
+                { "Request.Inflight", guid }
+            };
+
+            byte[]? serializedCacheData = inFlightCacheData.Serialize();
+            if (serializedCacheData is null)
+                throw new Exception("Cannot Serialize the inFlightCacheData.");
+
+            return serializedCacheData;
+        }
+
+        private string GetRequestsDataHash(HttpRequest httpRequest)
+        {
+            List<object> requestsData = new();
+
+            // The Request body:
+            // 2019-10-13: Use CanSeek to check if the stream does not support seeking (set position)
+            if (httpRequest.ContentLength.HasValue
+                && httpRequest.Body != null)
+            {
+                // 2022-08-18: Enable buffering for large body requests and then read the buffer asynchronously.
+                httpRequest.EnableBuffering();
+
+                if (httpRequest.Body.CanRead
+                    && httpRequest.Body.CanSeek)
+                {
+                    using MemoryStream memoryStream = new();
+                    httpRequest.Body.Position = 0;
+
+                    var copyTask = httpRequest.Body.CopyToAsync(memoryStream);
+                    copyTask.Wait();
+
+                    requestsData.Add(memoryStream.ToArray());
+                }
+            }
+
+            // The Form data:
+            if (httpRequest.HasFormContentType
+                && httpRequest.Form != null)
+            {
+                requestsData.Add(httpRequest.Form);
+            }
+
+            // Form-Files data:
+            if (httpRequest.HasFormContentType
+                && httpRequest.Form != null
+                && httpRequest.Form.Files != null
+                && httpRequest.Form.Files.Count > 0)
+            {
+                foreach (IFormFile formFile in httpRequest.Form.Files)
+                {
+                    Stream fileStream = formFile.OpenReadStream();
+                    if (fileStream.CanRead
+                        && fileStream.CanSeek
+                        && fileStream.Length > 0)
+                    {
+                        using (MemoryStream memoryStream = new())
+                        {
+                            fileStream.Position = 0;
+                            fileStream.CopyTo(memoryStream);
+                            requestsData.Add(memoryStream.ToArray());
+                        }
+                    }
+                    else
+                    {
+                        requestsData.Add(formFile.FileName + "_" + formFile.Length.ToString() + "_" + formFile.Name);
+                    }
+                }
+            }
+
+            // The request's URL:
+            if (httpRequest.Path.HasValue)
+            {
+                requestsData.Add(httpRequest.Path.ToString());
+            }
+
+            return Utils.GetHash(_hashAlgorithm, JsonConvert.SerializeObject(requestsData));
+        }
+
         private bool IsLoggerEnabled(LogLevel logLevel)
         {
             return _logger?.IsEnabled(logLevel) ?? false;
+        }
+
+        private void LogDistributedLockNotAcquiredException(
+            string message,
+            DistributedLockNotAcquiredException distributedLockNotAcquiredException)
+        {
+            if (IsLoggerEnabled(LogLevel.Error) && distributedLockNotAcquiredException.InnerException is not null)
+            {
+                _logger.LogError(
+                    distributedLockNotAcquiredException.InnerException,
+                    $"IdempotencyFilterAttribute [{message}]: DistributedLockNotAcquired. {distributedLockNotAcquiredException.Message}");
+            }
+            else if (IsLoggerEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning($"IdempotencyFilterAttribute [{message}]: DistributedLockNotAcquired. {distributedLockNotAcquiredException.Message}");
+            }
+        }
+
+        private bool TryGetIdempotencyKey(HttpRequest httpRequest, out string idempotencyKey)
+        {
+            idempotencyKey = string.Empty;
+
+            // The "headerKeyName" must be provided as a Header:
+            if (!httpRequest.Headers.ContainsKey(_headerKeyName))
+            {
+                throw new ArgumentNullException(_headerKeyName, "The Idempotency header key is not found.");
+            }
+
+            if (!httpRequest.Headers.TryGetValue(_headerKeyName, out StringValues idempotencyKeys))
+            {
+                throw new ArgumentException("The Idempotency header key value is not found.", _headerKeyName);
+            }
+
+            if (idempotencyKeys.Count > 1)
+            {
+                throw new ArgumentException("Multiple Idempotency keys were found.", _headerKeyName);
+            }
+
+            if (idempotencyKeys.Count <= 0
+                || string.IsNullOrEmpty(idempotencyKeys.First()))
+            {
+                throw new ArgumentNullException(_headerKeyName, "An Idempotency header value is not found.");
+            }
+
+            idempotencyKey = idempotencyKeys.ToString();
+            return true;
         }
     }
 }

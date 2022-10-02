@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFrameworks>netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
+	<IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<PackageReference Include="FluentAssertions" Version="6.7.0" />
+	<PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0" />
+	<PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="6.0.1" />
+	<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="6.0.0" />
+	<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
+	<PackageReference Include="Moq" Version="4.18.2" />
+	<PackageReference Include="xunit" Version="2.4.2" />
+	<PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
+	  <PrivateAssets>all</PrivateAssets>
+	  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	</PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+	<ProjectReference Include="..\..\src\IdempotentAPI.Cache.DistributedCache\IdempotentAPI.Cache.DistributedCache.csproj" />
+	<ProjectReference Include="..\..\src\IdempotentAPI.Cache.FusionCache\IdempotentAPI.Cache.FusionCache.csproj" />
+	<ProjectReference Include="..\..\src\IdempotentAPI.Cache.Abstractions\IdempotentAPI.Cache.Abstractions.csproj" />
+	<ProjectReference Include="..\..\src\IdempotentAPI\IdempotentAPI.csproj" />
+  </ItemGroup>
+
+</Project>

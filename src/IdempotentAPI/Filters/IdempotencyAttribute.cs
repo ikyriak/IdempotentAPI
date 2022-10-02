@@ -1,5 +1,5 @@
 ﻿using System;
-using IdempotentAPI.Cache;
+using IdempotentAPI.AccessCache;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
 
@@ -26,10 +26,20 @@ namespace IdempotentAPI.Filters
         /// </summary>
         public bool CacheOnlySuccessResponses { get; set; } = true;
 
+        /// <summary>
+        /// The time the distributed lock will wait for the lock to be acquired (in milliseconds).
+        /// This is Required when a <see cref="IDistributedAccessLockProvider"/> is provided.
+        /// </summary>
+        public double DistributedLockTimeoutMilli { get; set; } = -1;
+
         public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
         {
-            var distributedCache = (IIdempotencyCache)serviceProvider.GetService(typeof(IIdempotencyCache));
+            var distributedCache = (IIdempotencyAccessCache)serviceProvider.GetService(typeof(IIdempotencyAccessCache));
             var loggerFactory = (ILoggerFactory)serviceProvider.GetService(typeof(ILoggerFactory));
+
+            TimeSpan? distributedLockTimeout = DistributedLockTimeoutMilli >= 0
+                ? TimeSpan.FromMilliseconds(DistributedLockTimeoutMilli)
+                : null;
 
             return new IdempotencyAttributeFilter(
                 distributedCache,
@@ -38,6 +48,7 @@ namespace IdempotentAPI.Filters
                 ExpireHours,
                 HeaderKeyName,
                 DistributedCacheKeysPrefix,
+                distributedLockTimeout,
                 CacheOnlySuccessResponses);
         }
     }

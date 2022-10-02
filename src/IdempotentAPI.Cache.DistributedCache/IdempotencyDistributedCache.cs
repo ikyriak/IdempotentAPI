@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading;
-using IdempotentAPI.Cache.DistributedCache.Lockers;
+using IdempotentAPI.Cache.Abstractions;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace IdempotentAPI.Cache.DistributedCache
@@ -42,11 +42,8 @@ namespace IdempotentAPI.Cache.DistributedCache
                 throw new ArgumentNullException(nameof(options));
             }
 
-            using (var valuelocker = new ValueLocker(key))
-            {
-                byte[] cachedData = _distributedCache.Get(key);
-                return cachedData is null ? defaultValue : cachedData;
-            }
+            byte[] cachedData = _distributedCache.Get(key);
+            return cachedData is null ? defaultValue : cachedData;
         }
 
         /// <inheritdoc/>
@@ -66,18 +63,15 @@ namespace IdempotentAPI.Cache.DistributedCache
                 throw new ArgumentNullException(nameof(options));
             }
 
-            using (var valuelocker = new ValueLocker(key))
+            byte[] cachedData = _distributedCache.Get(key);
+            if (cachedData is null)
             {
-                byte[] cachedData = _distributedCache.Get(key);
-                if (cachedData is null)
-                {
-                    _distributedCache.Set(key, defaultValue, (DistributedCacheEntryOptions?)options);
-                    return defaultValue;
-                }
-                else
-                {
-                    return cachedData;
-                }
+                _distributedCache.Set(key, defaultValue, (DistributedCacheEntryOptions?)options);
+                return defaultValue;
+            }
+            else
+            {
+                return cachedData;
             }
         }
 
@@ -88,10 +82,7 @@ namespace IdempotentAPI.Cache.DistributedCache
                 throw new ArgumentNullException(nameof(key));
             }
 
-            using (var valuelocker = new ValueLocker(key))
-            {
-                _distributedCache.Remove(key);
-            }
+            _distributedCache.Remove(key);
         }
 
         /// <inheritdoc/>
@@ -112,10 +103,7 @@ namespace IdempotentAPI.Cache.DistributedCache
                 throw new ArgumentNullException(nameof(options));
             }
 
-            using (var valuelocker = new ValueLocker(key))
-            {
-                _distributedCache.Set(key, value, (DistributedCacheEntryOptions?)options);
-            }
+            _distributedCache.Set(key, value, (DistributedCacheEntryOptions?)options);
         }
     }
 }
