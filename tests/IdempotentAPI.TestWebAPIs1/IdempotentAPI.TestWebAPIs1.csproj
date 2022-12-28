@@ -9,7 +9,7 @@
 	<ItemGroup>
 		<PackageReference Include="DistributedLock.Redis" Version="1.0.2" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="6.0.9" />
+		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="7.0.1" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -1,4 +1,4 @@
-﻿namespace WebApi_3_1.DTOs
+﻿namespace WebApi.DTOs
 {
     public class SimpleRequest
     {
