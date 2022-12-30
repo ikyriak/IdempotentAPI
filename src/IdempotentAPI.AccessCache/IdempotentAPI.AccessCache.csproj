@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+        <TargetFramework>net6.0</TargetFramework>
         <Authors>Ioannis Kyriakidis</Authors>
         <Company>ikyriakidis.com</Company>
         <Version>2.0.0-rc-01</Version>

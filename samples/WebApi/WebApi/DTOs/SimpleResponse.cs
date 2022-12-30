@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace WebApi_5_0.DTOs
+namespace WebApi.DTOs
 {
     [Serializable]
     public class SimpleResponse
