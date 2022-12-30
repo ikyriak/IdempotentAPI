@@ -10,6 +10,8 @@ namespace IdempotentAPI.Filters
         private readonly IIdempotencyAccessCache _distributedCache;
         private readonly IIdempotencySettings _settings;
         private readonly IKeyGenerator _keyGenerator;
+        private readonly IRequestIdProvider _requestIdProvider;
+        private readonly IResponseMapper _responseMapper;
         private readonly ILogger<Idempotency> _logger;
 
         private Idempotency? _idempotency = null;
@@ -18,11 +20,15 @@ namespace IdempotentAPI.Filters
             IIdempotencyAccessCache distributedCache,
             IIdempotencySettings settings,
             IKeyGenerator keyGenerator,
+            IRequestIdProvider requestIdProvider,
+            IResponseMapper responseMapper,
             ILogger<Idempotency> logger)
         {
             _distributedCache = distributedCache;
             _settings = settings;
             _keyGenerator = keyGenerator;
+            _requestIdProvider = requestIdProvider;
+            _responseMapper = responseMapper;
             _logger = logger;
         }
 
@@ -41,7 +47,7 @@ namespace IdempotentAPI.Filters
             // Initialize only on its null (in case of multiple executions):
             if (_idempotency == null)
             {
-                _idempotency = new Idempotency(_distributedCache, _settings, _keyGenerator, _logger);
+                _idempotency = new Idempotency(_distributedCache, _settings, _keyGenerator, _responseMapper, _requestIdProvider, _logger);
             }
 
             _idempotency.ApplyPreIdempotency(context);

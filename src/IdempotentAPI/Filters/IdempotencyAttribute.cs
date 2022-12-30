@@ -38,6 +38,8 @@ namespace IdempotentAPI.Filters
             var logger = serviceProvider.GetService<ILogger<Idempotency>>() ?? NullLogger<Idempotency>.Instance;
             var settings = serviceProvider.GetService<IIdempotencySettings>();
             var keyGenerator = serviceProvider.GetService<IKeyGenerator>() ?? new DefaultKeyGenerator();
+            var requestIdProvider = serviceProvider.GetService<IRequestIdProvider>() ?? new DefaultRequestIdProvider(settings);
+            var responseMapper = serviceProvider.GetService<IResponseMapper>() ?? new DefaultResponseMapper();
 
             var distributedLockTimeout = DistributedLockTimeoutMilli >= 0
                 ? TimeSpan.FromMilliseconds(DistributedLockTimeoutMilli)
@@ -53,7 +55,7 @@ namespace IdempotentAPI.Filters
                 Enabled = Enabled || settings.Enabled
             };
 
-            return new IdempotencyAttributeFilter(distributedCache, instanceSettings, keyGenerator, logger);
+            return new IdempotencyAttributeFilter(distributedCache, instanceSettings, keyGenerator, requestIdProvider, responseMapper, logger);
         }
     }
 }
