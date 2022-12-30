@@ -159,7 +159,7 @@ namespace IdempotentAPI.Core
             {
                 LogDistributedLockNotAcquiredException("Before Controller", distributedLockNotAcquiredException);
 
-                context.Result = ResultOnDistributedLockNotAcquired(distributedLockNotAcquiredException);
+                context.Result = ResultOnDistributedLockNotAcquired(context, distributedLockNotAcquiredException);
                 return;
             }
 
@@ -174,7 +174,7 @@ namespace IdempotentAPI.Core
             if (cacheData.ContainsKey("Request.Inflight")
                 && uniqueRequesId.ToString().ToLower() != cacheData["Request.Inflight"].ToString().ToLower())
             {
-                context.Result = CreateResponse(HttpStatusCode.Conflict, null);
+                context.Result = CreateResponse(context, HttpStatusCode.Conflict, null);
                 return;
             }
 
@@ -189,7 +189,7 @@ namespace IdempotentAPI.Core
                 string currentRequestDataHash = GetRequestsDataHash(context.HttpContext.Request);
                 if (cachedRequestDataHash != currentRequestDataHash)
                 {
-                    context.Result = CreateResponse(HttpStatusCode.BadRequest, $"The Idempotency header key value '{_idempotencyKey}' was used in a different request.");
+                    context.Result = CreateResponse(context, HttpStatusCode.BadRequest, $"The Idempotency header key value '{_idempotencyKey}' was used in a different request.");
                     return;
                 }
 
@@ -304,12 +304,12 @@ namespace IdempotentAPI.Core
             return value.ToString();
         }
 
-        protected virtual IActionResult ResultOnDistributedLockNotAcquired(DistributedLockNotAcquiredException exception)
+        protected virtual IActionResult ResultOnDistributedLockNotAcquired(ActionExecutingContext context, DistributedLockNotAcquiredException exception)
         {
             return new ConflictResult();
         }
 
-        protected virtual IActionResult CreateResponse(HttpStatusCode status, object error) =>
+        protected virtual IActionResult CreateResponse(ActionExecutingContext context, HttpStatusCode status, object error) =>
             status switch
             {
                 HttpStatusCode.Conflict => new ConflictObjectResult(error),
