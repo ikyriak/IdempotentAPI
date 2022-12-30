@@ -14,4 +14,6 @@ public interface IIdempotencySettings
     public TimeSpan ExpiryTime { get; set; }
 
     public TimeSpan? DistributedLockTimeout { get; set; }
+    string RequestIdHeader { get; set; }
+    string OriginalRequestIdHeader { get; set; }
 }

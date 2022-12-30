@@ -1191,11 +1191,12 @@ namespace IdempotentAPI.UnitTests.FiltersTests
         {
             // Arrange
             string requestBodyString = @"{""message"":""This is a dummy message""}";
-            int expectedResponseHeadersCount = 2;
+            int expectedResponseHeadersCount = 3;
             var requestHeaders = new HeaderDictionary
             {
                 { "Content-Type", "application/json" },
-                { _headerKeyName, idempotencyKey }
+                { _headerKeyName, idempotencyKey },
+                { "X-Request-Id", "request-1234" },
             };
 
             TimeSpan? distributedLockTimeout = null;
@@ -1264,6 +1265,9 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             // Assert (response headers count)
             actionExecutingContext.HttpContext.Response.Headers.Count.Should().Be(expectedResponseHeadersCount);
+
+            // Assert headers
+            actionExecutingContext.HttpContext.Response.Headers["X-Request-Id"].Should().Equal("request-1234");
         }
 
         /// <summary>

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
 using IdempotentAPI.AccessCache;
 using IdempotentAPI.AccessCache.Exceptions;
@@ -178,6 +179,9 @@ namespace IdempotentAPI.Core
 
             if (!cacheData.ContainsKey("Request.Inflight"))
             {
+                var requestId = GetRequestId(context.HttpContext.Request);
+                context.HttpContext.Response.Headers.Add(_settings.RequestIdHeader, requestId);
+
                 // 2019-07-06: Evaluate the "Request.DataHash" in order to be sure that the cached
                 // response is returned for the same combination of IdempotencyKey and Request
                 string cachedRequestDataHash = cacheData["Request.DataHash"].ToString();
@@ -243,7 +247,14 @@ namespace IdempotentAPI.Core
                 {
                     foreach (KeyValuePair<string, List<string>> headerKeyValue in headerKeyValues)
                     {
-                        if (!context.HttpContext.Response.Headers.ContainsKey(headerKeyValue.Key))
+                        if (headerKeyValue.Key.Equals("Content-Type"))
+                            continue;
+
+                        if (headerKeyValue.Key.Equals(_settings.RequestIdHeader))
+                        {
+                            context.HttpContext.Response.Headers.Add(_settings.OriginalRequestIdHeader, headerKeyValue.Value.ToArray());
+                        }
+                        else if (!context.HttpContext.Response.Headers.ContainsKey(headerKeyValue.Key))
                         {
                             context.HttpContext.Response.Headers.Add(headerKeyValue.Key, headerKeyValue.Value.ToArray());
                         }
@@ -283,6 +294,13 @@ namespace IdempotentAPI.Core
             {
                 _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: SKIPPED (An exception occurred).");
             }
+        }
+
+        protected virtual string GetRequestId(HttpRequest request)
+        {
+            request.Headers.TryGetValue(_settings.RequestIdHeader, out var value);
+            value = value.FirstOrDefault() ?? Guid.NewGuid().ToString();
+            return value.ToString();
         }
 
         protected virtual IActionResult ResultOnDistributedLockNotAcquired(DistributedLockNotAcquiredException exception)
