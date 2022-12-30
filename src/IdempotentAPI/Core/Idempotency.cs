@@ -144,14 +144,14 @@ namespace IdempotentAPI.Core
             _distributedCacheKey = _keyGenerator.Generate(_settings.DistributedCacheKeysPrefix, controller, action, _idempotencyKey);
 
             // Check if idempotencyKey exists in cache and return value:
-            Guid uniqueRequesId = Guid.NewGuid();
+            string uniqueRequestId = GetRequestId(context.HttpContext.Request);
             byte[] cacheDataBytes;
 
             try
             {
                 cacheDataBytes = _distributedCache.GetOrSet(
                     _distributedCacheKey,
-                    defaultValue: GenerateRequestInFlightCacheData(uniqueRequesId),
+                    defaultValue: GenerateRequestInFlightCacheData(uniqueRequestId),
                     options: _cacheEntryOptions,
                     distributedLockTimeout: _settings.DistributedLockTimeout);
             }
@@ -172,7 +172,7 @@ namespace IdempotentAPI.Core
             // RPG - 2021-07-05 - Check if there is a copy of this request in flight,
             // if so return a 409 Http Conflict response.
             if (cacheData.ContainsKey("Request.Inflight")
-                && uniqueRequesId.ToString().ToLower() != cacheData["Request.Inflight"].ToString().ToLower())
+                && uniqueRequestId.ToLower() != cacheData["Request.Inflight"].ToString().ToLower())
             {
                 context.Result = CreateResponse(context, HttpStatusCode.Conflict, null);
                 return;
@@ -180,8 +180,7 @@ namespace IdempotentAPI.Core
 
             if (!cacheData.ContainsKey("Request.Inflight"))
             {
-                var requestId = GetRequestId(context.HttpContext.Request);
-                context.HttpContext.Response.Headers.Add(_settings.RequestIdHeader, requestId);
+                context.HttpContext.Response.Headers.Add(_settings.RequestIdHeader, uniqueRequestId);
 
                 // 2019-07-06: Evaluate the "Request.DataHash" in order to be sure that the cached
                 // response is returned for the same combination of IdempotencyKey and Request
@@ -412,11 +411,11 @@ namespace IdempotentAPI.Core
             return serializedCacheData;
         }
 
-        private byte[] GenerateRequestInFlightCacheData(Guid guid)
+        private byte[] GenerateRequestInFlightCacheData(string value)
         {
             Dictionary<string, object> inFlightCacheData = new()
             {
-                { "Request.Inflight", guid }
+                { "Request.Inflight", value }
             };
 
             byte[]? serializedCacheData = inFlightCacheData.Serialize();
