@@ -162,13 +162,17 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
                 null,
-                _logger,
-                false,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = false,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
             // Act
             idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
@@ -202,13 +206,17 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
                 null,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
             // Act
             var ex = Assert.Throws<ArgumentNullException>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
@@ -258,13 +266,17 @@ namespace IdempotentAPI.UnitTests.FiltersTests
             IIdempotencyAccessCache distributedCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation, distributedAccessLock);
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
                 distributedCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
             // Act
             var ex = Assert.Throws<ArgumentNullException>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
@@ -320,13 +332,17 @@ namespace IdempotentAPI.UnitTests.FiltersTests
             IIdempotencyAccessCache distributedCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation, accessLockImplementation);
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
                 distributedCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
             // Act
             var ex = Assert.Throws<ArgumentNullException>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
@@ -379,13 +395,17 @@ namespace IdempotentAPI.UnitTests.FiltersTests
             IIdempotencyAccessCache distributedCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation, accessLockImplementation);
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
                 distributedCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
             // Act
             var ex = Assert.Throws<ArgumentException>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
@@ -439,13 +459,17 @@ namespace IdempotentAPI.UnitTests.FiltersTests
             IIdempotencyAccessCache distributedCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation, accessLockImplementation);
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
                 distributedCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
             // Act
             idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
@@ -510,13 +534,17 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
                 idempotencyCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
 
             // Act Part 1 (check cache):
@@ -612,13 +640,17 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
                 idempotencyCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
 
             // Act Part 1 (check cache):
@@ -714,23 +746,31 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             var idempotencyRequest1 = new IdempotencyAttributeFilter(
                 idempotencyCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
             var idempotencyRequest2 = new IdempotencyAttributeFilter(
                 idempotencyCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
             // Act Part 1 (check cache):
             idempotencyRequest1.OnActionExecuting(actionExecutingContext);
@@ -831,23 +871,31 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             var idempotencyRequest1 = new IdempotencyAttributeFilter(
                 idempotencyCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
             var idempotencyRequest2 = new IdempotencyAttributeFilter(
                 idempotencyCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
             // Act Part 1 (check cache):
             idempotencyRequest1.OnActionExecuting(actionExecutingContext);
@@ -925,13 +973,17 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
                 distributedCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
 
             // Act Part 1 (check cache):
@@ -1044,23 +1096,31 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             var idempotencyAttributeFilterRequest1 = new IdempotencyAttributeFilter(
                 idempotencyCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
             var idempotencyAttributeFilterRequest2 = new IdempotencyAttributeFilter(
                 idempotencyCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
             // Act Part 1 (check cache):
             idempotencyAttributeFilterRequest1.OnActionExecuting(actionExecutingContext);
@@ -1072,8 +1132,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
             // should still be inflight and we should have a 409 Conflict result.
             idempotencyAttributeFilterRequest2.OnActionExecuting(inflightExecutingContext);
             Assert.NotNull(inflightExecutingContext.Result);
-            Assert.Equal(typeof(ConflictResult), inflightExecutingContext.Result.GetType());
-            Assert.Equal(409, ((ConflictResult)inflightExecutingContext.Result).StatusCode);
+            Assert.Equal(typeof(ConflictObjectResult), inflightExecutingContext.Result.GetType());
+            Assert.Equal(409, ((ConflictObjectResult)inflightExecutingContext.Result).StatusCode);
 
             // Act Part 3:
             idempotencyAttributeFilterRequest1.OnResultExecuted(resultExecutedContext);
@@ -1131,11 +1191,12 @@ namespace IdempotentAPI.UnitTests.FiltersTests
         {
             // Arrange
             string requestBodyString = @"{""message"":""This is a dummy message""}";
-            int expectedResponseHeadersCount = 2;
+            int expectedResponseHeadersCount = 3;
             var requestHeaders = new HeaderDictionary
             {
                 { "Content-Type", "application/json" },
-                { _headerKeyName, idempotencyKey }
+                { _headerKeyName, idempotencyKey },
+                { "X-Request-Id", "request-1234" },
             };
 
             TimeSpan? distributedLockTimeout = null;
@@ -1179,13 +1240,17 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
                 idempotencyCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
 
             // Act
@@ -1200,6 +1265,9 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             // Assert (response headers count)
             actionExecutingContext.HttpContext.Response.Headers.Count.Should().Be(expectedResponseHeadersCount);
+
+            // Assert headers
+            actionExecutingContext.HttpContext.Response.Headers["X-Request-Id"].Should().Equal("request-1234");
         }
 
         /// <summary>
@@ -1269,23 +1337,31 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             var idempotencyAttributeFilterRequest1 = new IdempotencyAttributeFilter(
                 idempotencyCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
             var idempotencyAttributeFilterRequest2 = new IdempotencyAttributeFilter(
                 idempotencyCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
             // Act with concurrent requests (check cache):
             var firstRequestTask = Task.Run(() => idempotencyAttributeFilterRequest1.OnActionExecuting(firstRequestExecutingContext));
@@ -1315,8 +1391,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
             // result of the first request should still be inflight and we should have a 409
             // Conflict result.
             Assert.NotNull(conflictedActionResult);
-            Assert.Equal(typeof(ConflictResult), conflictedActionResult.GetType());
-            Assert.Equal(409, ((ConflictResult)conflictedActionResult).StatusCode);
+            Assert.Equal(typeof(ConflictObjectResult), conflictedActionResult.GetType());
+            Assert.Equal(409, ((ConflictObjectResult)conflictedActionResult).StatusCode);
         }
 
         /// <summary>
@@ -1364,13 +1440,17 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
                 idempotencyCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
 
             // Act & Assert Part 1: Before the execution of the controller we store in-flight data (cache exists)
@@ -1453,13 +1533,17 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
                 idempotencyCache,
-                _logger,
-                true,
-                TimeSpan.FromHours(1),
-                _headerKeyName,
-                _distributedCacheKeysPrefix,
-                distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                new IdempotencySettings
+                {
+                    Enabled = true,
+                    CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                    DistributedLockTimeout = distributedLockTimeout,
+                    DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                    HeaderKeyName = _headerKeyName,
+                    ExpiryTime = TimeSpan.FromHours(1)
+                },
+                new DefaultKeyGenerator(),
+                _logger);
 
 
             // Act & Assert Part 1: Before the execution of the controller we store in-flight data (cache exists)
