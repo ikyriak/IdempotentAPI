@@ -1,7 +1,5 @@
 # Idempotent API (v2.0.0-rc-01)
 
-
-
 ## Understanding Idempotency
 
 A [distributed system](https://en.wikipedia.org/wiki/Distributed_computing) consists of multiple components located on different networked computers, which communicate and coordinate their actions by passing messages to one another from any system. For example, I am sure that you have heard of the [microservices](https://microservices.io/) architecture, which is a kind of distributed system.
