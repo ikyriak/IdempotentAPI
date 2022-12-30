@@ -17,24 +17,20 @@ namespace IdempotentAPI.Filters
     {
         public bool IsReusable => false;
 
-        public bool? Enabled { get; set; }
+        public bool Enabled { get; set; }
 
         public TimeSpan? ExpiryTime { get; set; }
-
-        public string? DistributedCacheKeysPrefix { get; set; }
-
-        public string? HeaderKeyName { get; set; }
 
         /// <summary>
         /// When true, only the responses with 2xx HTTP status codes will be cached.
         /// </summary>
-        public bool? CacheOnlySuccessResponses { get; set; }
+        public bool CacheOnlySuccessResponses { get; set; }
 
         /// <summary>
         /// The time the distributed lock will wait for the lock to be acquired (in milliseconds).
         /// This is Required when a <see cref="IDistributedAccessLockProvider"/> is provided.
         /// </summary>
-        public double? DistributedLockTimeoutMilli { get; set; }
+        public double DistributedLockTimeoutMilli { get; set; } = -1;
 
         public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
         {
@@ -43,20 +39,18 @@ namespace IdempotentAPI.Filters
             var settings = serviceProvider.GetService<IIdempotencySettings>();
             var keyGenerator = serviceProvider.GetService<IKeyGenerator>() ?? new DefaultKeyGenerator();
 
-            TimeSpan? distributedLockTimeout = DistributedLockTimeoutMilli.HasValue
-                ? DistributedLockTimeoutMilli >= 0
-                    ? TimeSpan.FromMilliseconds(DistributedLockTimeoutMilli.Value)
-                    : null
+            var distributedLockTimeout = DistributedLockTimeoutMilli >= 0
+                ? TimeSpan.FromMilliseconds(DistributedLockTimeoutMilli)
                 : settings.DistributedLockTimeout;
 
             var instanceSettings = new IdempotencySettings
             {
-                CacheOnlySuccessResponses = CacheOnlySuccessResponses.GetValueOrDefault(settings.CacheOnlySuccessResponses),
-                DistributedCacheKeysPrefix = DistributedCacheKeysPrefix ?? settings.DistributedCacheKeysPrefix,
+                CacheOnlySuccessResponses = CacheOnlySuccessResponses || settings.CacheOnlySuccessResponses,
+                DistributedCacheKeysPrefix = settings.DistributedCacheKeysPrefix,
                 DistributedLockTimeout = distributedLockTimeout,
-                HeaderKeyName = HeaderKeyName ?? settings.HeaderKeyName,
+                HeaderKeyName = settings.HeaderKeyName,
                 ExpiryTime = ExpiryTime.GetValueOrDefault(settings.ExpiryTime),
-                Enabled = Enabled.GetValueOrDefault(settings.Enabled)
+                Enabled = Enabled || settings.Enabled
             };
 
             return new IdempotencyAttributeFilter(distributedCache, instanceSettings, keyGenerator, logger);

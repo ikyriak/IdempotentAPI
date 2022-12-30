@@ -9,6 +9,7 @@ using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
 using IdempotentAPI.AccessCache;
 using IdempotentAPI.AccessCache.Exceptions;
+using IdempotentAPI.Core;
 using IdempotentAPI.Extensions;
 using IdempotentAPI.Helpers;
 using Microsoft.AspNetCore.Http;
