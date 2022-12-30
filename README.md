@@ -18,7 +18,6 @@ Creating Idempotent Web APIs is the first step before using a resilient and tran
 The `IdempotentAPI` library provides an easy way to develop idempotent Web APIs. In the following sections, we will see the idempotency in the different HTTP methods, how the `IdempotentAPI` library works, its code, and finally, how to use the `IdempotentAPI` NuGet packages.
 
 
-
 ## Idempotency in HTTP (Web)
 
 HTTP defines a set of request [methods](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods) (HTTP verbs: GET, POST, PUT, PATCH, etc.) to indicate the desired action to be performed for a given resource. An idempotent HTTP method can be called many times without resulting in different outcomes. Safe methods are HTTP methods that do not modify the resources. In Table 1, we can see details about which HTTP methods are idempotent or/and safe.
