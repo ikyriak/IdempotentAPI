@@ -10,6 +10,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{053C145E-FE79-4021-999E-B28958B765FF}"
 	ProjectSection(SolutionItems) = preProject
 		CHANGELOG.md = CHANGELOG.md
+		Dockerfile = Dockerfile
 		README.md = README.md
 	EndProjectSection
 EndProject
@@ -33,9 +34,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B0CA0D1D
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdempotentAPI.IntegrationTests", "tests\IdempotentAPI.IntegrationTests\IdempotentAPI.IntegrationTests.csproj", "{63F0BB18-3CCA-46F8-ACA1-F3B6EC05CE5B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdempotentAPI.TestWebAPIs2", "tests\IdempotentAPI.TestWebAPIs2\IdempotentAPI.TestWebAPIs2.csproj", "{F3D3B42C-5582-4EFA-9ED8-C81EA767259C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdempotentAPI.TestWebAPIs2", "tests\IdempotentAPI.TestWebAPIs2\IdempotentAPI.TestWebAPIs2.csproj", "{F3D3B42C-5582-4EFA-9ED8-C81EA767259C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdempotentAPI.TestWebAPIs1", "tests\IdempotentAPI.TestWebAPIs1\IdempotentAPI.TestWebAPIs1.csproj", "{4AAAD479-EEA2-4B9C-8709-6DD0CA1574EE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdempotentAPI.TestWebAPIs1", "tests\IdempotentAPI.TestWebAPIs1\IdempotentAPI.TestWebAPIs1.csproj", "{4AAAD479-EEA2-4B9C-8709-6DD0CA1574EE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
