@@ -13,6 +13,7 @@ namespace IdempotentAPI.IntegrationTests
     // - Instances of the TestWebAPIs1 & TestWebAPIs2.
     // - Parameterize the TestWebAPIs for "Caching" and "DALock" in launchSettings.json.
     [Collection(nameof(CollectionFixture))]
+    [Trait("Category", "Integration")]
     public class TestWebAPIsConcurrentTests
     {
         private readonly HttpClient _httpClientForInstance1;
