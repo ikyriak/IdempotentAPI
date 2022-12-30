@@ -23,6 +23,8 @@ namespace IdempotentAPI.Core
         private readonly object _cacheEntryOptions;
         private readonly IIdempotencyAccessCache _distributedCache;
         private readonly IIdempotencySettings _settings;
+        private readonly IKeyGenerator _keyGenerator;
+
         /// <summary>
         /// The read-only list of HTTP Header Keys will be handled from the selected HTTP Server and
         /// not included in the cache.
@@ -35,29 +37,20 @@ namespace IdempotentAPI.Core
 
         private bool _isPreIdempotencyApplied;
         private bool _isPreIdempotencyCacheReturned;
+        private string _distributedCacheKey;
 
         public Idempotency(IIdempotencyAccessCache distributedCache,
             IIdempotencySettings settings,
+            IKeyGenerator keyGenerator,
             ILogger<Idempotency> logger)
         {
             _distributedCache = distributedCache ?? throw new ArgumentNullException($"An {nameof(IIdempotencyAccessCache)} is not configured. You should register the required services by using the \"AddIdempotentAPIUsing{{YourCacheProvider}}\" function.");
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _keyGenerator = keyGenerator ?? throw new ArgumentNullException(nameof(keyGenerator));
             _logger = logger;
 
             _hashAlgorithm = SHA256.Create();
             _cacheEntryOptions = _distributedCache.CreateCacheEntryOptions(settings.ExpiryTime);
-        }
-
-        private string DistributedCacheKey
-        {
-            set
-            {
-                _idempotencyKey = value;
-            }
-            get
-            {
-                return _settings.DistributedCacheKeysPrefix + _idempotencyKey;
-            }
         }
 
         /// <summary>
@@ -86,7 +79,7 @@ namespace IdempotentAPI.Core
             {
                 try
                 {
-                    _distributedCache.Remove(DistributedCacheKey, _settings.DistributedLockTimeout);
+                    _distributedCache.Remove(_distributedCacheKey, _settings.DistributedLockTimeout);
                 }
                 catch (DistributedLockNotAcquiredException distributedLockNotAcquiredException)
                 {
@@ -106,7 +99,7 @@ namespace IdempotentAPI.Core
             // Save to cache:
             try
             {
-                _distributedCache.Set(DistributedCacheKey, cacheDataBytes, _cacheEntryOptions, _settings.DistributedLockTimeout);
+                _distributedCache.Set(_distributedCacheKey, cacheDataBytes, _cacheEntryOptions, _settings.DistributedLockTimeout);
             }
             catch (DistributedLockNotAcquiredException distributedLockNotAcquiredException)
             {
@@ -143,6 +136,10 @@ namespace IdempotentAPI.Core
                 return;
             }
 
+            var controller = context.RouteData.Values.ContainsKey("controller") ? context.RouteData.Values["controller"]?.ToString() ?? string.Empty : string.Empty;
+            var action = context.RouteData.Values.ContainsKey("action") ? context.RouteData.Values["action"]?.ToString() ?? string.Empty : string.Empty;
+            _distributedCacheKey = _keyGenerator.Generate(_settings.DistributedCacheKeysPrefix, controller, action, _idempotencyKey);
+
             // Check if idempotencyKey exists in cache and return value:
             Guid uniqueRequesId = Guid.NewGuid();
             byte[] cacheDataBytes;
@@ -150,7 +147,7 @@ namespace IdempotentAPI.Core
             try
             {
                 cacheDataBytes = _distributedCache.GetOrSet(
-                    DistributedCacheKey,
+                    _distributedCacheKey,
                     defaultValue: GenerateRequestInFlightCacheData(uniqueRequesId),
                     options: _cacheEntryOptions,
                     distributedLockTimeout: _settings.DistributedLockTimeout);
@@ -274,7 +271,7 @@ namespace IdempotentAPI.Core
         {
             try
             {
-                _distributedCache.Remove(DistributedCacheKey, _settings.DistributedLockTimeout);
+                _distributedCache.Remove(_distributedCacheKey, _settings.DistributedLockTimeout);
             }
             catch (DistributedLockNotAcquiredException distributedLockNotAcquiredException)
             {

@@ -171,6 +171,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
             // Act
@@ -214,6 +215,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
             // Act
@@ -273,6 +275,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
             // Act
@@ -338,6 +341,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
             // Act
@@ -400,6 +404,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
             // Act
@@ -463,6 +468,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
             // Act
@@ -537,6 +543,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
 
@@ -642,6 +649,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
 
@@ -747,6 +755,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
             var idempotencyRequest2 = new IdempotencyAttributeFilter(
@@ -760,6 +769,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
             // Act Part 1 (check cache):
@@ -870,6 +880,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
             var idempotencyRequest2 = new IdempotencyAttributeFilter(
@@ -883,6 +894,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
             // Act Part 1 (check cache):
@@ -970,6 +982,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
 
@@ -1092,6 +1105,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
             var idempotencyAttributeFilterRequest2 = new IdempotencyAttributeFilter(
@@ -1105,6 +1119,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
             // Act Part 1 (check cache):
@@ -1233,6 +1248,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
 
@@ -1326,6 +1342,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
             var idempotencyAttributeFilterRequest2 = new IdempotencyAttributeFilter(
@@ -1339,6 +1356,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
             // Act with concurrent requests (check cache):
@@ -1427,6 +1445,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
 
@@ -1519,6 +1538,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                     HeaderKeyName = _headerKeyName,
                     ExpiryTime = TimeSpan.FromHours(1)
                 },
+                new DefaultKeyGenerator(),
                 _logger);
 
 
