@@ -16,14 +16,13 @@ namespace IdempotentAPI.Cache.DistributedCache
 
         /// <returns>An object of type <see cref="DistributedCacheEntryOptions"/>.</returns>
         /// <inheritdoc/>
-        public object CreateCacheEntryOptions(int expireHours)
+        public object CreateCacheEntryOptions(TimeSpan expiryTime)
         {
-            return new DistributedCacheEntryOptions()
+            return new DistributedCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = new TimeSpan(expireHours, 0, 0)
+                AbsoluteExpirationRelativeToNow = expiryTime
             };
         }
-
 
         /// <inheritdoc/>
         public byte[] GetOrDefault(

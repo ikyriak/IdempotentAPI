@@ -58,11 +58,11 @@ namespace IdempotentAPI.AccessCache
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Create an instance of the options used for the cache entries to expire in <paramref name="expireHours"/> hours.
+        /// Create an instance of the options used for the cache entries to expire in <paramref name="expiryTime"/> TimeStamp.
         /// </summary>
-        /// <param name="expireHours">The number of hours that the value will be saved in the cache.</param>
+        /// <param name="expiryTime">The number of hours that the value will be saved in the cache.</param>
         /// <returns></returns>
-        object CreateCacheEntryOptions(int expireHours);
+        object CreateCacheEntryOptions(TimeSpan expiryTime);
 
         /// <summary>
         /// Remove the value from the cache for the specified key.

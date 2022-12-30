@@ -1,26 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
-        <Authors>Ioannis Kyriakidis</Authors>
-        <Company>ikyriakidis.com</Company>
-        <Version>2.0.0-rc-01</Version>
-        <Description>The Madelson DistributedLock implementation for the definition of the IdempotentAPI.DistributedAccessLock.</Description>
-        <PackageTags>distributed;lock;cache;idempotent api;idempotency;asp.net core;attribute;middleware;rest</PackageTags>
-        <RepositoryUrl>https://github.com/ikyriak/IdempotentAPI.git</RepositoryUrl>
-        <RepositoryType>git</RepositoryType>
-        <PackageProjectUrl>https://github.com/ikyriak/IdempotentAPI/src/IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock</PackageProjectUrl>
-        <LangVersion>latest</LangVersion>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Authors>Ioannis Kyriakidis</Authors>
+    <Company>ikyriakidis.com</Company>
+    <Version>2.0.0-rc-01</Version>
+    <Description>The Madelson DistributedLock implementation for the definition of the IdempotentAPI.DistributedAccessLock.</Description>
+    <PackageTags>distributed;lock;cache;idempotent api;idempotency;asp.net core;attribute;middleware;rest</PackageTags>
+    <RepositoryUrl>https://github.com/ikyriak/IdempotentAPI.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/ikyriak/IdempotentAPI/src/IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock</PackageProjectUrl>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
 
-    <ItemGroup>
-      <PackageReference Include="DistributedLock.Core" Version="1.0.5" />
-      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="DistributedLock.Core" Version="1.0.5" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
+  </ItemGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\IdempotentAPI.DistributedAccessLock.Abstractions\IdempotentAPI.DistributedAccessLock.Abstractions.csproj" />
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\IdempotentAPI.DistributedAccessLock.Abstractions\IdempotentAPI.DistributedAccessLock.Abstractions.csproj" />
+  </ItemGroup>
 
 </Project>

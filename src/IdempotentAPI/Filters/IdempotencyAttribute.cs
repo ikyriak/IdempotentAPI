@@ -1,7 +1,11 @@
 ﻿using System;
 using IdempotentAPI.AccessCache;
+using IdempotentAPI.Core;
+using IdempotentAPI.DistributedAccessLock.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IdempotentAPI.Filters
 {
@@ -15,7 +19,7 @@ namespace IdempotentAPI.Filters
 
         public bool Enabled { get; set; } = true;
 
-        public int ExpireHours { get; set; } = 24;
+        public TimeSpan ExpiryTime { get; set; } = TimeSpan.FromHours(24);
 
         public string DistributedCacheKeysPrefix { get; set; } = "IdempAPI_";
 
@@ -34,8 +38,8 @@ namespace IdempotentAPI.Filters
 
         public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
         {
-            var distributedCache = (IIdempotencyAccessCache)serviceProvider.GetService(typeof(IIdempotencyAccessCache));
-            var loggerFactory = (ILoggerFactory)serviceProvider.GetService(typeof(ILoggerFactory));
+            var distributedCache = serviceProvider.GetRequiredService<IIdempotencyAccessCache>();
+            var logger = serviceProvider.GetService<ILogger<Idempotency>>() ?? NullLogger<Idempotency>.Instance;
 
             TimeSpan? distributedLockTimeout = DistributedLockTimeoutMilli >= 0
                 ? TimeSpan.FromMilliseconds(DistributedLockTimeoutMilli)
@@ -43,9 +47,9 @@ namespace IdempotentAPI.Filters
 
             return new IdempotencyAttributeFilter(
                 distributedCache,
-                loggerFactory,
+                logger,
                 Enabled,
-                ExpireHours,
+                ExpiryTime,
                 HeaderKeyName,
                 DistributedCacheKeysPrefix,
                 distributedLockTimeout,

@@ -10,7 +10,7 @@ namespace IdempotentAPI.Filters
     public class IdempotencyAttributeFilter : IActionFilter, IResultFilter
     {
         private readonly bool _enabled;
-        private readonly int _expireHours;
+        private readonly TimeSpan _expiryTime;
         private readonly string _headerKeyName;
         private readonly string _distributedCacheKeysPrefix;
         private readonly TimeSpan? _distributedLockTimeout;
@@ -22,9 +22,9 @@ namespace IdempotentAPI.Filters
 
         public IdempotencyAttributeFilter(
             IIdempotencyAccessCache distributedCache,
-            ILoggerFactory loggerFactory,
+            ILogger<Idempotency> logger,
             bool enabled,
-            int expireHours,
+            TimeSpan expiryTime,
             string headerKeyName,
             string distributedCacheKeysPrefix,
             TimeSpan? distributedLockTimeout,
@@ -32,20 +32,12 @@ namespace IdempotentAPI.Filters
         {
             _distributedCache = distributedCache;
             _enabled = enabled;
-            _expireHours = expireHours;
+            _expiryTime = expiryTime;
             _headerKeyName = headerKeyName;
             _distributedCacheKeysPrefix = distributedCacheKeysPrefix;
             _distributedLockTimeout = distributedLockTimeout;
             _cacheOnlySuccessResponses = cacheOnlySuccessResponses;
-
-            if (loggerFactory != null)
-            {
-                _logger = loggerFactory.CreateLogger<Idempotency>();
-            }
-            else
-            {
-                _logger = NullLogger<Idempotency>.Instance;
-            }
+            _logger = logger;
         }
 
         /// <summary>
@@ -66,7 +58,7 @@ namespace IdempotentAPI.Filters
                 _idempotency = new Idempotency(
                     _distributedCache,
                     _logger,
-                    _expireHours,
+                    _expiryTime,
                     _headerKeyName,
                     _distributedCacheKeysPrefix,
                     _distributedLockTimeout,

@@ -21,9 +21,9 @@ namespace IdempotentAPI.AccessCache
         }
 
         /// <inheritdoc/>
-        public object CreateCacheEntryOptions(int expireHours)
+        public object CreateCacheEntryOptions(TimeSpan expiryTime)
         {
-            return _idempotencyCache.CreateCacheEntryOptions(expireHours);
+            return _idempotencyCache.CreateCacheEntryOptions(expiryTime);
         }
 
         /// <inheritdoc/>
