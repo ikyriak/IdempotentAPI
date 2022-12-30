@@ -31,7 +31,6 @@ namespace IdempotentAPI.Core
         /// </summary>
         private readonly IReadOnlyList<string> _excludeHttpHeaderKeys = new List<string>() { "Transfer-Encoding" };
 
-        private readonly int _expireHours;
         private readonly HashAlgorithm _hashAlgorithm;
         private readonly string _headerKeyName;
         private readonly ILogger<Idempotency>? _logger;
@@ -41,24 +40,22 @@ namespace IdempotentAPI.Core
 
         private bool _isPreIdempotencyCacheReturned = false;
 
-        public Idempotency(
-            IIdempotencyAccessCache distributedCache,
+        public Idempotency(IIdempotencyAccessCache distributedCache,
             ILogger<Idempotency> logger,
-            int expireHours,
+            TimeSpan expiryTime,
             string headerKeyName,
             string distributedCacheKeysPrefix,
             TimeSpan? distributedLockTimeout,
             bool cacheOnlySuccessResponses)
         {
             _distributedCache = distributedCache ?? throw new ArgumentNullException($"An {nameof(IIdempotencyAccessCache)} is not configured. You should register the required services by using the \"AddIdempotentAPIUsing{{YourCacheProvider}}\" function.");
-            _expireHours = expireHours;
             _headerKeyName = headerKeyName;
             _distributedCacheKeysPrefix = distributedCacheKeysPrefix;
             _distributedLockTimeout = distributedLockTimeout;
             _logger = logger;
 
-            _hashAlgorithm = new SHA256CryptoServiceProvider();
-            _cacheEntryOptions = _distributedCache.CreateCacheEntryOptions(_expireHours);
+            _hashAlgorithm = SHA256.Create();
+            _cacheEntryOptions = _distributedCache.CreateCacheEntryOptions(expiryTime);
             _cacheOnlySuccessResponses = cacheOnlySuccessResponses;
         }
 

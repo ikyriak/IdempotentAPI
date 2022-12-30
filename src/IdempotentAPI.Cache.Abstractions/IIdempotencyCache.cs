@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 
 namespace IdempotentAPI.Cache.Abstractions
 {
@@ -49,11 +50,11 @@ namespace IdempotentAPI.Cache.Abstractions
             CancellationToken token = default);
 
         /// <summary>
-        /// Create an instance of the options used for the cache entries to expire in <paramref name="expireHours"/> hours.
+        /// Create an instance of the options used for the cache entries to expire in <paramref name="expiryTime"/> TimeSpan.
         /// </summary>
-        /// <param name="expireHours">The number of hours that the value will be saved in the cache.</param>
+        /// <param name="expiryTime"></param>
         /// <returns></returns>
-        object CreateCacheEntryOptions(int expireHours);
+        object CreateCacheEntryOptions(TimeSpan expiryTime);
 
 
         /// <summary>
