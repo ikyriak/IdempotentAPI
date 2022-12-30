@@ -1,42 +1,25 @@
-﻿using System;
-using IdempotentAPI.AccessCache;
+﻿using IdempotentAPI.AccessCache;
 using IdempotentAPI.Core;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IdempotentAPI.Filters
 {
     public class IdempotencyAttributeFilter : IActionFilter, IResultFilter
     {
-        private readonly bool _enabled;
-        private readonly TimeSpan _expiryTime;
-        private readonly string _headerKeyName;
-        private readonly string _distributedCacheKeysPrefix;
-        private readonly TimeSpan? _distributedLockTimeout;
-        private readonly bool _cacheOnlySuccessResponses;
         private readonly IIdempotencyAccessCache _distributedCache;
+        private readonly IIdempotencySettings _settings;
         private readonly ILogger<Idempotency> _logger;
 
         private Idempotency? _idempotency = null;
 
         public IdempotencyAttributeFilter(
             IIdempotencyAccessCache distributedCache,
-            ILogger<Idempotency> logger,
-            bool enabled,
-            TimeSpan expiryTime,
-            string headerKeyName,
-            string distributedCacheKeysPrefix,
-            TimeSpan? distributedLockTimeout,
-            bool cacheOnlySuccessResponses)
+            IIdempotencySettings settings,
+            ILogger<Idempotency> logger)
         {
             _distributedCache = distributedCache;
-            _enabled = enabled;
-            _expiryTime = expiryTime;
-            _headerKeyName = headerKeyName;
-            _distributedCacheKeysPrefix = distributedCacheKeysPrefix;
-            _distributedLockTimeout = distributedLockTimeout;
-            _cacheOnlySuccessResponses = cacheOnlySuccessResponses;
+            _settings = settings;
             _logger = logger;
         }
 
@@ -47,7 +30,7 @@ namespace IdempotentAPI.Filters
         public void OnActionExecuting(ActionExecutingContext context)
         {
             // If the Idempotency is disabled then stop
-            if (!_enabled)
+            if (!_settings.Enabled)
             {
                 return;
             }
@@ -55,14 +38,7 @@ namespace IdempotentAPI.Filters
             // Initialize only on its null (in case of multiple executions):
             if (_idempotency == null)
             {
-                _idempotency = new Idempotency(
-                    _distributedCache,
-                    _logger,
-                    _expiryTime,
-                    _headerKeyName,
-                    _distributedCacheKeysPrefix,
-                    _distributedLockTimeout,
-                    _cacheOnlySuccessResponses);
+                _idempotency = new Idempotency(_distributedCache, _settings, _logger);
             }
 
             _idempotency.ApplyPreIdempotency(context);
@@ -76,7 +52,7 @@ namespace IdempotentAPI.Filters
         {
             // If the Idempotency is disabled then stop.
             // Stop if the PreIdempotency step is not applied.
-            if (!_enabled || _idempotency == null)
+            if (!_settings.Enabled || _idempotency == null)
             {
                 return;
             }
@@ -100,7 +76,7 @@ namespace IdempotentAPI.Filters
         public void OnResultExecuted(ResultExecutedContext context)
         {
             // If the Idempotency is disabled then stop
-            if (!_enabled)
+            if (!_settings.Enabled)
             {
                 return;
             }

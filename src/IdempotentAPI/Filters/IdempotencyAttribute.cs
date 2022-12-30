@@ -17,43 +17,48 @@ namespace IdempotentAPI.Filters
     {
         public bool IsReusable => false;
 
-        public bool Enabled { get; set; } = true;
+        public bool? Enabled { get; set; }
 
-        public TimeSpan ExpiryTime { get; set; } = TimeSpan.FromHours(24);
+        public TimeSpan? ExpiryTime { get; set; }
 
-        public string DistributedCacheKeysPrefix { get; set; } = "IdempAPI_";
+        public string? DistributedCacheKeysPrefix { get; set; }
 
-        public string HeaderKeyName { get; set; } = "IdempotencyKey";
+        public string? HeaderKeyName { get; set; }
 
         /// <summary>
         /// When true, only the responses with 2xx HTTP status codes will be cached.
         /// </summary>
-        public bool CacheOnlySuccessResponses { get; set; } = true;
+        public bool? CacheOnlySuccessResponses { get; set; }
 
         /// <summary>
         /// The time the distributed lock will wait for the lock to be acquired (in milliseconds).
         /// This is Required when a <see cref="IDistributedAccessLockProvider"/> is provided.
         /// </summary>
-        public double DistributedLockTimeoutMilli { get; set; } = -1;
+        public double? DistributedLockTimeoutMilli { get; set; }
 
         public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
         {
             var distributedCache = serviceProvider.GetRequiredService<IIdempotencyAccessCache>();
             var logger = serviceProvider.GetService<ILogger<Idempotency>>() ?? NullLogger<Idempotency>.Instance;
+            var settings = serviceProvider.GetService<IIdempotencySettings>();
 
-            TimeSpan? distributedLockTimeout = DistributedLockTimeoutMilli >= 0
-                ? TimeSpan.FromMilliseconds(DistributedLockTimeoutMilli)
-                : null;
+            TimeSpan? distributedLockTimeout = DistributedLockTimeoutMilli.HasValue
+                ? DistributedLockTimeoutMilli >= 0
+                    ? TimeSpan.FromMilliseconds(DistributedLockTimeoutMilli.Value)
+                    : null
+                : settings.DistributedLockTimeout;
 
-            return new IdempotencyAttributeFilter(
-                distributedCache,
-                logger,
-                Enabled,
-                ExpiryTime,
-                HeaderKeyName,
-                DistributedCacheKeysPrefix,
-                distributedLockTimeout,
-                CacheOnlySuccessResponses);
+            var instanceSettings = new IdempotencySettings
+            {
+                CacheOnlySuccessResponses = CacheOnlySuccessResponses.GetValueOrDefault(settings.CacheOnlySuccessResponses),
+                DistributedCacheKeysPrefix = DistributedCacheKeysPrefix ?? settings.DistributedCacheKeysPrefix,
+                DistributedLockTimeout = distributedLockTimeout,
+                HeaderKeyName = HeaderKeyName ?? settings.HeaderKeyName,
+                ExpiryTime = ExpiryTime.GetValueOrDefault(settings.ExpiryTime),
+                Enabled = Enabled.GetValueOrDefault(settings.Enabled)
+            };
+
+            return new IdempotencyAttributeFilter(distributedCache, instanceSettings, logger);
         }
     }
 }
