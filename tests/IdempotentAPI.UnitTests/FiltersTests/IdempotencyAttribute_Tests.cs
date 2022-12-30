@@ -1132,8 +1132,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
             // should still be inflight and we should have a 409 Conflict result.
             idempotencyAttributeFilterRequest2.OnActionExecuting(inflightExecutingContext);
             Assert.NotNull(inflightExecutingContext.Result);
-            Assert.Equal(typeof(ConflictResult), inflightExecutingContext.Result.GetType());
-            Assert.Equal(409, ((ConflictResult)inflightExecutingContext.Result).StatusCode);
+            Assert.Equal(typeof(ConflictObjectResult), inflightExecutingContext.Result.GetType());
+            Assert.Equal(409, ((ConflictObjectResult)inflightExecutingContext.Result).StatusCode);
 
             // Act Part 3:
             idempotencyAttributeFilterRequest1.OnResultExecuted(resultExecutedContext);
@@ -1387,8 +1387,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
             // result of the first request should still be inflight and we should have a 409
             // Conflict result.
             Assert.NotNull(conflictedActionResult);
-            Assert.Equal(typeof(ConflictResult), conflictedActionResult.GetType());
-            Assert.Equal(409, ((ConflictResult)conflictedActionResult).StatusCode);
+            Assert.Equal(typeof(ConflictObjectResult), conflictedActionResult.GetType());
+            Assert.Equal(409, ((ConflictObjectResult)conflictedActionResult).StatusCode);
         }
 
         /// <summary>

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Security.Cryptography;
 using IdempotentAPI.AccessCache;
@@ -156,7 +157,7 @@ namespace IdempotentAPI.Core
             {
                 LogDistributedLockNotAcquiredException("Before Controller", distributedLockNotAcquiredException);
 
-                context.Result = new ConflictResult();
+                context.Result = ResultOnDistributedLockNotAcquired(distributedLockNotAcquiredException);
                 return;
             }
 
@@ -171,7 +172,7 @@ namespace IdempotentAPI.Core
             if (cacheData.ContainsKey("Request.Inflight")
                 && uniqueRequesId.ToString().ToLower() != cacheData["Request.Inflight"].ToString().ToLower())
             {
-                context.Result = new ConflictResult();
+                context.Result = CreateResponse(HttpStatusCode.Conflict, null);
                 return;
             }
 
@@ -183,7 +184,7 @@ namespace IdempotentAPI.Core
                 string currentRequestDataHash = GetRequestsDataHash(context.HttpContext.Request);
                 if (cachedRequestDataHash != currentRequestDataHash)
                 {
-                    context.Result = new BadRequestObjectResult($"The Idempotency header key value '{_idempotencyKey}' was used in a different request.");
+                    context.Result = CreateResponse(HttpStatusCode.BadRequest, $"The Idempotency header key value '{_idempotencyKey}' was used in a different request.");
                     return;
                 }
 
@@ -283,6 +284,19 @@ namespace IdempotentAPI.Core
                 _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: SKIPPED (An exception occurred).");
             }
         }
+
+        protected virtual IActionResult ResultOnDistributedLockNotAcquired(DistributedLockNotAcquiredException exception)
+        {
+            return new ConflictResult();
+        }
+
+        protected virtual IActionResult CreateResponse(HttpStatusCode status, object error) =>
+            status switch
+            {
+                HttpStatusCode.Conflict => new ConflictObjectResult(error),
+                HttpStatusCode.BadRequest => new BadRequestObjectResult(error),
+                _ => new StatusCodeResult((int)status)
+            };
 
         private bool CanPerformIdempotency(HttpRequest httpRequest)
         {
