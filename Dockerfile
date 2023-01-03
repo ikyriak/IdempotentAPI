@@ -12,4 +12,3 @@ RUN dotnet build /p:Version=$Version -c Release --no-restore
 RUN dotnet test --filter Category!=Integration --no-build -c Release
 RUN dotnet pack /p:Version=$Version -c Release --no-restore --no-build -o /sln/artifacts -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
 RUN dotnet nuget push /sln/artifacts/*.nupkg --source $NUGET_URL --api-key $NUGET_KEY
-RUN dotnet nuget push /sln/artifacts/*.snupkg --source $NUGET_URL --api-key $NUGET_KEY
