@@ -1,4 +1,5 @@
-﻿using IdempotentAPI.AccessCache;
+﻿using System.Linq;
+using IdempotentAPI.AccessCache;
 using IdempotentAPI.Core;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
@@ -32,6 +33,12 @@ namespace IdempotentAPI.Filters
             _logger = logger;
         }
 
+        private bool AllowsNoIdempotency(ActionExecutingContext context)
+        {
+            return context.ActionDescriptor.FilterDescriptors.Select(x => x.Filter).OfType<AllowNoIdempotency>()
+                .Any();
+        }
+
         /// <summary>
         /// Runs before the execution of the controller
         /// </summary>
@@ -39,7 +46,7 @@ namespace IdempotentAPI.Filters
         public void OnActionExecuting(ActionExecutingContext context)
         {
             // If the Idempotency is disabled then stop
-            if (!_settings.Enabled)
+            if (!_settings.Enabled || AllowsNoIdempotency(context))
             {
                 return;
             }
