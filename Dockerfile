@@ -3,6 +3,7 @@ FROM mcr.microsoft.com/dotnet/sdk:6.0-alpine AS build
 ARG Version=0.0.0
 ARG NUGET_KEY
 ARG NUGET_URL
+ARG NUGET_SYMBOL_URL
 WORKDIR /sln
 
 COPY . .
