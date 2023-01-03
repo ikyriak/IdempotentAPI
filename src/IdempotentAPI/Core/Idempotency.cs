@@ -348,7 +348,6 @@ namespace IdempotentAPI.Core
 
             cacheData.Add("Response.Headers", Headers);
 
-
             // 2019-07-05: Response.Body cannot be accessed because its not yet created.
             // We are saving the Context.Result, because based on this the Response.Body is created.
             Dictionary<string, object> resultObjects = new();
