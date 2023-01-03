@@ -130,7 +130,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
             var actionContext = new ActionContext(
                 httpContext.Object,
                 Mock.Of<RouteData>(),
-                Mock.Of<ActionDescriptor>()
+                new ActionDescriptor { FilterDescriptors = new List<FilterDescriptor>() }
             );
 
             return actionContext;
@@ -163,6 +163,53 @@ namespace IdempotentAPI.UnitTests.FiltersTests
             var settings = new IdempotencySettings
             {
                 Enabled = false,
+                CacheOnlySuccessResponses = cacheOnlySuccessResponses,
+                DistributedLockTimeout = distributedLockTimeout,
+                DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
+                HeaderKeyName = _headerKeyName,
+                ExpiryTime = TimeSpan.FromHours(1)
+            };
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
+                null,
+                settings,
+                new DefaultKeyGenerator(),
+                new DefaultRequestIdProvider(settings),
+                new DefaultResponseMapper(),
+                _logger);
+
+            // Act
+            idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
+
+            // Assert (Exception message)
+            Assert.Null(actionExecutingContext.Result);
+        }
+
+        /// <summary>
+        /// Scenario:
+        /// The AllowNoIdempotency Attribute is present (Test OnActionExecuting).
+        ///
+        /// Action:
+        /// Don't do anything!
+        /// </summary>
+        [Fact]
+        public void SetsContextResultToNull_IfAllowNoIdempotencyAttributeIsPresent()
+        {
+            // Arrange
+            var actionContext = ArrangeActionContextMock(HttpMethods.Post);
+            actionContext.ActionDescriptor.FilterDescriptors.Add(new FilterDescriptor(new AllowNoIdempotency(), 0));
+            var actionExecutingContext = new ActionExecutingContext(
+                actionContext,
+                new List<IFilterMetadata>(),
+                new Dictionary<string, object>(),
+                Mock.Of<Controller>()
+            );
+
+            TimeSpan? distributedLockTimeout = null;
+            bool cacheOnlySuccessResponses = true;
+
+            var settings = new IdempotencySettings
+            {
+                Enabled = true,
                 CacheOnlySuccessResponses = cacheOnlySuccessResponses,
                 DistributedLockTimeout = distributedLockTimeout,
                 DistributedCacheKeysPrefix = _distributedCacheKeysPrefix,
