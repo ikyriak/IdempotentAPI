@@ -296,7 +296,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
         [InlineData("PATCH", CacheImplementation.DistributedCache, DistributedAccessLockImplementation.None)]
         [InlineData("POST", CacheImplementation.FusionCache, DistributedAccessLockImplementation.None)]
         [InlineData("PATCH", CacheImplementation.FusionCache, DistributedAccessLockImplementation.None)]
-        public void ThrowsException_IfIdempotencyKeyHeaderNotExistsOnPostAndPatch(string httpMethod, CacheImplementation cacheImplementation, DistributedAccessLockImplementation distributedAccessLock)
+        public void BadRequest_IfIdempotencyKeyHeaderNotExistsOnPostAndPatch(string httpMethod, CacheImplementation cacheImplementation, DistributedAccessLockImplementation distributedAccessLock)
         {
             // Arrange
             var actionContext = ArrangeActionContextMock(httpMethod);
@@ -309,12 +309,6 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
-
-            // Expected error messages for different .NET Target Frameworks:
-            List<string> expectedExceptionMessages = new List<string>
-            {
-                "The Idempotency header key is not found. (Parameter 'IdempotencyKey')"
-            };
 
             IIdempotencyAccessCache distributedCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation, distributedAccessLock);
             var settings = new IdempotencySettings
@@ -335,10 +329,9 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _logger);
 
             // Act
-            var ex = Assert.Throws<ArgumentNullException>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
+            idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
 
-            // Assert (Exception message)
-            Assert.Contains(ex.Message, expectedExceptionMessages);
+            Assert.IsType<BadRequestResult>(actionExecutingContext.Result);
         }
 
 
@@ -359,7 +352,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
         [InlineData("PATCH", CacheImplementation.DistributedCache, DistributedAccessLockImplementation.None)]
         [InlineData("POST", CacheImplementation.FusionCache, DistributedAccessLockImplementation.None)]
         [InlineData("PATCH", CacheImplementation.FusionCache, DistributedAccessLockImplementation.None)]
-        public void ThrowsException_IfIdempotencyKeyHeaderExistsWithoutValueOnPostAndPatch(string httpMethod, CacheImplementation cacheImplementation, DistributedAccessLockImplementation accessLockImplementation)
+        public void BadRequest_IfIdempotencyKeyHeaderExistsWithoutValueOnPostAndPatch(string httpMethod, CacheImplementation cacheImplementation, DistributedAccessLockImplementation accessLockImplementation)
         {
             // Arrange
             var requestHeaders = new HeaderDictionary
@@ -377,13 +370,6 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
-
-            // Expected error messages per .NET Target Framework:
-            List<string> expectedExceptionMessages = new List<string>
-            {
-                "An Idempotency header value is not found. (Parameter 'IdempotencyKey')"
-            };
-
 
             IIdempotencyAccessCache distributedCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation, accessLockImplementation);
             var settings = new IdempotencySettings
@@ -404,10 +390,9 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _logger);
 
             // Act
-            var ex = Assert.Throws<ArgumentNullException>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
+            idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
 
-            // Assert (Exception message)
-            Assert.Contains(ex.Message, expectedExceptionMessages);
+            Assert.IsType<BadRequestResult>(actionExecutingContext.Result);
         }
 
         /// <summary>
@@ -427,7 +412,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
         [InlineData("PATCH", CacheImplementation.DistributedCache, DistributedAccessLockImplementation.None)]
         [InlineData("POST", CacheImplementation.FusionCache, DistributedAccessLockImplementation.None)]
         [InlineData("PATCH", CacheImplementation.FusionCache, DistributedAccessLockImplementation.None)]
-        public void ThrowsException_IfMultipleIdempotencyKeyHeaderExistsOnPostAndPatch(string httpMethod, CacheImplementation cacheImplementation, DistributedAccessLockImplementation accessLockImplementation)
+        public void BadRequest_IfMultipleIdempotencyKeyHeaderExistsOnPostAndPatch(string httpMethod, CacheImplementation cacheImplementation, DistributedAccessLockImplementation accessLockImplementation)
         {
             // Arrange
             var requestHeaders = new HeaderDictionary();
@@ -444,12 +429,6 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
-
-            // Expected error messages per .NET Target Framework:
-            List<string> expectedExceptionMessages = new List<string>
-            {
-                "Multiple Idempotency keys were found. (Parameter 'IdempotencyKey')"
-            };
 
             IIdempotencyAccessCache distributedCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation, accessLockImplementation);
             var settings = new IdempotencySettings
@@ -470,10 +449,10 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _logger);
 
             // Act
-            var ex = Assert.Throws<ArgumentException>(() => idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext));
+            idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
 
-            // Assert (Exception message)
-            Assert.Contains(ex.Message, expectedExceptionMessages);
+            // Assert
+            Assert.IsType<BadRequestResult>(actionExecutingContext.Result);
         }
 
 

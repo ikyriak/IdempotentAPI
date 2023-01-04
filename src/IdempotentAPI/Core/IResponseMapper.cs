@@ -11,4 +11,5 @@ public interface IResponseMapper
         DistributedLockNotAcquiredException exception);
 
     public IActionResult CreateResponse(ActionExecutingContext context, HttpStatusCode status, object error);
+    public IActionResult ResultOnMissingIdempotencyKeyHeader(MissingIdempotencyKeyReason reason);
 }
