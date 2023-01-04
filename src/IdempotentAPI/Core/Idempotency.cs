@@ -137,10 +137,14 @@ namespace IdempotentAPI.Core
             }
 
             // Try to get the IdempotencyKey value from header:
-            if (!TryGetIdempotencyKey(context.HttpContext.Request, out _idempotencyKey))
+            if (!TryGetIdempotencyKey(context.HttpContext.Request, out var idempotencyKeyOutput))
             {
-                context.Result = null;
+                context.Result = this._responseMapper.ResultOnMissingIdempotencyKeyHeader(idempotencyKeyOutput.Item2!.Value);
                 return;
+            }
+            else
+            {
+                _idempotencyKey = idempotencyKeyOutput.Item1!;
             }
 
             _distributedCacheKey = GetDistributedCacheKey(context);
@@ -505,33 +509,45 @@ namespace IdempotentAPI.Core
             }
         }
 
-        private bool TryGetIdempotencyKey(HttpRequest httpRequest, out string idempotencyKey)
+        private bool TryGetIdempotencyKey(HttpRequest httpRequest, out Tuple<string?, MissingIdempotencyKeyReason?> output)
         {
-            idempotencyKey = string.Empty;
-
             // The "headerKeyName" must be provided as a Header:
             if (!httpRequest.Headers.ContainsKey(_settings.HeaderKeyName))
             {
-                throw new ArgumentNullException(_settings.HeaderKeyName, "The Idempotency header key is not found.");
+                _logger.LogInformation("The Idempotency header key is not present in the request.");
+                output = new Tuple<string?, MissingIdempotencyKeyReason?>(null, MissingIdempotencyKeyReason.HeaderNotPresentInRequest);
+                return false;
             }
 
             if (!httpRequest.Headers.TryGetValue(_settings.HeaderKeyName, out StringValues idempotencyKeys))
             {
-                throw new ArgumentException("The Idempotency header key value is not found.", _settings.HeaderKeyName);
+                _logger.LogInformation("The Idempotency header key value is not found.");
+                output = new Tuple<string?, MissingIdempotencyKeyReason?>(null, MissingIdempotencyKeyReason.HeaderMissingValueInRequest);
+                return false;
+            }
+
+            if (idempotencyKeys.Count == 0)
+            {
+                _logger.LogInformation("An Idempotency header value is not found.");
+                output = new Tuple<string?, MissingIdempotencyKeyReason?>(null, MissingIdempotencyKeyReason.HeaderMissingValueInRequest);
+                return false;
             }
 
             if (idempotencyKeys.Count > 1)
             {
-                throw new ArgumentException("Multiple Idempotency keys were found.", _settings.HeaderKeyName);
+                _logger.LogInformation("Multiple Idempotency keys were found.");
+                output = new Tuple<string?, MissingIdempotencyKeyReason?>(null, MissingIdempotencyKeyReason.MultipleHeadersInReques);
+                return false;
             }
 
-            if (idempotencyKeys.Count <= 0
-                || string.IsNullOrEmpty(idempotencyKeys.First()))
+            if (string.IsNullOrEmpty(idempotencyKeys.First()))
             {
-                throw new ArgumentNullException(_settings.HeaderKeyName, "An Idempotency header value is not found.");
+                _logger.LogInformation("An Idempotency header value is not found.");
+                output = new Tuple<string?, MissingIdempotencyKeyReason?>(null, MissingIdempotencyKeyReason.HeaderMissingValueInRequest);
+                return false;
             }
 
-            idempotencyKey = idempotencyKeys.ToString();
+            output = new Tuple<string?, MissingIdempotencyKeyReason?>(idempotencyKeys.First(), MissingIdempotencyKeyReason.HeaderMissingValueInRequest);
             return true;
         }
     }

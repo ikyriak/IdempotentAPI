@@ -19,4 +19,9 @@ public class DefaultResponseMapper : IResponseMapper
             HttpStatusCode.BadRequest => new BadRequestObjectResult(error),
             _ => new StatusCodeResult((int)status)
         };
+
+    public IActionResult ResultOnMissingIdempotencyKeyHeader(MissingIdempotencyKeyReason reason)
+    {
+        return new BadRequestResult();
+    }
 }
