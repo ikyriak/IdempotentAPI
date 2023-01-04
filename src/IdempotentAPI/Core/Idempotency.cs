@@ -143,9 +143,7 @@ namespace IdempotentAPI.Core
                 return;
             }
 
-            var controller = context.RouteData.Values.ContainsKey("controller") ? context.RouteData.Values["controller"]?.ToString() ?? string.Empty : string.Empty;
-            var action = context.RouteData.Values.ContainsKey("action") ? context.RouteData.Values["action"]?.ToString() ?? string.Empty : string.Empty;
-            _distributedCacheKey = _keyGenerator.Generate(_settings.DistributedCacheKeysPrefix, controller, action, _idempotencyKey);
+            _distributedCacheKey = GetDistributedCacheKey(context);
 
             // Check if idempotencyKey exists in cache and return value:
             string uniqueRequestId = _requestIdProvider.Get(context.HttpContext.Request);
@@ -287,7 +285,10 @@ namespace IdempotentAPI.Core
         {
             try
             {
-                _distributedCache.Remove(_distributedCacheKey, _settings.DistributedLockTimeout);
+                if (!string.IsNullOrEmpty(_distributedCacheKey))
+                {
+                    _distributedCache.Remove(_distributedCacheKey, _settings.DistributedLockTimeout);
+                }
             }
             catch (DistributedLockNotAcquiredException distributedLockNotAcquiredException)
             {
@@ -298,6 +299,13 @@ namespace IdempotentAPI.Core
             {
                 _logger.LogInformation("IdempotencyFilterAttribute [After Controller execution]: SKIPPED (An exception occurred).");
             }
+        }
+
+        private string GetDistributedCacheKey(ActionContext context)
+        {
+            var controller = context.RouteData.Values.ContainsKey("controller") ? context.RouteData.Values["controller"]?.ToString() ?? string.Empty : string.Empty;
+            var action = context.RouteData.Values.ContainsKey("action") ? context.RouteData.Values["action"]?.ToString() ?? string.Empty : string.Empty;
+            return _keyGenerator.Generate(_settings.DistributedCacheKeysPrefix, controller, action, _idempotencyKey);
         }
 
         private bool CanPerformIdempotency(HttpRequest httpRequest)
