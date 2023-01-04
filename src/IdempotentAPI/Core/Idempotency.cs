@@ -139,7 +139,7 @@ namespace IdempotentAPI.Core
             // Try to get the IdempotencyKey value from header:
             if (!TryGetIdempotencyKey(context.HttpContext.Request, out var idempotencyKeyOutput))
             {
-                context.Result = this._responseMapper.ResultOnMissingIdempotencyKeyHeader(idempotencyKeyOutput.Item2!.Value);
+                context.Result = this._responseMapper.ResultOnMissingIdempotencyKeyHeader(context, idempotencyKeyOutput.Item2!.Value);
                 return;
             }
             else

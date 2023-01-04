@@ -20,7 +20,7 @@ public class DefaultResponseMapper : IResponseMapper
             _ => new StatusCodeResult((int)status)
         };
 
-    public IActionResult ResultOnMissingIdempotencyKeyHeader(MissingIdempotencyKeyReason reason)
+    public IActionResult ResultOnMissingIdempotencyKeyHeader(ActionExecutingContext context, MissingIdempotencyKeyReason reason)
     {
         return new BadRequestResult();
     }
