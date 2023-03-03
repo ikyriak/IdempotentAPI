@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="6.7.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="6.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
     <PackageReference Include="xunit" Version="2.4.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
@@ -25,6 +26,7 @@
   <ItemGroup>
     <ProjectReference Include="..\IdempotentAPI.TestWebAPIs1\IdempotentAPI.TestWebAPIs1.csproj" />
     <ProjectReference Include="..\IdempotentAPI.TestWebAPIs2\IdempotentAPI.TestWebAPIs2.csproj" />
+    <ProjectReference Include="..\IdempotentAPI.TestWebAPIs3\IdempotentAPI.TestWebAPIs3.csproj" />
   </ItemGroup>
 
 </Project>

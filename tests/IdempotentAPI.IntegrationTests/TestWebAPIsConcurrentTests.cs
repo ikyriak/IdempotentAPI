@@ -20,8 +20,11 @@ namespace IdempotentAPI.IntegrationTests
 
         public TestWebAPIsConcurrentTests(Fixture fixture)
         {
-            _httpClientForInstance1 = fixture.Client1;
-            _httpClientForInstance2 = fixture.Client2;
+            _httpClientForInstance1 = fixture.TestServerClientRedis1;
+            _httpClientForInstance2 = fixture.TestServerClientRedis2;
+            
+            _httpClientForInstance1.DefaultRequestHeaders.Clear();
+            _httpClientForInstance2.DefaultRequestHeaders.Clear();
         }
 
         [Fact]

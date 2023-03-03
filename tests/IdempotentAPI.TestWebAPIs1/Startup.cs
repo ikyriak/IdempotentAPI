@@ -7,6 +7,7 @@ using IdempotentAPI.Extensions.DependencyInjection;
 using IdempotentAPI.TestWebAPIs1.Extensions;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
+using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 
 namespace IdempotentAPI.TestWebAPIs1
@@ -36,8 +37,10 @@ namespace IdempotentAPI.TestWebAPIs1
             // Register the IdempotentAPI Core services.
             services.AddIdempotentAPI();
 
+            services.AddSwaggerGen(x =>
+                x.SwaggerDoc("v6", new OpenApiInfo { Title = "IdempotentAPI.TestWebAPIs1 - Swagger", Version = "v6" }));
+            
             services.AddControllers();
-
 
             // Register the Caching Method:
             var caching = Configuration.GetValue<string>("Caching");
@@ -83,6 +86,9 @@ namespace IdempotentAPI.TestWebAPIs1
                     services.AddSingleton<IDistributedLockProvider>(_ => new RedisDistributedSynchronizationProvider(redicConnection.GetDatabase()));
                     services.AddMadelsonDistributedAccessLock();
                     break;
+                case "None":
+                    Console.WriteLine("No distributed cache will be used.");
+                    break;
                 default:
                     Console.WriteLine($"Distributed Access Lock Method '{distributedAccessLock}' is not recognized. Options: RedLockNet, MadelsonDistLock.");
                     Environment.Exit(0);
@@ -94,20 +100,19 @@ namespace IdempotentAPI.TestWebAPIs1
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            //if (env.IsDevelopment())
-            //{
-            //    app.UseDeveloperExceptionPage();
-            //}
-
-            //app.UseHttpsRedirection();
-
             app.UseRouting();
-
-            //app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+            });
+            
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.DocumentTitle = "IdempotentAPI.TestWebAPIs1 - Swagger";
+                c.RoutePrefix = string.Empty;
+                c.SwaggerEndpoint("./swagger/v6/swagger.json", "v1");
             });
         }
     }
