@@ -24,20 +24,21 @@ namespace IdempotentAPI.TestWebAPIs2.Controllers
         }
 
         [HttpPost("test")]
-        public ActionResult Test()
+        public ActionResult Test([FromHeader(Name = "IdempotencyKey")] string idempotencyKey)
         {
             return Ok(new ResponseDTOs());
         }
 
         [HttpPost("testobject")]
-        public ResponseDTOs TestObject()
+        public ResponseDTOs TestObject([FromHeader(Name = "IdempotencyKey")] string idempotencyKey)
         {
             return new ResponseDTOs();
         }
 
 
         [HttpPost("testobjectWithHttpError")]
-        public async Task<ActionResult> TestObjectWithHttpErrorAsync(int delaySeconds, int httpErrorCode)
+        public async Task<ActionResult> TestObjectWithHttpErrorAsync(
+            [FromHeader(Name = "IdempotencyKey")] string idempotencyKey, int delaySeconds, int httpErrorCode)
         {
             await Task.Delay(delaySeconds * 1000);
 
@@ -46,7 +47,8 @@ namespace IdempotentAPI.TestWebAPIs2.Controllers
 
 
         [HttpPost("testobjectWithException")]
-        public async Task<ActionResult> TestObjectWithExceptionAsync(int delaySeconds)
+        public async Task<ActionResult> TestObjectWithExceptionAsync(
+            [FromHeader(Name = "IdempotencyKey")] string idempotencyKey, int delaySeconds)
         {
             await Task.Delay(delaySeconds * 1000);
 
@@ -55,17 +57,12 @@ namespace IdempotentAPI.TestWebAPIs2.Controllers
 
 
         [HttpPost("customNotAcceptable406")]
-        public async Task<ActionResult> TestCustomNotAcceptable406Async(int delaySeconds)
+        public async Task<ActionResult> TestCustomNotAcceptable406Async(
+            [FromHeader(Name = "IdempotencyKey")] string idempotencyKey, int delaySeconds)
         {
-            if (!Request.Headers.TryGetValue("IdempotencyKey", out StringValues idempotencyKeys))
-            {
-                throw new ArgumentNullException("IdempotencyKey");
-            }
-
-            var idempotencyKey = idempotencyKeys.FirstOrDefault();
             if (idempotencyKey is null)
             {
-                throw new ArgumentNullException("IdempotencyKey");
+                throw new ArgumentNullException(nameof(idempotencyKey));
             }
 
             _logger.LogInformation($"Host: {Request.Host.Value} | IdempotencyKey: {idempotencyKey}");

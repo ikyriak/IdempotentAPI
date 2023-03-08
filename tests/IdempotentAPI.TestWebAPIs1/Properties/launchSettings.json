@@ -28,6 +28,18 @@
         "Caching": "FusionCache",
         "DALock": "MadelsonDistLock"
       }
+    },
+    "IdempotentAPI.TestWebAPIs1 memory cache": {
+      "commandName": "Project",
+      "dotnetRunMessages": "true",
+      "launchBrowser": false,
+      "launchUrl": "weatherforecast",
+      "applicationUrl": "https://localhost:7029;http://localhost:5259",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Caching": "MemoryCache",
+        "DALock": "None"
+      }
     }
   }
 }

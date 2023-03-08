@@ -10,8 +10,8 @@
 		<PackageReference Include="DistributedLock.Redis" Version="1.0.2" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="6.0.9" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
 	</ItemGroup>
-
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\IdempotentAPI.Cache.DistributedCache\IdempotentAPI.Cache.DistributedCache.csproj" />
 		<ProjectReference Include="..\..\src\IdempotentAPI.Cache.FusionCache\IdempotentAPI.Cache.FusionCache.csproj" />
