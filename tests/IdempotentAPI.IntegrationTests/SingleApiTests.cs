@@ -30,7 +30,7 @@ public class SingleApiTests
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
-    public async Task PostRequestsConcurrent_OnCSameApi_WithErrorResponse_ShouldReturnTheErrorAndA409Response(int httpClientIndex)
+    public async Task PostRequestsConcurrent_OnSameApi_WithErrorResponse_ShouldReturnTheErrorAndA409Response(int httpClientIndex)
     {
         // Arrange
         var guid = Guid.NewGuid().ToString();
