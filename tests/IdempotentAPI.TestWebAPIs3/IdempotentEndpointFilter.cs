@@ -3,6 +3,7 @@ using IdempotentAPI.Filters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace IdempotentAPI.TestWebAPIs3;
 
@@ -35,22 +36,40 @@ public class IdempotentEndpointFilter : IEndpointFilter
             {
                 var realCallResult = await next(context);
 
+                object? value = null;
                 if (realCallResult is IValueHttpResult result)
                 {
-                    realCallResult = result.Value;
+                    value = result.Value;
                 }
                 
-                objectResult = new ObjectResult(realCallResult);
-
-                if (realCallResult is IStatusCodeHttpResult statusCodeHttpResult)
+                objectResult = new ObjectResult(value);
+                
+                if (realCallResult is IStatusCodeHttpResult statusCodeHttpResult &&
+                    statusCodeHttpResult.StatusCode.HasValue)
                 {
-                    objectResult.StatusCode = statusCodeHttpResult.StatusCode;
+                    objectResult.StatusCode = statusCodeHttpResult.StatusCode.Value;
                 }
             }
             else
             {
-                objectResult = (ObjectResult)actionExecutingContext.Result;
-                context.HttpContext.Response.StatusCode = objectResult.StatusCode!.Value;
+                object? value = null;
+                if (actionExecutingContext.Result is ObjectResult valueHttpResult)
+                {
+                    value = valueHttpResult.Value;
+                }
+
+                objectResult = new ObjectResult(value);
+                
+                if (actionExecutingContext.Result is IStatusCodeActionResult statusCodeActionResult &&
+                    statusCodeActionResult.StatusCode.HasValue)
+                {
+                    objectResult.StatusCode = statusCodeActionResult.StatusCode.Value;
+                }
+            }
+
+            if (objectResult.StatusCode.HasValue)
+            {
+                context.HttpContext.Response.StatusCode = objectResult.StatusCode.Value;
             }
 
             var resultExecutingContext = new ResultExecutingContext(actionContext, filters, objectResult, null!);

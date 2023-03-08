@@ -76,7 +76,7 @@ namespace IdempotentAPI.TestWebAPIs1.Controllers
                 StatusCode = StatusCodes.Status406NotAcceptable,
                 Errors = new[]{
                     message
-                },
+                }
             })
             {
                 StatusCode = StatusCodes.Status406NotAcceptable,
