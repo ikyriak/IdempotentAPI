@@ -65,11 +65,37 @@ public class SingleApiTests
         var response2 = await _httpClients[httpClientIndex].PostAsync("v6/TestingIdempotentAPI/test", null);
 
         // Assert
-        response1.StatusCode.Should().Be(HttpStatusCode.OK);
-        response2.StatusCode.Should().Be(HttpStatusCode.OK);
-
         var content1 = await response1.Content.ReadAsStringAsync();
         var content2 = await response2.Content.ReadAsStringAsync();
+
+        response1.StatusCode.Should().Be(HttpStatusCode.OK, content1);
+        response2.StatusCode.Should().Be(HttpStatusCode.OK, content2);
+
+        content1.Should().Be(content2);
+    }
+    
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task PostTestObject_ShouldReturnCachedResponse(int httpClientIndex)
+    {
+        // Arrange
+        var guid = Guid.NewGuid().ToString();
+
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
+
+        // Act
+        var response1 = await _httpClients[httpClientIndex].PostAsync("v6/TestingIdempotentAPI/testobject", null);
+        var response2 = await _httpClients[httpClientIndex].PostAsync("v6/TestingIdempotentAPI/testobject", null);
+
+        // Assert
+        var content1 = await response1.Content.ReadAsStringAsync();
+        var content2 = await response2.Content.ReadAsStringAsync();
+
+        response1.StatusCode.Should().Be(HttpStatusCode.OK, content1);
+        response2.StatusCode.Should().Be(HttpStatusCode.OK, content2);
+
         content1.Should().Be(content2);
     }
 }
