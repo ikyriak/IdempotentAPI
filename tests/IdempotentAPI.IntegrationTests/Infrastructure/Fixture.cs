@@ -12,6 +12,9 @@ namespace IdempotentAPI.IntegrationTests.Infrastructure
         public HttpClient TestServerClient2 { get; }
         public HttpClient TestServerClient3 { get; }
         
+        public HttpClient TestServerClientRedis1 { get; }
+        public HttpClient TestServerClientRedis2 { get; }
+        
         public Fixture()
         {
             var defaultHttpClientHandler = new HttpClientHandler
@@ -55,6 +58,20 @@ namespace IdempotentAPI.IntegrationTests.Infrastructure
                         .UseSetting("Caching", "MemoryCache")
                         .UseSetting("DALock", "None"));
             TestServerClient3 = host3.CreateClient();
+            
+            var hostRedis1 = new WebApplicationFactory<TestWebAPIs1.Program>()
+                .WithWebHostBuilder(builder =>
+                    builder
+                        .UseSetting("Caching", "FusionCache")
+                        .UseSetting("DALock", "MadelsonDistLock"));
+            TestServerClientRedis1 = hostRedis1.CreateClient();
+
+            var hostRedis2 = new WebApplicationFactory<TestWebAPIs2.Program>()
+                .WithWebHostBuilder(builder =>
+                    builder
+                        .UseSetting("Caching", "FusionCache")
+                        .UseSetting("DALock", "MadelsonDistLock"));
+            TestServerClientRedis2 = hostRedis2.CreateClient();
         }
 
         public void Dispose()
