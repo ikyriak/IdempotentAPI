@@ -21,10 +21,15 @@ public class SingleApiTests
         _testOutputHelper = testOutputHelper;
         _httpClients = new[]
             {
-                fixture.Client1,
-                fixture.Client2,
-                fixture.Client3
+                fixture.TestServerClient1,
+                fixture.TestServerClient2,
+                fixture.TestServerClient3
             };
+
+        foreach (var httpClient in _httpClients)
+        {
+            httpClient.DefaultRequestHeaders.Clear();
+        }
     }
 
     [Theory]
@@ -72,10 +77,14 @@ public class SingleApiTests
         // Assert
         var content1 = await response1.Content.ReadAsStringAsync();
         var content2 = await response2.Content.ReadAsStringAsync();
+        _testOutputHelper.WriteLine($"content1: {Environment.NewLine}{content1}");
+        _testOutputHelper.WriteLine($"content2: {Environment.NewLine}{content2}");
 
         response1.StatusCode.Should().Be(HttpStatusCode.OK, content1);
         response2.StatusCode.Should().Be(HttpStatusCode.OK, content2);
 
+        content1.Should().NotBeNull();
+        content1.Should().NotBe("null");
         content1.Should().Be(content2);
     }
     
@@ -99,6 +108,8 @@ public class SingleApiTests
         // Assert
         var content1 = await response1.Content.ReadAsStringAsync();
         var content2 = await response2.Content.ReadAsStringAsync();
+        _testOutputHelper.WriteLine($"content1: {Environment.NewLine}{content1}");
+        _testOutputHelper.WriteLine($"content2: {Environment.NewLine}{content2}");
 
         response1.StatusCode.Should().Be(expectedhttpStatusCode, content1);
         response2.StatusCode.Should().Be(expectedhttpStatusCode, content2);
@@ -129,6 +140,9 @@ public class SingleApiTests
 
         response1.StatusCode.Should().Be(expectedhttpStatusCode, content1);
         response2.StatusCode.Should().Be(expectedhttpStatusCode, content2);
+        
+        content1.Should().Be(string.Empty);
+        content2.Should().Be(string.Empty);
     }
     
     [Theory]

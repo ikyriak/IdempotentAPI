@@ -36,10 +36,14 @@ public class IdempotentEndpointFilter : IEndpointFilter
             {
                 var realCallResult = await next(context);
 
-                object? value = null;
-                if (realCallResult is IValueHttpResult result)
+                object? value = string.Empty;
+                if (realCallResult is not IResult)
                 {
-                    value = result.Value;
+                    value = realCallResult;
+                }
+                else if (realCallResult is IValueHttpResult valueHttpResult)
+                {
+                    value = valueHttpResult.Value;
                 }
                 
                 objectResult = new ObjectResult(value);
@@ -52,7 +56,7 @@ public class IdempotentEndpointFilter : IEndpointFilter
             }
             else
             {
-                object? value = null;
+                object? value = string.Empty;
                 if (actionExecutingContext.Result is ObjectResult valueHttpResult)
                 {
                     value = valueHttpResult.Value;

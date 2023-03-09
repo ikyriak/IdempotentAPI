@@ -1,5 +1,5 @@
 ﻿using System.Net;
-
+using Microsoft.AspNetCore.Mvc.Testing;
 namespace IdempotentAPI.IntegrationTests.Infrastructure
 {
     public class Fixture : IDisposable
@@ -8,6 +8,10 @@ namespace IdempotentAPI.IntegrationTests.Infrastructure
         public HttpClient Client2 { get; }
         public HttpClient Client3 { get; }
 
+        public HttpClient TestServerClient1 { get; }
+        public HttpClient TestServerClient2 { get; }
+        public HttpClient TestServerClient3 { get; }
+        
         public Fixture()
         {
             var defaultHttpClientHandler = new HttpClientHandler
@@ -30,6 +34,27 @@ namespace IdempotentAPI.IntegrationTests.Infrastructure
             {
                 BaseAddress = new Uri("http://localhost:5261/"),
             };
+            
+            var host1 = new WebApplicationFactory<TestWebAPIs1.Program>()
+                .WithWebHostBuilder(builder =>
+                    builder
+                        .UseSetting("Caching", "MemoryCache")
+                        .UseSetting("DALock", "None"));
+            TestServerClient1 = host1.CreateClient();
+
+            var host2 = new WebApplicationFactory<TestWebAPIs2.Program>()
+                .WithWebHostBuilder(builder =>
+                    builder
+                        .UseSetting("Caching", "MemoryCache")
+                        .UseSetting("DALock", "None"));
+            TestServerClient2 = host2.CreateClient();
+
+            var host3 = new WebApplicationFactory<Program>()
+                .WithWebHostBuilder(builder =>
+                    builder
+                        .UseSetting("Caching", "MemoryCache")
+                        .UseSetting("DALock", "None"));
+            TestServerClient3 = host3.CreateClient();
         }
 
         public void Dispose()
@@ -37,6 +62,10 @@ namespace IdempotentAPI.IntegrationTests.Infrastructure
             Client1.Dispose();
             Client2.Dispose();
             Client3.Dispose();
+            
+            TestServerClient1.Dispose();
+            TestServerClient2.Dispose();
+            TestServerClient3.Dispose();
         }
     }
 }
