@@ -1,5 +1,7 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
+using StackExchange.Redis;
+
 namespace IdempotentAPI.IntegrationTests.Infrastructure
 {
     public class Fixture : IDisposable
@@ -58,20 +60,28 @@ namespace IdempotentAPI.IntegrationTests.Infrastructure
                         .UseSetting("Caching", "MemoryCache")
                         .UseSetting("DALock", "None"));
             TestServerClient3 = host3.CreateClient();
-            
-            var hostRedis1 = new WebApplicationFactory<TestWebAPIs1.Program>()
-                .WithWebHostBuilder(builder =>
-                    builder
-                        .UseSetting("Caching", "FusionCache")
-                        .UseSetting("DALock", "MadelsonDistLock"));
-            TestServerClientRedis1 = hostRedis1.CreateClient();
 
-            var hostRedis2 = new WebApplicationFactory<TestWebAPIs2.Program>()
-                .WithWebHostBuilder(builder =>
-                    builder
-                        .UseSetting("Caching", "FusionCache")
-                        .UseSetting("DALock", "MadelsonDistLock"));
-            TestServerClientRedis2 = hostRedis2.CreateClient();
+            try
+            {
+                var hostRedis1 = new WebApplicationFactory<TestWebAPIs1.Program>()
+                    .WithWebHostBuilder(builder =>
+                        builder
+                            .UseSetting("Caching", "FusionCache")
+                            .UseSetting("DALock", "MadelsonDistLock"));
+                TestServerClientRedis1 = hostRedis1.CreateClient();
+
+                var hostRedis2 = new WebApplicationFactory<TestWebAPIs2.Program>()
+                    .WithWebHostBuilder(builder =>
+                        builder
+                            .UseSetting("Caching", "FusionCache")
+                            .UseSetting("DALock", "MadelsonDistLock"));
+                TestServerClientRedis2 = hostRedis2.CreateClient();
+            }
+            catch (RedisConnectionException redisConnectionException)
+            {
+                Console.WriteLine(
+                    $"Redis not running, test hosts not initialized, Exception: {redisConnectionException}");
+            }
         }
 
         public void Dispose()
