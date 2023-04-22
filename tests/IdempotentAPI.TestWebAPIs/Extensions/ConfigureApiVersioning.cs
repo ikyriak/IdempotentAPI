@@ -1,4 +1,4 @@
-﻿namespace IdempotentAPI.TestWebAPIs2.Extensions
+﻿namespace IdempotentAPI.TestWebAPIs.Extensions
 {
     public static class ConfigureApiVersioning
     {

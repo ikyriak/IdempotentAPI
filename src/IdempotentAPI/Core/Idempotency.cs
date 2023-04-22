@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 using IdempotentAPI.AccessCache;
 using IdempotentAPI.AccessCache.Exceptions;
 using IdempotentAPI.Extensions;
@@ -78,7 +79,7 @@ namespace IdempotentAPI.Core
         /// Cache the Response in relation to the provided idempotencyKey
         /// </summary>
         /// <param name="context"></param>
-        public void ApplyPostIdempotency(ResultExecutedContext context)
+        public async Task ApplyPostIdempotency(ResultExecutingContext context)
         {
             if (IsLoggerEnabled(LogLevel.Information))
             {
@@ -100,7 +101,8 @@ namespace IdempotentAPI.Core
             {
                 try
                 {
-                    _distributedCache.Remove(DistributedCacheKey, _distributedLockTimeout);
+                    await _distributedCache.Remove(DistributedCacheKey, _distributedLockTimeout)
+                        .ConfigureAwait(false);
                 }
                 catch (DistributedLockNotAcquiredException distributedLockNotAcquiredException)
                 {
@@ -115,12 +117,13 @@ namespace IdempotentAPI.Core
             }
 
             // Generate the data to be cached
-            byte[]? cacheDataBytes = GenerateCacheData(context);
+            byte[]? cacheDataBytes = await GenerateCacheData(context).ConfigureAwait(false);
 
             // Save to cache:
             try
             {
-                _distributedCache.Set(DistributedCacheKey, cacheDataBytes, _cacheEntryOptions, _distributedLockTimeout);
+                await _distributedCache.Set(DistributedCacheKey, cacheDataBytes, _cacheEntryOptions, _distributedLockTimeout)
+                    .ConfigureAwait(false);
             }
             catch (DistributedLockNotAcquiredException distributedLockNotAcquiredException)
             {
@@ -137,7 +140,7 @@ namespace IdempotentAPI.Core
         /// Return the cached response based on the provided idempotencyKey
         /// </summary>
         /// <param name="context"></param>
-        public void ApplyPreIdempotency(ActionExecutingContext context)
+        public async Task ApplyPreIdempotency(ActionExecutingContext context)
         {
             if (IsLoggerEnabled(LogLevel.Information))
             {
@@ -163,11 +166,12 @@ namespace IdempotentAPI.Core
 
             try
             {
-                cacheDataBytes = _distributedCache.GetOrSet(
+                cacheDataBytes = await _distributedCache.GetOrSet(
                     DistributedCacheKey,
                     defaultValue: GenerateRequestInFlightCacheData(uniqueRequesId),
                     options: _cacheEntryOptions,
-                    distributedLockTimeout: _distributedLockTimeout);
+                    distributedLockTimeout: _distributedLockTimeout)
+                    .ConfigureAwait(false);
             }
             catch (DistributedLockNotAcquiredException distributedLockNotAcquiredException)
             {
@@ -197,7 +201,8 @@ namespace IdempotentAPI.Core
                 // 2019-07-06: Evaluate the "Request.DataHash" in order to be sure that the cached
                 // response is returned for the same combination of IdempotencyKey and Request
                 string cachedRequestDataHash = cacheData["Request.DataHash"].ToString();
-                string currentRequestDataHash = GetRequestsDataHash(context.HttpContext.Request);
+                string currentRequestDataHash = await GetRequestsDataHash(context.HttpContext.Request)
+                    .ConfigureAwait(false);
                 if (cachedRequestDataHash != currentRequestDataHash)
                 {
                     context.Result = new BadRequestObjectResult($"The Idempotency header key value '{_idempotencyKey}' was used in a different request.");
@@ -284,11 +289,12 @@ namespace IdempotentAPI.Core
         /// Cancel the idempotency by removing the related cached data. For example, this function
         /// can be used when exceptions occur.
         /// </summary>
-        public void CancelIdempotency()
+        public async Task CancelIdempotency()
         {
             try
             {
-                _distributedCache.Remove(DistributedCacheKey, _distributedLockTimeout);
+                await _distributedCache.Remove(DistributedCacheKey, _distributedLockTimeout)
+                    .ConfigureAwait(false);
             }
             catch (DistributedLockNotAcquiredException distributedLockNotAcquiredException)
             {
@@ -330,14 +336,14 @@ namespace IdempotentAPI.Core
             return true;
         }
 
-        private byte[] GenerateCacheData(ResultExecutedContext context)
+        private async Task<byte[]> GenerateCacheData(ResultExecutingContext context)
         {
             Dictionary<string, object> cacheData = new();
             // Cache Request params:
             cacheData.Add("Request.Method", context.HttpContext.Request.Method);
             cacheData.Add("Request.Path", context.HttpContext.Request.Path.HasValue ? context.HttpContext.Request.Path.Value : string.Empty);
             cacheData.Add("Request.QueryString", context.HttpContext.Request.QueryString.ToUriComponent());
-            cacheData.Add("Request.DataHash", GetRequestsDataHash(context.HttpContext.Request));
+            cacheData.Add("Request.DataHash", await GetRequestsDataHash(context.HttpContext.Request).ConfigureAwait(false));
 
             //Cache Response params:
             cacheData.Add("Response.StatusCode", context.HttpContext.Response.StatusCode);
@@ -410,7 +416,7 @@ namespace IdempotentAPI.Core
             return serializedCacheData;
         }
 
-        private string GetRequestsDataHash(HttpRequest httpRequest)
+        private async Task<string> GetRequestsDataHash(HttpRequest httpRequest)
         {
             List<object> requestsData = new();
 
@@ -428,8 +434,8 @@ namespace IdempotentAPI.Core
                     using MemoryStream memoryStream = new();
                     httpRequest.Body.Position = 0;
 
-                    var copyTask = httpRequest.Body.CopyToAsync(memoryStream);
-                    copyTask.Wait();
+                    await httpRequest.Body.CopyToAsync(memoryStream)
+                        .ConfigureAwait(false);
 
                     requestsData.Add(memoryStream.ToArray());
                 }
@@ -458,7 +464,8 @@ namespace IdempotentAPI.Core
                         using (MemoryStream memoryStream = new())
                         {
                             fileStream.Position = 0;
-                            fileStream.CopyTo(memoryStream);
+                            await fileStream.CopyToAsync(memoryStream)
+                                .ConfigureAwait(false);
                             requestsData.Add(memoryStream.ToArray());
                         }
                     }

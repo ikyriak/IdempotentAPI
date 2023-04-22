@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using IdempotentAPI.Cache.Abstractions;
 using Microsoft.Extensions.Caching.Distributed;
 
@@ -26,7 +27,7 @@ namespace IdempotentAPI.Cache.DistributedCache
 
 
         /// <inheritdoc/>
-        public byte[] GetOrDefault(
+        public async Task<byte[]> GetOrDefault(
             string key,
             byte[] defaultValue,
             object? options = null,
@@ -42,12 +43,13 @@ namespace IdempotentAPI.Cache.DistributedCache
                 throw new ArgumentNullException(nameof(options));
             }
 
-            byte[] cachedData = _distributedCache.Get(key);
+            byte[] cachedData = await _distributedCache.GetAsync(key, token)
+                .ConfigureAwait(false);
             return cachedData is null ? defaultValue : cachedData;
         }
 
         /// <inheritdoc/>
-        public byte[] GetOrSet(
+        public async Task<byte[]> GetOrSet(
             string key,
             byte[] defaultValue,
             object? options = null,
@@ -66,7 +68,8 @@ namespace IdempotentAPI.Cache.DistributedCache
             byte[] cachedData = _distributedCache.Get(key);
             if (cachedData is null)
             {
-                _distributedCache.Set(key, defaultValue, (DistributedCacheEntryOptions?)options);
+                await _distributedCache.SetAsync(key, defaultValue, (DistributedCacheEntryOptions?)options, token)
+                    .ConfigureAwait(false);
                 return defaultValue;
             }
             else
@@ -75,19 +78,20 @@ namespace IdempotentAPI.Cache.DistributedCache
             }
         }
 
-        public void Remove(string key, CancellationToken token = default)
+        public async Task Remove(string key, CancellationToken token = default)
         {
             if (key is null)
             {
                 throw new ArgumentNullException(nameof(key));
             }
 
-            _distributedCache.Remove(key);
+            await _distributedCache.RemoveAsync(key, token)
+                .ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         /// <exception cref="ArgumentNullException"></exception>
-        public void Set(
+        public async Task Set(
             string key,
             byte[] value,
             object? options = null,
@@ -103,7 +107,8 @@ namespace IdempotentAPI.Cache.DistributedCache
                 throw new ArgumentNullException(nameof(options));
             }
 
-            _distributedCache.Set(key, value, (DistributedCacheEntryOptions?)options);
+            await _distributedCache.SetAsync(key, value, (DistributedCacheEntryOptions?)options, token)
+                .ConfigureAwait(false);
         }
     }
 }
