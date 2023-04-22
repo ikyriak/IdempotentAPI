@@ -1,6 +1,5 @@
 using System.Net;
 using FluentAssertions;
-using IdempotentAPI.IntegrationTests.Infrastructure;
 using Xunit;
 
 namespace IdempotentAPI.IntegrationTests
@@ -10,21 +9,16 @@ namespace IdempotentAPI.IntegrationTests
     //
     // Current Semi-Automated Requirements:
     // - Local Redis in Port 6379.
-    // - Instances of the TestWebAPIs1 & TestWebAPIs2.
-    // - Parameterize the TestWebAPIs for "Caching" and "DALock" in launchSettings.json.
-    [Collection(nameof(CollectionFixture))]
-    public class TestWebAPIsConcurrentTests
+    public class TestWebAPIsConcurrentTests : IClassFixture<WebApi1ApplicationFactory>, IClassFixture<WebApi2ApplicationFactory>
     {
         private readonly HttpClient _httpClientForInstance1;
         private readonly HttpClient _httpClientForInstance2;
 
-        public TestWebAPIsConcurrentTests(Fixture fixture)
+        public TestWebAPIsConcurrentTests(WebApi1ApplicationFactory api1ApplicationFactory,
+            WebApi2ApplicationFactory api2ApplicationFactory)
         {
-            _httpClientForInstance1 = fixture.TestServerClientRedis1;
-            _httpClientForInstance2 = fixture.TestServerClientRedis2;
-            
-            _httpClientForInstance1.DefaultRequestHeaders.Clear();
-            _httpClientForInstance2.DefaultRequestHeaders.Clear();
+            _httpClientForInstance1 = api1ApplicationFactory.CreateClient();
+            _httpClientForInstance2 = api2ApplicationFactory.CreateClient();
         }
 
         [Fact]
