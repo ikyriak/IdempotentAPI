@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using IdempotentAPI.AccessCache.Exceptions;
 using IdempotentAPI.AccessCache.Lockers;
 using IdempotentAPI.Cache.Abstractions;
@@ -28,7 +29,7 @@ namespace IdempotentAPI.AccessCache
 
         /// <inheritdoc/>
         /// <exception cref="ArgumentNullException"></exception>
-        public byte[] GetOrDefault(string key, byte[] defaultValue, object? options, CancellationToken cancellationToken = default)
+        public async Task<byte[]> GetOrDefault(string key, byte[] defaultValue, object? options, CancellationToken cancellationToken = default)
         {
             if (key is null)
             {
@@ -37,12 +38,13 @@ namespace IdempotentAPI.AccessCache
 
             using (var inProcesslock = new InProcessAccessLock(key))
             {
-                return _idempotencyCache.GetOrDefault(key, defaultValue, options, cancellationToken);
+                return await _idempotencyCache.GetOrDefault(key, defaultValue, options, cancellationToken)
+                    .ConfigureAwait(false);
             }
         }
 
         /// <inheritdoc/>
-        public byte[] GetOrSet(
+        public async Task<byte[]> GetOrSet(
             string key,
             byte[] defaultValue,
             object? options,
@@ -64,11 +66,13 @@ namespace IdempotentAPI.AccessCache
                         throw new ArgumentNullException("To use the IDistributedAccessLockProvider a `distributedLockTimeout` value should be provided.");
                     }
 
-                    using (IDistributedAccessLock distributedAccessLock = _distributedAccessLockProvider.TryAcquire(key, distributedLockTimeout.Value, cancellationToken))
+                    using (IDistributedAccessLock distributedAccessLock = await _distributedAccessLockProvider.TryAcquireAsync(key, distributedLockTimeout.Value, cancellationToken)
+                               .ConfigureAwait(false))
                     {
                         if (distributedAccessLock.IsAcquired)
                         {
-                            return _idempotencyCache.GetOrSet(key, defaultValue, options, cancellationToken);
+                            return await _idempotencyCache.GetOrSet(key, defaultValue, options, cancellationToken)
+                                .ConfigureAwait(false);
                         }
                         else
                         {
@@ -80,12 +84,13 @@ namespace IdempotentAPI.AccessCache
                     }
                 }
 
-                return _idempotencyCache.GetOrSet(key, defaultValue, options, cancellationToken);
+                return await _idempotencyCache.GetOrSet(key, defaultValue, options, cancellationToken)
+                    .ConfigureAwait(false);
             }
         }
 
         /// <inheritdoc/>
-        public void Remove(
+        public async Task Remove(
             string key,
             TimeSpan? distributedLockTimeout,
             CancellationToken cancellationToken = default)
@@ -105,11 +110,13 @@ namespace IdempotentAPI.AccessCache
                         throw new ArgumentNullException("To use the IDistributedAccessLockProvider a `distributedLockTimeout` value should be provided.");
                     }
 
-                    using (IDistributedAccessLock distributedAccessLock = _distributedAccessLockProvider.TryAcquire(key, distributedLockTimeout.Value, cancellationToken))
+                    using (IDistributedAccessLock distributedAccessLock = await _distributedAccessLockProvider.TryAcquireAsync(key, distributedLockTimeout.Value, cancellationToken)
+                               .ConfigureAwait(false))
                     {
                         if (distributedAccessLock.IsAcquired)
                         {
-                            _idempotencyCache.Remove(key, cancellationToken);
+                            await _idempotencyCache.Remove(key, cancellationToken)
+                                .ConfigureAwait(false);
                             return;
                         }
                         else
@@ -122,12 +129,13 @@ namespace IdempotentAPI.AccessCache
                     }
                 }
 
-                _idempotencyCache.Remove(key, cancellationToken);
+                await _idempotencyCache.Remove(key, cancellationToken)
+                    .ConfigureAwait(false);
             }
         }
 
         /// <inheritdoc/>
-        public void Set(
+        public async Task Set(
             string key,
             byte[] value,
             object? options,
@@ -149,11 +157,13 @@ namespace IdempotentAPI.AccessCache
                         throw new ArgumentNullException("To use the IDistributedAccessLockProvider a `distributedLockTimeout` value should be provided.");
                     }
 
-                    using (IDistributedAccessLock distributedAccessLock = _distributedAccessLockProvider.TryAcquire(key, distributedLockTimeout.Value, cancellationToken))
+                    using (IDistributedAccessLock distributedAccessLock = await _distributedAccessLockProvider.TryAcquireAsync(key, distributedLockTimeout.Value, cancellationToken)
+                               .ConfigureAwait(false))
                     {
                         if (distributedAccessLock.IsAcquired)
                         {
-                            _idempotencyCache.Set(key, value, options, cancellationToken);
+                            await _idempotencyCache.Set(key, value, options, cancellationToken)
+                                .ConfigureAwait(false);
                             return;
                         }
                         else
@@ -166,7 +176,8 @@ namespace IdempotentAPI.AccessCache
                     }
                 }
 
-                _idempotencyCache.Set(key, value, options, cancellationToken);
+                await _idempotencyCache.Set(key, value, options, cancellationToken)
+                    .ConfigureAwait(false);
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using IdempotentAPI.AccessCache;
 using IdempotentAPI.Core;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IdempotentAPI.Filters
 {
-    public class IdempotencyAttributeFilter : IActionFilter, IResultFilter
+    public class IdempotencyAttributeFilter : IAsyncActionFilter, IAsyncResultFilter
     {
         private readonly bool _enabled;
         private readonly int _expireHours;
@@ -49,14 +50,16 @@ namespace IdempotentAPI.Filters
         }
 
         /// <summary>
-        /// Runs before the execution of the controller
+        ///     Runs before the execution of the controller
         /// </summary>
         /// <param name="context"></param>
-        public void OnActionExecuting(ActionExecutingContext context)
+        /// <param name="next"></param>
+        public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
             // If the Idempotency is disabled then stop
             if (!_enabled)
             {
+                await next();
                 return;
             }
 
@@ -72,54 +75,36 @@ namespace IdempotentAPI.Filters
                     _distributedLockTimeout,
                     _cacheOnlySuccessResponses);
             }
-
-            _idempotency.ApplyPreIdempotency(context);
-        }
-
-        /// <summary>
-        /// Runs after the execution of the controller. In our case we used it to perform specific actions on Exceptions.
-        /// </summary>
-        /// <param name="context"></param>
-        public void OnActionExecuted(ActionExecutedContext context)
-        {
-            // If the Idempotency is disabled then stop.
-            // Stop if the PreIdempotency step is not applied.
-            if (!_enabled || _idempotency == null)
+            
+            await _idempotency.ApplyPreIdempotency(context);
+            
+            var result = await next();
+            if (result?.Exception is not null)
             {
-                return;
-            }
-
-            if (context?.Exception is not null)
-            {
-                _idempotency.CancelIdempotency();
+                await _idempotency.CancelIdempotency();
             }
         }
 
-        // NOT USED
-        public void OnResultExecuting(ResultExecutingContext context)
-        {
-
-        }
-
-        /// <summary>
-        /// Runs after the results have been calculated
-        /// </summary>
-        /// <param name="context"></param>
-        public void OnResultExecuted(ResultExecutedContext context)
+        public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
         {
             // If the Idempotency is disabled then stop
             if (!_enabled)
             {
+                await next();
                 return;
             }
 
+            
             // Stop if the PreIdempotency step is not applied:
             if (_idempotency == null)
             {
+                await next();
                 return;
             }
 
-            _idempotency.ApplyPostIdempotency(context);
+            await next();
+            
+            await _idempotency.ApplyPostIdempotency(context);
         }
     }
 }
