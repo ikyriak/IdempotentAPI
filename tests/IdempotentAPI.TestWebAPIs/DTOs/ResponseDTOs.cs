@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace IdempotentAPI.TestWebAPIs1.DTOs
+﻿namespace IdempotentAPI.TestWebAPIs.DTOs
 {
     [Serializable]
     public class ResponseDTOs

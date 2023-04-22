@@ -1,10 +1,10 @@
 using System.Net;
 using IdempotentAPI.Filters;
-using IdempotentAPI.TestWebAPIs1.DTOs;
+using IdempotentAPI.TestWebAPIs.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 
-namespace IdempotentAPI.TestWebAPIs1.Controllers
+namespace IdempotentAPI.TestWebAPIs.Controllers
 {
     [ApiController]
     [ApiVersion("6.0")]
@@ -30,7 +30,7 @@ namespace IdempotentAPI.TestWebAPIs1.Controllers
         }
 
         [HttpPost("testobject")]
-        public ResponseDTOs TestObject()
+        public ResponseDTOs TestObject([FromHeader(Name = "IdempotencyKey")] string idempotencyKey)
         {
             return new ResponseDTOs();
         }
@@ -55,6 +55,7 @@ namespace IdempotentAPI.TestWebAPIs1.Controllers
             throw new Exception("Something when wrong!");
         }
 
+
         [HttpPost("customNotAcceptable406")]
         public async Task<ActionResult> TestCustomNotAcceptable406Async(
             [FromHeader(Name = "IdempotencyKey")] string idempotencyKey, int delaySeconds)
@@ -76,7 +77,7 @@ namespace IdempotentAPI.TestWebAPIs1.Controllers
                 StatusCode = StatusCodes.Status406NotAcceptable,
                 Errors = new[]{
                     message
-                }
+                },
             })
             {
                 StatusCode = StatusCodes.Status406NotAcceptable,

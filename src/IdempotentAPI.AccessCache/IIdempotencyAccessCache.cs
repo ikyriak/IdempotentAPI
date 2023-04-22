@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
+using IdempotentAPI.DistributedAccessLock.Abstractions;
 
 namespace IdempotentAPI.AccessCache
 {
@@ -17,7 +19,7 @@ namespace IdempotentAPI.AccessCache
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="Exceptions.DistributedLockNotAcquiredException"></exception>
-        byte[] GetOrSet(
+        Task<byte[]> GetOrSet(
             string key,
             byte[] defaultValue,
             object? options,
@@ -33,7 +35,7 @@ namespace IdempotentAPI.AccessCache
         /// <param name="options">The implementation needed options that will be used during this operation.</param>
         /// <param name="cancellationToken">An optional System.Threading.CancellationToken to cancel the operation.</param>
         /// <returns></returns>
-        byte[] GetOrDefault(
+        Task<byte[]> GetOrDefault(
             string key,
             byte[] defaultValue,
             object? options,
@@ -50,7 +52,7 @@ namespace IdempotentAPI.AccessCache
         /// <param name="cancellationToken">An optional System.Threading.CancellationToken to cancel the operation.</param>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="Exceptions.DistributedLockNotAcquiredException"></exception>
-        void Set(
+        Task Set(
             string key,
             byte[] value,
             object? options,
@@ -72,6 +74,6 @@ namespace IdempotentAPI.AccessCache
         /// <param name="cancellationToken">An optional System.Threading.CancellationToken to cancel the operation.</param>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="Exceptions.DistributedLockNotAcquiredException"></exception>
-        void Remove(string key, TimeSpan? distributedLockTimeout, CancellationToken cancellationToken = default);
+        Task Remove(string key, TimeSpan? distributedLockTimeout, CancellationToken cancellationToken = default);
     }
 }
