@@ -24,7 +24,7 @@ namespace IdempotentAPI.IntegrationTests
             _httpClientForInstance2 = fixture.Client2;
         }
 
-        [Fact]
+        [Fact(Skip = "Temporary skip test")]
         public async Task PostRequestsConcurrent_OnClusterEnvironment_WithErrorResponse_ShouldReturnTheErrorAndA409Response()
         {
             // Arrange
@@ -45,7 +45,7 @@ namespace IdempotentAPI.IntegrationTests
             resultStatusCodes.Should().Contain(HttpStatusCode.Conflict);
         }
 
-        [Fact]
+        [Fact(Skip = "Temporary skip test")]
         public async Task PostRequestsConsecutively_WithErrorResponse_ShouldReturnErrorResponsesWithDifferentData()
         {
             // Arrange

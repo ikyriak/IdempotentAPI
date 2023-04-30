@@ -37,6 +37,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdempotentAPI.TestWebAPIs2"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdempotentAPI.TestWebAPIs1", "tests\IdempotentAPI.TestWebAPIs1\IdempotentAPI.TestWebAPIs1.csproj", "{4AAAD479-EEA2-4B9C-8709-6DD0CA1574EE}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{9221FD4F-D7F9-40D1-AD36-D59B1C26C487}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{568F2BE6-17A9-451E-90E8-BE1F727BEC35}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\ci.yaml = .github\workflows\ci.yaml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -108,6 +115,7 @@ Global
 		{63F0BB18-3CCA-46F8-ACA1-F3B6EC05CE5B} = {B0CA0D1D-3C22-4935-8467-310509EDB755}
 		{F3D3B42C-5582-4EFA-9ED8-C81EA767259C} = {B0CA0D1D-3C22-4935-8467-310509EDB755}
 		{4AAAD479-EEA2-4B9C-8709-6DD0CA1574EE} = {B0CA0D1D-3C22-4935-8467-310509EDB755}
+		{568F2BE6-17A9-451E-90E8-BE1F727BEC35} = {9221FD4F-D7F9-40D1-AD36-D59B1C26C487}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0865C8C6-957E-4E70-A784-8EBC2282E4AB}
