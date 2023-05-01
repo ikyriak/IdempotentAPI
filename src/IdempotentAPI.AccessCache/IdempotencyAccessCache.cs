@@ -36,7 +36,7 @@ namespace IdempotentAPI.AccessCache
                 throw new ArgumentNullException(nameof(key));
             }
 
-            using (var inProcesslock = new InProcessAccessLock(key))
+            using (await InProcessAccessLock.CreateAsync(key))
             {
                 return await _idempotencyCache.GetOrDefault(key, defaultValue, options, cancellationToken)
                     .ConfigureAwait(false);
@@ -56,17 +56,19 @@ namespace IdempotentAPI.AccessCache
                 throw new ArgumentNullException(nameof(key));
             }
 
-            using (var inProcesslock = new InProcessAccessLock(key))
+            using (await InProcessAccessLock.CreateAsync(key))
             {
                 // A distributed lock provider exists:
                 if (_distributedAccessLockProvider != null)
                 {
                     if (!distributedLockTimeout.HasValue)
                     {
-                        throw new ArgumentNullException("To use the IDistributedAccessLockProvider a `distributedLockTimeout` value should be provided.");
+                        throw new ArgumentNullException(
+                            "To use the IDistributedAccessLockProvider a `distributedLockTimeout` value should be provided.");
                     }
 
-                    using (IDistributedAccessLock distributedAccessLock = await _distributedAccessLockProvider.TryAcquireAsync(key, distributedLockTimeout.Value, cancellationToken)
+                    using (IDistributedAccessLock distributedAccessLock = await _distributedAccessLockProvider
+                               .TryAcquireAsync(key, distributedLockTimeout.Value, cancellationToken)
                                .ConfigureAwait(false))
                     {
                         if (distributedAccessLock.IsAcquired)
@@ -77,9 +79,12 @@ namespace IdempotentAPI.AccessCache
                         else
                         {
                             if (distributedAccessLock.Exception is null)
-                                throw new DistributedLockNotAcquiredException($"Could not acquired distributed Lock for {key} in {distributedLockTimeout}.");
+                                throw new DistributedLockNotAcquiredException(
+                                    $"Could not acquired distributed Lock for {key} in {distributedLockTimeout}.");
                             else
-                                throw new DistributedLockNotAcquiredException($"Could not acquired distributed Lock for {key} in {distributedLockTimeout}.", distributedAccessLock.Exception);
+                                throw new DistributedLockNotAcquiredException(
+                                    $"Could not acquired distributed Lock for {key} in {distributedLockTimeout}.",
+                                    distributedAccessLock.Exception);
                         }
                     }
                 }
@@ -100,17 +105,19 @@ namespace IdempotentAPI.AccessCache
                 throw new ArgumentNullException(nameof(key));
             }
 
-            using (var inProcesslock = new InProcessAccessLock(key))
+            using (await InProcessAccessLock.CreateAsync(key))
             {
                 // A distributed lock provider exists:
                 if (_distributedAccessLockProvider != null)
                 {
                     if (!distributedLockTimeout.HasValue)
                     {
-                        throw new ArgumentNullException("To use the IDistributedAccessLockProvider a `distributedLockTimeout` value should be provided.");
+                        throw new ArgumentNullException(
+                            "To use the IDistributedAccessLockProvider a `distributedLockTimeout` value should be provided.");
                     }
 
-                    using (IDistributedAccessLock distributedAccessLock = await _distributedAccessLockProvider.TryAcquireAsync(key, distributedLockTimeout.Value, cancellationToken)
+                    using (IDistributedAccessLock distributedAccessLock = await _distributedAccessLockProvider
+                               .TryAcquireAsync(key, distributedLockTimeout.Value, cancellationToken)
                                .ConfigureAwait(false))
                     {
                         if (distributedAccessLock.IsAcquired)
@@ -122,9 +129,12 @@ namespace IdempotentAPI.AccessCache
                         else
                         {
                             if (distributedAccessLock.Exception is null)
-                                throw new DistributedLockNotAcquiredException($"Could not acquired distributed Lock for {key} in {distributedLockTimeout}.");
+                                throw new DistributedLockNotAcquiredException(
+                                    $"Could not acquired distributed Lock for {key} in {distributedLockTimeout}.");
                             else
-                                throw new DistributedLockNotAcquiredException($"Could not acquired distributed Lock for {key} in {distributedLockTimeout}.", distributedAccessLock.Exception);
+                                throw new DistributedLockNotAcquiredException(
+                                    $"Could not acquired distributed Lock for {key} in {distributedLockTimeout}.",
+                                    distributedAccessLock.Exception);
                         }
                     }
                 }
@@ -147,17 +157,19 @@ namespace IdempotentAPI.AccessCache
                 throw new ArgumentNullException(nameof(key));
             }
 
-            using (var inProcesslock = new InProcessAccessLock(key))
+            using (await InProcessAccessLock.CreateAsync(key))
             {
                 // A distributed lock provider exists:
                 if (_distributedAccessLockProvider != null)
                 {
                     if (!distributedLockTimeout.HasValue)
                     {
-                        throw new ArgumentNullException("To use the IDistributedAccessLockProvider a `distributedLockTimeout` value should be provided.");
+                        throw new ArgumentNullException(
+                            "To use the IDistributedAccessLockProvider a `distributedLockTimeout` value should be provided.");
                     }
 
-                    using (IDistributedAccessLock distributedAccessLock = await _distributedAccessLockProvider.TryAcquireAsync(key, distributedLockTimeout.Value, cancellationToken)
+                    using (IDistributedAccessLock distributedAccessLock = await _distributedAccessLockProvider
+                               .TryAcquireAsync(key, distributedLockTimeout.Value, cancellationToken)
                                .ConfigureAwait(false))
                     {
                         if (distributedAccessLock.IsAcquired)
@@ -169,9 +181,12 @@ namespace IdempotentAPI.AccessCache
                         else
                         {
                             if (distributedAccessLock.Exception is null)
-                                throw new DistributedLockNotAcquiredException($"Could not acquired distributed Lock for {key} in {distributedLockTimeout}.");
+                                throw new DistributedLockNotAcquiredException(
+                                    $"Could not acquired distributed Lock for {key} in {distributedLockTimeout}.");
                             else
-                                throw new DistributedLockNotAcquiredException($"Could not acquired distributed Lock for {key} in {distributedLockTimeout}.", distributedAccessLock.Exception);
+                                throw new DistributedLockNotAcquiredException(
+                                    $"Could not acquired distributed Lock for {key} in {distributedLockTimeout}.",
+                                    distributedAccessLock.Exception);
                         }
                     }
                 }

@@ -1,6 +1,5 @@
 using System.Net;
 using FluentAssertions;
-using IdempotentAPI.IntegrationTests.Infrastructure;
 using Xunit;
 
 namespace IdempotentAPI.IntegrationTests
@@ -10,21 +9,19 @@ namespace IdempotentAPI.IntegrationTests
     //
     // Current Semi-Automated Requirements:
     // - Local Redis in Port 6379.
-    // - Instances of the TestWebAPIs1 & TestWebAPIs2.
-    // - Parameterize the TestWebAPIs for "Caching" and "DALock" in launchSettings.json.
-    [Collection(nameof(CollectionFixture))]
-    public class TestWebAPIsConcurrentTests
+    public class TestWebAPIsConcurrentTests : IClassFixture<WebApi1ApplicationFactory>, IClassFixture<WebApi2ApplicationFactory>
     {
         private readonly HttpClient _httpClientForInstance1;
         private readonly HttpClient _httpClientForInstance2;
 
-        public TestWebAPIsConcurrentTests(Fixture fixture)
+        public TestWebAPIsConcurrentTests(WebApi1ApplicationFactory api1ApplicationFactory,
+            WebApi2ApplicationFactory api2ApplicationFactory)
         {
-            _httpClientForInstance1 = fixture.Client1;
-            _httpClientForInstance2 = fixture.Client2;
+            _httpClientForInstance1 = api1ApplicationFactory.CreateClient();
+            _httpClientForInstance2 = api2ApplicationFactory.CreateClient();
         }
 
-        [Fact(Skip = "Temporary skip test")]
+        [Fact]
         public async Task PostRequestsConcurrent_OnClusterEnvironment_WithErrorResponse_ShouldReturnTheErrorAndA409Response()
         {
             // Arrange
@@ -45,7 +42,7 @@ namespace IdempotentAPI.IntegrationTests
             resultStatusCodes.Should().Contain(HttpStatusCode.Conflict);
         }
 
-        [Fact(Skip = "Temporary skip test")]
+        [Fact]
         public async Task PostRequestsConsecutively_WithErrorResponse_ShouldReturnErrorResponsesWithDifferentData()
         {
             // Arrange

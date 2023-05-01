@@ -1,10 +1,10 @@
 using System.Net;
 using IdempotentAPI.Filters;
-using IdempotentAPI.TestWebAPIs2.DTOs;
+using IdempotentAPI.TestWebAPIs.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 
-namespace IdempotentAPI.TestWebAPIs2.Controllers
+namespace IdempotentAPI.TestWebAPIs.Controllers
 {
     [ApiController]
     [ApiVersion("6.0")]

@@ -4,12 +4,12 @@ using IdempotentAPI.Cache.FusionCache.Extensions.DependencyInjection;
 using IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock.Extensions.DependencyInjection;
 using IdempotentAPI.DistributedAccessLock.RedLockNet.Extensions.DependencyInjection;
 using IdempotentAPI.Extensions.DependencyInjection;
-using IdempotentAPI.TestWebAPIs1.Extensions;
+using IdempotentAPI.TestWebAPIs.Extensions;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
 using StackExchange.Redis;
 
-namespace IdempotentAPI.TestWebAPIs1
+namespace IdempotentAPI.TestWebAPIs
 {
     /// <summary>
     /// - dotnet run Caching=MemoryCache DALock=RedLockNet

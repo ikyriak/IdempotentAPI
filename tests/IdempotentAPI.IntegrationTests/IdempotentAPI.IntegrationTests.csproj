@@ -23,8 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\IdempotentAPI.TestWebAPIs1\IdempotentAPI.TestWebAPIs1.csproj" />
-    <ProjectReference Include="..\IdempotentAPI.TestWebAPIs2\IdempotentAPI.TestWebAPIs2.csproj" />
+    <ProjectReference Include="..\IdempotentAPI.TestWebAPIs\IdempotentAPI.TestWebAPIs.csproj" />
   </ItemGroup>
 
 </Project>
