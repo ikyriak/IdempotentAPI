@@ -77,6 +77,13 @@ namespace IdempotentAPI.Filters
             }
             
             await _idempotency.ApplyPreIdempotency(context);
+
+            // short-circuit to exit for async filter when result already set
+            // https://learn.microsoft.com/en-us/aspnet/core/mvc/controllers/filters?view=aspnetcore-7.0#action-filters
+            if (context.Result != null)
+            {
+                return;
+            }
             
             var result = await next();
             if (result?.Exception is not null)
