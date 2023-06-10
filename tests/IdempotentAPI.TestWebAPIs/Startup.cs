@@ -39,7 +39,7 @@ namespace IdempotentAPI.TestWebAPIs
 
             services.AddSwaggerGen(x =>
                 x.SwaggerDoc("v6", new OpenApiInfo { Title = "IdempotentAPI.TestWebAPIs1 - Swagger", Version = "v6" }));
-            
+
             services.AddControllers();
 
             // Register the Caching Method:
@@ -106,7 +106,7 @@ namespace IdempotentAPI.TestWebAPIs
             {
                 endpoints.MapControllers();
             });
-            
+
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {

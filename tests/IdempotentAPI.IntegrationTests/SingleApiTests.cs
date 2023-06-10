@@ -1,6 +1,5 @@
 using System.Net;
 using FluentAssertions;
-using IdempotentAPI.IntegrationTests.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -10,32 +9,27 @@ namespace IdempotentAPI.IntegrationTests;
 /// Used for testing a single API
 /// NOTE: The API project needs to be running prior to running this test
 /// </summary>
-[Collection(nameof(CollectionFixture))]
-public class SingleApiTests
+public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFixture<WebMinimalApi1ApplicationFactory>
 {
     private readonly ITestOutputHelper _testOutputHelper;
     private readonly HttpClient[] _httpClients;
 
-    public SingleApiTests(Fixture fixture, ITestOutputHelper testOutputHelper)
+    public SingleApiTests(
+        WebApi1ApplicationFactory api1ApplicationFactory,
+        WebMinimalApi1ApplicationFactory minimalApi1ApplicationFactory,
+        ITestOutputHelper testOutputHelper)
     {
         _testOutputHelper = testOutputHelper;
         _httpClients = new[]
             {
-                fixture.TestServerClient1,
-                fixture.TestServerClient2,
-                fixture.TestServerClient3
+                api1ApplicationFactory.CreateClient(),
+                minimalApi1ApplicationFactory.CreateClient(),
             };
-
-        foreach (var httpClient in _httpClients)
-        {
-            httpClient.DefaultRequestHeaders.Clear();
-        }
     }
 
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
-    [InlineData(2)]
     public async Task PostTest_ShouldReturnCachedResponse(int httpClientIndex)
     {
         // Arrange
@@ -62,7 +56,6 @@ public class SingleApiTests
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
-    [InlineData(2)]
     public async Task PostTestObject_ShouldReturnCachedResponse(int httpClientIndex)
     {
         // Arrange
@@ -87,11 +80,10 @@ public class SingleApiTests
         content1.Should().NotBe("null");
         content1.Should().Be(content2);
     }
-    
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
-    [InlineData(2)]
     public async Task PostTestObjectWithHttpError_ShouldReturnExpectedStatusCode_NotCaching(int httpClientIndex)
     {
         // Arrange
@@ -114,11 +106,10 @@ public class SingleApiTests
         response1.StatusCode.Should().Be(expectedhttpStatusCode, content1);
         response2.StatusCode.Should().Be(expectedhttpStatusCode, content2);
     }
-    
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
-    [InlineData(2)]
     public async Task PostTestObjectWithHttpError_ShouldReturnExpectedStatusCode_Cached(int httpClientIndex)
     {
         // Arrange
@@ -140,16 +131,15 @@ public class SingleApiTests
 
         response1.StatusCode.Should().Be(expectedhttpStatusCode, content1);
         response2.StatusCode.Should().Be(expectedhttpStatusCode, content2);
-        
+
         content1.Should().Be(string.Empty);
         content2.Should().Be(string.Empty);
     }
-    
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
-    [InlineData(2)]
-    public async Task PostRequestsConcurrent_OnSameApi_WithErrorResponse_ShouldReturnTheErrorAndA409Response(int httpClientIndex)
+    public async Task PostRequestsConcurrent_OnSameAPI_WithErrorResponse_ShouldReturnTheErrorAndA409Response(int httpClientIndex)
     {
         // Arrange
         var guid = Guid.NewGuid().ToString();
@@ -169,7 +159,7 @@ public class SingleApiTests
         var content2 = await httpPostTask2.Result.Content.ReadAsStringAsync();
         _testOutputHelper.WriteLine($"content1: {Environment.NewLine}{content1}");
         _testOutputHelper.WriteLine($"content2: {Environment.NewLine}{content2}");
-        
+
         // Assert
         var resultStatusCodes = new List<HttpStatusCode>
         {
@@ -179,13 +169,12 @@ public class SingleApiTests
         resultStatusCodes.Should().Contain(HttpStatusCode.NotAcceptable);
         resultStatusCodes.Should().Contain(HttpStatusCode.Conflict);
     }
-    
-    
+
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
-    [InlineData(2)]
-    public async Task Post_DifferentEndpoints_SameIdemptotentKey_ShouldReturnFailure(int httpClientIndex)
+    public async Task Post_DifferentEndpoints_SameIdempotentKey_ShouldReturnFailure(int httpClientIndex)
     {
         // Arrange
         var guid = Guid.NewGuid().ToString();

@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace IdempotentAPI.TestWebAPIs1.DTOs
+namespace IdempotentAPI.TestWebMinimalAPIs.DTOs
 {
     public class ErrorModel
     {

@@ -25,7 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\IdempotentAPI.TestWebAPIs\IdempotentAPI.TestWebAPIs.csproj" />
-    <ProjectReference Include="..\IdempotentAPI.TestWebAPIs3\IdempotentAPI.TestWebAPIs3.csproj" />
+    <ProjectReference Include="..\IdempotentAPI.TestWebMinimalAPIs\IdempotentAPI.TestWebMinimalAPIs.csproj" />
   </ItemGroup>
 
 </Project>

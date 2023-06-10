@@ -75,7 +75,7 @@ namespace IdempotentAPI.Filters
                     _distributedLockTimeout,
                     _cacheOnlySuccessResponses);
             }
-            
+
             await _idempotency.ApplyPreIdempotency(context);
 
             // short-circuit to exit for async filter when result already set
@@ -84,7 +84,7 @@ namespace IdempotentAPI.Filters
             {
                 return;
             }
-            
+
             var result = await next();
             if (result?.Exception is not null)
             {
@@ -101,7 +101,7 @@ namespace IdempotentAPI.Filters
                 return;
             }
 
-            
+
             // Stop if the PreIdempotency step is not applied:
             if (_idempotency == null)
             {
@@ -110,7 +110,7 @@ namespace IdempotentAPI.Filters
             }
 
             await next();
-            
+
             await _idempotency.ApplyPostIdempotency(context);
         }
     }

@@ -1,11 +1,10 @@
-﻿using IdempotentAPI.TestWebAPIs;
-using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 
 namespace IdempotentAPI.IntegrationTests
 {
-    public class WebApi1ApplicationFactory : WebApplicationFactory<Program>
+    public class WebApi1ApplicationFactory : WebApplicationFactory<TestWebAPIs.Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
