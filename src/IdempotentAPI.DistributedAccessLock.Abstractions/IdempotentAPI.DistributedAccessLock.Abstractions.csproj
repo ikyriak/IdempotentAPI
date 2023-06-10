@@ -4,7 +4,7 @@
         <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
         <Authors>Ioannis Kyriakidis</Authors>
         <Company>ikyriakidis.com</Company>
-        <Version>2.0.0-rc-01</Version>
+        <Version>2.1.0</Version>
         <Description>The distributed access lock definition of the IdempotentAPI project.</Description>
         <PackageTags>distributed;lock;cache;idempotent api;idempotency;asp.net core;attribute;middleware;rest</PackageTags>
         <RepositoryUrl>https://github.com/ikyriak/IdempotentAPI.git</RepositoryUrl>
