@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<Authors>Ioannis Kyriakidis</Authors>
+		<Company>ikyriakidis.com</Company>
+		<Version>2.0.0-rc-01</Version>
+		<Description>IdempotentAPI support in Minimal APIs.</Description>
+		<PackageTags>cache;idempotent api;idempotency;asp.net core;attribute;middleware;rest</PackageTags>
+		<RepositoryUrl>https://github.com/ikyriak/IdempotentAPI.git</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageProjectUrl>https://github.com/ikyriak/IdempotentAPI/src/IdempotentAPI.AccessCache</PackageProjectUrl>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\IdempotentAPI\IdempotentAPI.csproj" />
+	</ItemGroup>
+
+</Project>

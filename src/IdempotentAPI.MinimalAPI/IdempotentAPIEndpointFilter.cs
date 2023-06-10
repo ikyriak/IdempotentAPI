@@ -1,36 +1,79 @@
-﻿using System.Net;
-using IdempotentAPI.Filters;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using IdempotentAPI.AccessCache;
+using IdempotentAPI.Core;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
-namespace IdempotentAPI.TestWebAPIs3;
+namespace IdempotentAPI.MinimalAPI;
 
-public class IdempotentEndpointFilter : IEndpointFilter
+public class IdempotentAPIEndpointFilter : IEndpointFilter
 {
-    private readonly IdempotencyAttributeFilter _idempotencyAttributeFilter;
-    private readonly ILogger<IdempotentEndpointFilter> _logger;
+    private readonly IIdempotencyAccessCache _distributedCache;
+    private readonly ILogger<Idempotency> _logger;
+    private IIdempotencyOptions _idempotencyOptions;
 
-    public IdempotentEndpointFilter(IdempotencyAttributeFilter idempotencyAttributeFilter, ILogger<IdempotentEndpointFilter> logger)
+    private Idempotency? _idempotency = null;
+
+
+    public IdempotentAPIEndpointFilter(
+        IIdempotencyAccessCache distributedCache,
+        ILoggerFactory loggerFactory,
+        IIdempotencyOptions idempotencyOptions)
     {
-        _idempotencyAttributeFilter = idempotencyAttributeFilter;
-        _logger = logger;
+        _distributedCache = distributedCache;
+        _idempotencyOptions = idempotencyOptions;
+
+        if (loggerFactory != null)
+        {
+            _logger = loggerFactory.CreateLogger<Idempotency>();
+        }
+        else
+        {
+            _logger = NullLogger<Idempotency>.Instance;
+        }
     }
-    
+
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
+        // Initialize only on its null (in case of multiple executions):
+        if (_idempotency == null)
+        {
+            _idempotency = new Idempotency(
+                _distributedCache,
+                _logger,
+                _idempotencyOptions.ExpireHours,
+                _idempotencyOptions.HeaderKeyName,
+                _idempotencyOptions.DistributedCacheKeysPrefix,
+                TimeSpan.FromMilliseconds(_idempotencyOptions.DistributedLockTimeoutMilli),
+                _idempotencyOptions.CacheOnlySuccessResponses);
+        }
+
         try
         {
+            bool applyPostIdempotency = true;
             var actionContext = new ActionContext(context.HttpContext, new RouteData(), new ActionDescriptor());
             var filters = new List<IFilterMetadata>();
             var actionArguments = new Dictionary<string, object?>();
             var actionExecutingContext = new ActionExecutingContext(actionContext, filters, actionArguments, null!);
-            _idempotencyAttributeFilter.OnActionExecuting(actionExecutingContext);
 
-            var actionExecutedContext = new ActionExecutedContext(actionContext, filters, null!);
-            _idempotencyAttributeFilter.OnActionExecuted(actionExecutedContext);
+            await _idempotency.ApplyPreIdempotency(actionExecutingContext);
 
+            // short-circuit to exit for async filter when result already set
+            // https://learn.microsoft.com/en-us/aspnet/core/mvc/controllers/filters?view=aspnetcore-7.0#action-filters
+            if (actionExecutingContext.Result != null)
+            {
+                applyPostIdempotency = false;
+            }
+
+            // Execute the next EndpointFilter which eventually will execute the endpoint and we will get its results.
             ObjectResult objectResult;
             if (actionExecutingContext.Result == null)
             {
@@ -45,9 +88,9 @@ public class IdempotentEndpointFilter : IEndpointFilter
                 {
                     value = valueHttpResult.Value;
                 }
-                
+
                 objectResult = new ObjectResult(value);
-                
+
                 if (realCallResult is IStatusCodeHttpResult statusCodeHttpResult &&
                     statusCodeHttpResult.StatusCode.HasValue)
                 {
@@ -63,7 +106,7 @@ public class IdempotentEndpointFilter : IEndpointFilter
                 }
 
                 objectResult = new ObjectResult(value);
-                
+
                 if (actionExecutingContext.Result is IStatusCodeActionResult statusCodeActionResult &&
                     statusCodeActionResult.StatusCode.HasValue)
                 {
@@ -76,36 +119,22 @@ public class IdempotentEndpointFilter : IEndpointFilter
                 context.HttpContext.Response.StatusCode = objectResult.StatusCode.Value;
             }
 
-            var resultExecutingContext = new ResultExecutingContext(actionContext, filters, objectResult, null!);
-            _idempotencyAttributeFilter.OnResultExecuting(resultExecutingContext);
+            if (!applyPostIdempotency)
+            {
+                return objectResult.Value;
+            }
 
-            var resultExecutedContext = new ResultExecutedContext(actionContext, filters, objectResult, null!);
-            _idempotencyAttributeFilter.OnResultExecuted(resultExecutedContext);
+            var resultExecutingContext = new ResultExecutingContext(actionContext, filters, objectResult, null!);
+
+            await _idempotency.ApplyPostIdempotency(resultExecutingContext);
 
             return objectResult.Value;
         }
-        catch (ArgumentNullException argumentNullException)
+        catch
         {
-            if (argumentNullException.ParamName == "IdempotencyKey")
-            {
-                context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            }
-            else
-            {
-                context.HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-            }
-            
-            _logger.LogError(argumentNullException, "Idempotency error");
+            await _idempotency.CancelIdempotency();
+            throw;
+        }
 
-            return argumentNullException.ToString();
-        }
-        catch (Exception exception)
-        {
-            context.HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-            
-            _logger.LogError(exception, "Idempotency error");
-            
-            return exception.ToString();
-        }
     }
 }
