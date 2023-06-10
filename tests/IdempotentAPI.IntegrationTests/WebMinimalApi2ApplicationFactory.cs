@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace IdempotentAPI.IntegrationTests
 {
-    public class WebApi2ApplicationFactory : WebApplicationFactory<TestWebAPIs.Program>
+    public class WebMinimalApi2ApplicationFactory : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {

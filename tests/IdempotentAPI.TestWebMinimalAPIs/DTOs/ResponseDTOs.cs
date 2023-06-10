@@ -1,4 +1,4 @@
-﻿namespace IdempotentAPI.TestWebAPIs3.DTOs
+﻿namespace IdempotentAPI.TestWebMinimalAPIs.DTOs
 {
     [Serializable]
     public class ResponseDTOs
