@@ -17,7 +17,7 @@ namespace IdempotentAPI.Filters
         public bool Enabled { get; set; } = true;
 
         ///<inheritdoc/>
-        public int ExpireHours { get; set; } = DefaultIdempotencyOptions.ExpireHours;
+        public TimeSpan ExpireHours { get; set; } = DefaultIdempotencyOptions.ExpireHours;
 
         ///<inheritdoc/>
         public string DistributedCacheKeysPrefix { get; set; } = DefaultIdempotencyOptions.DistributedCacheKeysPrefix;

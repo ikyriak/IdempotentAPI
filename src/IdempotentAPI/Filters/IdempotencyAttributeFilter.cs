@@ -11,7 +11,7 @@ namespace IdempotentAPI.Filters
     public class IdempotencyAttributeFilter : IAsyncActionFilter, IAsyncResultFilter
     {
         private readonly bool _enabled;
-        private readonly int _expireHours;
+        private readonly TimeSpan _expireHours;
         private readonly string _headerKeyName;
         private readonly string _distributedCacheKeysPrefix;
         private readonly TimeSpan? _distributedLockTimeout;
@@ -25,7 +25,7 @@ namespace IdempotentAPI.Filters
             IIdempotencyAccessCache distributedCache,
             ILoggerFactory loggerFactory,
             bool enabled,
-            int expireHours,
+            TimeSpan expireHours,
             string headerKeyName,
             string distributedCacheKeysPrefix,
             TimeSpan? distributedLockTimeout,

@@ -32,7 +32,7 @@ namespace IdempotentAPI.Core
         /// </summary>
         private readonly IReadOnlyList<string> _excludeHttpHeaderKeys = new List<string>() { "Transfer-Encoding" };
 
-        private readonly int _expireHours;
+        private readonly TimeSpan _expireHours;
         private readonly HashAlgorithm _hashAlgorithm;
         private readonly string _headerKeyName;
         private readonly ILogger<Idempotency>? _logger;
@@ -45,7 +45,7 @@ namespace IdempotentAPI.Core
         public Idempotency(
             IIdempotencyAccessCache distributedCache,
             ILogger<Idempotency> logger,
-            int expireHours,
+            TimeSpan expireHours,
             string headerKeyName,
             string distributedCacheKeysPrefix,
             TimeSpan? distributedLockTimeout,

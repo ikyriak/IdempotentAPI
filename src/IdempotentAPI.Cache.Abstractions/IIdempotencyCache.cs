@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace IdempotentAPI.Cache.Abstractions
@@ -54,7 +55,7 @@ namespace IdempotentAPI.Cache.Abstractions
         /// </summary>
         /// <param name="expireHours">The number of hours that the value will be saved in the cache.</param>
         /// <returns></returns>
-        object CreateCacheEntryOptions(int expireHours);
+        object CreateCacheEntryOptions(TimeSpan expireHours);
 
 
         /// <summary>

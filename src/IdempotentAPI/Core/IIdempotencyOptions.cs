@@ -1,8 +1,10 @@
-﻿namespace IdempotentAPI.Core
+﻿using System;
+
+namespace IdempotentAPI.Core
 {
     public interface IIdempotencyOptions
     {
-        public int ExpireHours { get; set; }
+        public TimeSpan ExpireHours { get; set; }
 
         public string DistributedCacheKeysPrefix { get; set; }
 
