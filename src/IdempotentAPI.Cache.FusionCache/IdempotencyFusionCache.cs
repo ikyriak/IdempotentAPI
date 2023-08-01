@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using IdempotentAPI.Cache.Abstractions;
 using ZiggyCreatures.Caching.Fusion;
 
@@ -23,7 +24,7 @@ namespace IdempotentAPI.Cache.FusionCache
 
         /// <inheritdoc/>
         /// <exception cref="ArgumentNullException"></exception>
-        public byte[] GetOrDefault(
+        public async Task<byte[]> GetOrDefault(
             string key,
             byte[] defaultValue,
             object? options = null,
@@ -39,12 +40,13 @@ namespace IdempotentAPI.Cache.FusionCache
                 throw new ArgumentNullException(nameof(options));
             }
 
-            return _fusionCache.GetOrDefault(key, defaultValue, (FusionCacheEntryOptions?)options, token);
+            return await _fusionCache.GetOrDefaultAsync(key, defaultValue, (FusionCacheEntryOptions?)options, token)
+                .ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         /// <exception cref="ArgumentNullException"></exception>
-        public byte[] GetOrSet(
+        public async Task<byte[]> GetOrSet(
             string key,
             byte[] defaultValue,
             object? options = null,
@@ -60,22 +62,24 @@ namespace IdempotentAPI.Cache.FusionCache
                 throw new ArgumentNullException(nameof(options));
             }
 
-            return _fusionCache.GetOrSet(key, defaultValue, (FusionCacheEntryOptions?)options, token);
+            return await _fusionCache.GetOrSetAsync(key, defaultValue, (FusionCacheEntryOptions?)options, token)
+                .ConfigureAwait(false);
         }
 
-        public void Remove(string key, CancellationToken token = default)
+        public async Task Remove(string key, CancellationToken token = default)
         {
             if (key is null)
             {
                 throw new ArgumentNullException(nameof(key));
             }
 
-            _fusionCache.Remove(key, token: token);
+            await _fusionCache.RemoveAsync(key, token: token)
+                .ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         /// <exception cref="ArgumentNullException"></exception>
-        public void Set(
+        public async Task Set(
             string key,
             byte[] value,
             object? options = null,
@@ -91,7 +95,8 @@ namespace IdempotentAPI.Cache.FusionCache
                 throw new ArgumentNullException(nameof(options));
             }
 
-            _fusionCache.Set(key, value, (FusionCacheEntryOptions?)options, token);
+            await _fusionCache.SetAsync(key, value, (FusionCacheEntryOptions?)options, token)
+                .ConfigureAwait(false);
         }
     }
 }

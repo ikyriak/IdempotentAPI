@@ -1,109 +1,117 @@
-﻿using System.Linq;
+﻿using System;
+using System.Threading.Tasks;
 using IdempotentAPI.AccessCache;
 using IdempotentAPI.Core;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IdempotentAPI.Filters
 {
-    public class IdempotencyAttributeFilter : IActionFilter, IResultFilter
+    public class IdempotencyAttributeFilter : IAsyncActionFilter, IAsyncResultFilter
     {
+        private readonly bool _enabled;
+        private readonly int _expireHours;
+        private readonly string _headerKeyName;
+        private readonly string _distributedCacheKeysPrefix;
+        private readonly TimeSpan? _distributedLockTimeout;
+        private readonly bool _cacheOnlySuccessResponses;
         private readonly IIdempotencyAccessCache _distributedCache;
-        private readonly IIdempotencySettings _settings;
-        private readonly IKeyGenerator _keyGenerator;
-        private readonly IRequestIdProvider _requestIdProvider;
-        private readonly IResponseMapper _responseMapper;
         private readonly ILogger<Idempotency> _logger;
 
         private Idempotency? _idempotency = null;
 
         public IdempotencyAttributeFilter(
             IIdempotencyAccessCache distributedCache,
-            IIdempotencySettings settings,
-            IKeyGenerator keyGenerator,
-            IRequestIdProvider requestIdProvider,
-            IResponseMapper responseMapper,
-            ILogger<Idempotency> logger)
+            ILoggerFactory loggerFactory,
+            bool enabled,
+            int expireHours,
+            string headerKeyName,
+            string distributedCacheKeysPrefix,
+            TimeSpan? distributedLockTimeout,
+            bool cacheOnlySuccessResponses)
         {
             _distributedCache = distributedCache;
-            _settings = settings;
-            _keyGenerator = keyGenerator;
-            _requestIdProvider = requestIdProvider;
-            _responseMapper = responseMapper;
-            _logger = logger;
-        }
+            _enabled = enabled;
+            _expireHours = expireHours;
+            _headerKeyName = headerKeyName;
+            _distributedCacheKeysPrefix = distributedCacheKeysPrefix;
+            _distributedLockTimeout = distributedLockTimeout;
+            _cacheOnlySuccessResponses = cacheOnlySuccessResponses;
 
-        private bool AllowsNoIdempotency(ActionExecutingContext context)
-        {
-            return context.ActionDescriptor.FilterDescriptors.Select(x => x.Filter).OfType<AllowNoIdempotency>()
-                .Any();
+            if (loggerFactory != null)
+            {
+                _logger = loggerFactory.CreateLogger<Idempotency>();
+            }
+            else
+            {
+                _logger = NullLogger<Idempotency>.Instance;
+            }
         }
 
         /// <summary>
-        /// Runs before the execution of the controller
+        ///     Runs before the execution of the controller
         /// </summary>
         /// <param name="context"></param>
-        public void OnActionExecuting(ActionExecutingContext context)
+        /// <param name="next"></param>
+        public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
             // If the Idempotency is disabled then stop
-            if (!_settings.Enabled || AllowsNoIdempotency(context))
+            if (!_enabled)
             {
+                await next();
                 return;
             }
 
             // Initialize only on its null (in case of multiple executions):
             if (_idempotency == null)
             {
-                _idempotency = new Idempotency(_distributedCache, _settings, _keyGenerator, _responseMapper, _requestIdProvider, _logger);
+                _idempotency = new Idempotency(
+                    _distributedCache,
+                    _logger,
+                    _expireHours,
+                    _headerKeyName,
+                    _distributedCacheKeysPrefix,
+                    _distributedLockTimeout,
+                    _cacheOnlySuccessResponses);
             }
 
-            _idempotency.ApplyPreIdempotency(context);
-        }
+            await _idempotency.ApplyPreIdempotency(context);
 
-        /// <summary>
-        /// Runs after the execution of the controller. In our case we used it to perform specific actions on Exceptions.
-        /// </summary>
-        /// <param name="context"></param>
-        public void OnActionExecuted(ActionExecutedContext context)
-        {
-            // If the Idempotency is disabled then stop.
-            // Stop if the PreIdempotency step is not applied.
-            if (!_settings.Enabled || _idempotency == null)
+            // short-circuit to exit for async filter when result already set
+            // https://learn.microsoft.com/en-us/aspnet/core/mvc/controllers/filters?view=aspnetcore-7.0#action-filters
+            if (context.Result != null)
             {
                 return;
             }
 
-            if (context?.Exception is not null)
+            var result = await next();
+            if (result?.Exception is not null)
             {
-                _idempotency.CancelIdempotency();
+                await _idempotency.CancelIdempotency();
             }
         }
 
-        // NOT USED
-        public void OnResultExecuting(ResultExecutingContext context)
-        {
-
-        }
-
-        /// <summary>
-        /// Runs after the results have been calculated
-        /// </summary>
-        /// <param name="context"></param>
-        public void OnResultExecuted(ResultExecutedContext context)
+        public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
         {
             // If the Idempotency is disabled then stop
-            if (!_settings.Enabled)
+            if (!_enabled)
             {
+                await next();
                 return;
             }
+
 
             // Stop if the PreIdempotency step is not applied:
             if (_idempotency == null)
             {
+                await next();
                 return;
             }
 
-            _idempotency.ApplyPostIdempotency(context);
+            await next();
+
+            await _idempotency.ApplyPostIdempotency(context);
         }
     }
 }

@@ -1,4 +1,4 @@
-# Idempotent API (v2.0.0-rc-01)
+# Idempotent API (v2.1.0)
 
 ## Understanding Idempotency
 
@@ -75,20 +75,41 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
     - 🏠 `DistributedCache`:  A build-in caching that is based on the standard `IDistributedCache` interface.
     - 🦥 [FusionCache](https://github.com/jodydonetti/ZiggyCreatures.FusionCache):   A high performance and robust cache with an optional distributed 2nd layer and some advanced features.
     - ... or you could use your own implementation 😉
-- ✳ **NEW** ✳- 🔀 Support idempotency in a **Cluster Environment** (i.e., a group of multiple server instances) using **Distributed Locks**.
+- 🔀 Support idempotency in a **Cluster Environment** (i.e., a group of multiple server instances) using **Distributed Locks**.
     - [samcook/RedLock.net](https://github.com/samcook/RedLock.net): Supports the [Redis Redlock](https://redis.io/docs/reference/patterns/distributed-locks/) algorithm.
     - [madelson/DistributedLock](https://github.com/madelson/DistributedLock): Supports multiple technologies such as Redis, SqlServer, Postgres and many [more](https://github.com/madelson/DistributedLock#implementations).
+- 💪**Powerful**: Can be used in high-load scenarios.
+- ✳ **NEW** ✳ - ✅ Supports Minimal APIs.
 
 
 
-## 📦 NuGet Packages (v1.0.1)
+## 📦 Main NuGet Packages (v2.1.0)
 
 | Package Name                                                 | Description                                                  | Release                                                      |
 | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | [IdempotentAPI](https://www.nuget.org/packages/IdempotentAPI/) | The implementation of the  `IdempotentAPI` library.          | [![Nuget](https://img.shields.io/nuget/v/IdempotentAPI)](https://www.nuget.org/packages/IdempotentAPI/) |
-| [IdempotentAPI.Cache](https://www.nuget.org/packages/IdempotentAPI.Cache/) | Defines the caching abstraction (`IIdempotencyCache`) that `IdempotentAPI` is based. | [![Nuget](https://img.shields.io/nuget/v/IdempotentAPI.Cache)](https://www.nuget.org/packages/IdempotentAPI.Cache/) |
+| [IdempotentAPI.AccessCache](https://www.nuget.org/packages/IdempotentAPI.AccessCache/) | The access cache implementation of the `IdempotentAPI` project. | [![Nuget](https://img.shields.io/nuget/v/IdempotentAPI.AccessCache)](https://www.nuget.org/packages/IdempotentAPI.AccessCache/) |
+| [IdempotentAPI.MinimalAPI](https://www.nuget.org/packages/IdempotentAPI.MinimalAPI) | The implementation to support `IdempotentAPI` in Minimal APIs. | [![Nuget](https://img.shields.io/nuget/v/IdempotentAPI.MinimalAPI)](https://www.nuget.org/packages/IdempotentAPI.MinimalAPI) |
+
+
+
+## 📦 Caching NuGet Packages (v2.1.0)
+
+| Package Name                                                 | Description                                                  | Release                                                      |
+| ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [IdempotentAPI.Cache.Abstractions](https://www.nuget.org/packages/IdempotentAPI.Cache.Abstractions/) | The cache definition of the IdempotentAPI project.           | [![Nuget](https://img.shields.io/nuget/v/IdempotentAPI.Cache.Abstractions)](https://www.nuget.org/packages/IdempotentAPI.Cache.Abstractions/) |
 | [IdempotentAPI.Cache.DistributedCache](https://www.nuget.org/packages/IdempotentAPI.Cache.DistributedCache/) | The default caching implementation, based on the standard `IDistributedCache` interface. | [![Nuget](https://img.shields.io/nuget/v/IdempotentAPI.Cache.DistributedCache)](https://www.nuget.org/packages/IdempotentAPI.Cache.DistributedCache/) |
 | [IdempotentAPI.Cache.FusionCache](https://www.nuget.org/packages/IdempotentAPI.Cache.FusionCache/) | Supports caching via the [FusionCache](https://github.com/jodydonetti/ZiggyCreatures.FusionCache) third-party library. | [![Nuget](https://img.shields.io/nuget/v/IdempotentAPI.Cache.FusionCache)](https://www.nuget.org/packages/IdempotentAPI.Cache.FusionCache/) |
+
+
+
+## 📦 Distributed Locking NuGet Packages (v2.1.0)
+
+| Package Name                                                 | Description                                                  | Release                                                      |
+| ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [IdempotentAPI.DistributedAccessLock.Abstractions](https://www.nuget.org/packages/IdempotentAPI.DistributedAccessLock.Abstractions/) | The distributed access lock definition of the IdempotentAPI project. | [![Nuget](https://img.shields.io/nuget/v/IdempotentAPI.DistributedAccessLock.Abstractions)](https://www.nuget.org/packages/IdempotentAPI.DistributedAccessLock.Abstractions/) |
+| [IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock](https://www.nuget.org/packages/IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock/) | The Madelson DistributedLock implementation for the definition of the IdempotentAPI.DistributedAccessLock. | [![Nuget](https://img.shields.io/nuget/v/IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock)](https://www.nuget.org/packages/IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock/) |
+| [IdempotentAPI.DistributedAccessLock.RedLockNet](https://www.nuget.org/packages/IdempotentAPI.DistributedAccessLock.RedLockNet/) | The RedLockNet implementation for the definition of the IdempotentAPI.DistributedAccessLock. | [![Nuget](https://img.shields.io/nuget/v/IdempotentAPI.DistributedAccessLock.RedLockNet)](https://www.nuget.org/packages/IdempotentAPI.DistributedAccessLock.RedLockNet/) |
 
 
 
@@ -97,7 +118,7 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 Let's see how we could use the NuGet packages in a Web API project. For more examples and code, you can check the [sample projects](https://github.com/ikyriak/IdempotentAPI/tree/master/samples). The `IdempotentAPI` can be installed via the NuGet UI or the NuGet package manager console:
 
 ```powershell
-PM> Install-Package IdempotentAPI -Version 2.0.0-rc-01
+PM> Install-Package IdempotentAPI -Version 2.1.0
 ```
 
 and, register the IdempotentAPI Core services:
@@ -286,6 +307,21 @@ public IActionResult Post([FromBody] SimpleRequest simpleRequest)
 ```
 
  
+
+#### Using the IdempotentAPI Endpoint Filter on Minimal APIs
+
+The [IdempotentAPI.MinimalAPI](https://www.nuget.org/packages/IdempotentAPI.MinimalAPI) package should be installed and then add the `IdempotentAPIEndpointFilter` in your endpoints.
+
+```c#
+app.MapPost("/example",
+    ([FromQuery] string yourParam) =>
+    {
+        return Results.Ok(new ResponseDTOs());
+    })
+    .AddEndpointFilter<IdempotentAPIEndpointFilter>();
+```
+
+
 
 ### ⚙ Idempotent Attribute Options
 

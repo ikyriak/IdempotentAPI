@@ -5,6 +5,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.1.0] - 2023-06-11
+
+### Added
+
+- ❗ If you are updating from version `1.0.*`, this is a **BREAKING** change. In such a case, read the `2.0.0-RC.1` change log below.
+
+- 🌟 All code uses `async` to avoid thread pool starvation in high-load scenarios. Thanks to [@dimmy-timmy](https://github.com/dimmy-timmy) for implementing it ([#47](https://github.com/ikyriak/IdempotentAPI/pull/47)) 🙏.
+
+- 🌟The `IdempotentAPI.MinimalAPI` is introduced to use `IdempotentAPI` in Minimal APIs. Just add the `IdempotentAPIEndpointFilter` in your endpoints. Thank to [@hartmark](https://github.com/hartmark) for implementing it ([#45](https://github.com/ikyriak/IdempotentAPI/pull/45)) 🙏.
+
+  - ```c#
+    app.MapPost("/example",
+        ([FromQuery] string yourParam) =>
+        {
+            return Results.Ok(new ResponseDTOs());
+        })
+        .AddEndpointFilter<IdempotentAPIEndpointFilter>();
+    ```
+
+- ✅ GitHub actions configuration added to run CI build and test on pull requests. Thanks to [@dimmy-timmy](https://github.com/dimmy-timmy) 💪.
+
+- ✅ Integration Tests are improved to run on CI using `WebApplicationFactory`. Thanks to [@dimmy-timmy](https://github.com/dimmy-timmy) 💪.
+
+
+
 ## [2.0.0-RC.1] - 2022-10-02 - BREAKING
 
 ### Fixed

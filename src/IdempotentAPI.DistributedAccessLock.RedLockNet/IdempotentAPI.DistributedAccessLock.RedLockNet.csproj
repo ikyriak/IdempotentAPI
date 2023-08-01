@@ -1,26 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <Authors>Ioannis Kyriakidis</Authors>
-    <Company>ikyriakidis.com</Company>
-    <Version>2.0.0-rc-01</Version>
-    <Description>The RedLockNet implementation for the definition of the IdempotentAPI.DistributedAccessLock.</Description>
-    <PackageTags>distributed;lock;cache;idempotent api;idempotency;asp.net core;attribute;middleware;rest</PackageTags>
-    <RepositoryUrl>https://github.com/ikyriak/IdempotentAPI.git</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageProjectUrl>https://github.com/ikyriak/IdempotentAPI/src/IdempotentAPI.DistributedAccessLock.RedLockNet</PackageProjectUrl>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
-    <IsPackable>true</IsPackable>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+        <Authors>Ioannis Kyriakidis</Authors>
+        <Company>ikyriakidis.com</Company>
+        <Version>2.1.0</Version>
+        <Description>The RedLockNet implementation for the definition of the IdempotentAPI.DistributedAccessLock.</Description>
+        <PackageTags>distributed;lock;cache;idempotent api;idempotency;asp.net core;attribute;middleware;rest</PackageTags>
+        <RepositoryUrl>https://github.com/ikyriak/IdempotentAPI.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageProjectUrl>https://github.com/ikyriak/IdempotentAPI/src/IdempotentAPI.DistributedAccessLock.RedLockNet</PackageProjectUrl>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="RedLock.net" Version="2.3.2" />
-  </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="RedLock.net" Version="2.3.2" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\IdempotentAPI.DistributedAccessLock.Abstractions\IdempotentAPI.DistributedAccessLock.Abstractions.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\IdempotentAPI.DistributedAccessLock.Abstractions\IdempotentAPI.DistributedAccessLock.Abstractions.csproj" />
+    </ItemGroup>
 
 </Project>

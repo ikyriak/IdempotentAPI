@@ -1,5 +1,5 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace IdempotentAPI.Cache.Abstractions
 {
@@ -14,7 +14,7 @@ namespace IdempotentAPI.Cache.Abstractions
         /// <param name="options">The implementation needed options that will be used during this operation.</param>
         /// <param name="token">An optional System.Threading.CancellationToken to cancel the operation.</param>
         /// <returns></returns>
-        byte[] GetOrSet(
+        Task<byte[]> GetOrSet(
             string key,
             byte[] defaultValue,
             object? options = null,
@@ -29,7 +29,7 @@ namespace IdempotentAPI.Cache.Abstractions
         /// <param name="options">The implementation needed options that will be used during this operation.</param>
         /// <param name="token">An optional System.Threading.CancellationToken to cancel the operation.</param>
         /// <returns></returns>
-        byte[] GetOrDefault(
+        Task<byte[]> GetOrDefault(
             string key,
             byte[] defaultValue,
             object? options = null,
@@ -43,18 +43,18 @@ namespace IdempotentAPI.Cache.Abstractions
         /// <param name="value">The value to save in the cache.</param>
         /// <param name="options">The implementation needed options that will be used during this operation.</param>
         /// <param name="token">An optional System.Threading.CancellationToken to cancel the operation.</param>
-        void Set(
+        Task Set(
             string key,
             byte[] value,
             object? options = null,
             CancellationToken token = default);
 
         /// <summary>
-        /// Create an instance of the options used for the cache entries to expire in <paramref name="expiryTime"/> TimeSpan.
+        /// Create an instance of the options used for the cache entries to expire in <paramref name="expireHours"/> hours.
         /// </summary>
-        /// <param name="expiryTime"></param>
+        /// <param name="expireHours">The number of hours that the value will be saved in the cache.</param>
         /// <returns></returns>
-        object CreateCacheEntryOptions(TimeSpan expiryTime);
+        object CreateCacheEntryOptions(int expireHours);
 
 
         /// <summary>
@@ -62,6 +62,6 @@ namespace IdempotentAPI.Cache.Abstractions
         /// </summary>
         /// <param name="key">The cache key which identifies the entry in the cache.</param>
         /// <param name="token">An optional System.Threading.CancellationToken to cancel the operation.</param>
-        void Remove(string key, CancellationToken token = default);
+        Task Remove(string key, CancellationToken token = default);
     }
 }
