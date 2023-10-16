@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IdempotentAPI.Filters
 {
-    public class IdempotencyAttributeFilter : IAsyncActionFilter, IAsyncResultFilter
+    public class IdempotencyAttributeFilter : IAsyncActionFilter, IAsyncResultFilter, IAsyncResourceFilter
     {
         private readonly bool _enabled;
         private readonly int _expireHours;
@@ -49,8 +49,42 @@ namespace IdempotentAPI.Filters
             }
         }
 
+
         /// <summary>
-        ///     Runs before the execution of the controller
+        /// Runs before the model binding of the request (resource)
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="next"></param>
+        public async Task OnResourceExecutionAsync(ResourceExecutingContext context, ResourceExecutionDelegate next)
+        {
+            // If the Idempotency is disabled then stop
+            if (!_enabled)
+            {
+                await next();
+                return;
+            }
+
+            // Initialize only on its null (in case of multiple executions):
+            if (_idempotency == null)
+            {
+                _idempotency = new Idempotency(
+                    _distributedCache,
+                    _logger,
+                    _expireHours,
+                    _headerKeyName,
+                    _distributedCacheKeysPrefix,
+                    _distributedLockTimeout,
+                    _cacheOnlySuccessResponses);
+            }
+
+            await _idempotency.PrepareIdempotency(context);
+
+            await next();
+        }
+
+
+        /// <summary>
+        /// Runs before the execution of the controller
         /// </summary>
         /// <param name="context"></param>
         /// <param name="next"></param>
@@ -92,6 +126,12 @@ namespace IdempotentAPI.Filters
             }
         }
 
+
+        /// <summary>
+        /// Runs after the creation of the response (result)
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="next"></param>
         public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
         {
             // If the Idempotency is disabled then stop

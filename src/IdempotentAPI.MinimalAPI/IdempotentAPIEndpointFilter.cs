@@ -62,6 +62,9 @@ public class IdempotentAPIEndpointFilter : IEndpointFilter
             var actionContext = new ActionContext(context.HttpContext, new RouteData(), new ActionDescriptor());
             var filters = new List<IFilterMetadata>();
             var actionArguments = new Dictionary<string, object?>();
+
+            _idempotency.PrepareMinimalApiIdempotency(context.HttpContext, context.Arguments);
+
             var actionExecutingContext = new ActionExecutingContext(actionContext, filters, actionArguments, null!);
 
             await _idempotency.ApplyPreIdempotency(actionExecutingContext);

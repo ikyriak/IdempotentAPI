@@ -45,6 +45,9 @@ namespace IdempotentAPI.IntegrationTests
             // Arrange
             var guid = Guid.NewGuid().ToString();
 
+            _httpClientsInstance1[httpClientIndex].DefaultRequestHeaders.Clear();
+            _httpClientsInstance2[httpClientIndex].DefaultRequestHeaders.Clear();
+
             _httpClientsInstance1[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
             _httpClientsInstance2[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
 
@@ -67,6 +70,9 @@ namespace IdempotentAPI.IntegrationTests
         {
             // Arrange
             var guid = Guid.NewGuid().ToString();
+
+            _httpClientsInstance1[httpClientIndex].DefaultRequestHeaders.Clear();
+            _httpClientsInstance2[httpClientIndex].DefaultRequestHeaders.Clear();
 
             _httpClientsInstance1[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
             _httpClientsInstance2[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);

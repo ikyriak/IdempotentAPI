@@ -117,7 +117,7 @@ namespace IdempotentAPI.Core
             }
 
             // Generate the data to be cached
-            byte[]? cacheDataBytes = await GenerateCacheData(context).ConfigureAwait(false);
+            byte[]? cacheDataBytes = GenerateCacheData(context);
 
             // Save to cache:
             try
@@ -136,6 +136,32 @@ namespace IdempotentAPI.Core
             }
         }
 
+        public async Task PrepareIdempotency(ResourceExecutingContext context)
+        {
+            // Check if Idempotency can be applied:
+            if (!CanPerformIdempotency(context.HttpContext.Request))
+            {
+                return;
+            }
+
+            string requestsDataHash = await GenerateRequestsDataHash(context.HttpContext.Request);
+
+            context.HttpContext.SetRequestsDataHash(requestsDataHash);
+        }
+
+        public void PrepareMinimalApiIdempotency(HttpContext httpContext, IList<object?> arguments)
+        {
+            // Check if Idempotency can be applied:
+            if (!CanPerformIdempotency(httpContext.Request))
+            {
+                return;
+            }
+
+            string requestsDataHash = GenerateRequestsDataHashMinimalApi(arguments, httpContext.Request);
+
+            httpContext.SetRequestsDataHash(requestsDataHash);
+        }
+
         /// <summary>
         /// Return the cached response based on the provided idempotencyKey
         /// </summary>
@@ -150,6 +176,11 @@ namespace IdempotentAPI.Core
             // Check if Idempotency can be applied:
             if (!CanPerformIdempotency(context.HttpContext.Request))
             {
+                if (IsLoggerEnabled(LogLevel.Information))
+                {
+                    _logger.LogInformation("IdempotencyFilterAttribute [Before Controller execution]: Idempotency SKIPPED, httpRequest Method is: {httpRequestMethod}", context.HttpContext.Request.Method.ToString());
+                }
+
                 return;
             }
 
@@ -201,8 +232,7 @@ namespace IdempotentAPI.Core
                 // 2019-07-06: Evaluate the "Request.DataHash" in order to be sure that the cached
                 // response is returned for the same combination of IdempotencyKey and Request
                 string cachedRequestDataHash = cacheData["Request.DataHash"].ToString();
-                string currentRequestDataHash = await GetRequestsDataHash(context.HttpContext.Request)
-                    .ConfigureAwait(false);
+                string currentRequestDataHash = context.HttpContext.GetRequestsDataHash();
                 if (cachedRequestDataHash != currentRequestDataHash)
                 {
                     context.Result = new BadRequestObjectResult($"The Idempotency header key value '{_idempotencyKey}' was used in a different request.");
@@ -315,15 +345,10 @@ namespace IdempotentAPI.Core
                 throw new Exception("An IDistributedCache is not configured.");
             }
 
-            // Idempotency is applied on Post & Patch Http methods:
+            // Idempotency is applied on Post & Patch HTTP methods:
             if (httpRequest.Method != HttpMethods.Post
                 && httpRequest.Method != HttpMethods.Patch)
             {
-                if (IsLoggerEnabled(LogLevel.Information))
-                {
-                    _logger.LogInformation("IdempotencyFilterAttribute [Before Controller execution]: Idempotency SKIPPED, httpRequest Method is: {httpRequestMethod}", httpRequest.Method.ToString());
-                }
-
                 return false;
             }
 
@@ -336,14 +361,14 @@ namespace IdempotentAPI.Core
             return true;
         }
 
-        private async Task<byte[]> GenerateCacheData(ResultExecutingContext context)
+        private byte[] GenerateCacheData(ResultExecutingContext context)
         {
             Dictionary<string, object> cacheData = new();
             // Cache Request params:
             cacheData.Add("Request.Method", context.HttpContext.Request.Method);
             cacheData.Add("Request.Path", context.HttpContext.Request.Path.HasValue ? context.HttpContext.Request.Path.Value : string.Empty);
             cacheData.Add("Request.QueryString", context.HttpContext.Request.QueryString.ToUriComponent());
-            cacheData.Add("Request.DataHash", await GetRequestsDataHash(context.HttpContext.Request).ConfigureAwait(false));
+            cacheData.Add("Request.DataHash", context.HttpContext.GetRequestsDataHash());
 
             //Cache Response params:
             cacheData.Add("Response.StatusCode", context.HttpContext.Response.StatusCode);
@@ -416,28 +441,31 @@ namespace IdempotentAPI.Core
             return serializedCacheData;
         }
 
-        private async Task<string> GetRequestsDataHash(HttpRequest httpRequest)
+        private string GenerateRequestsDataHashMinimalApi(IList<object?> arguments, HttpRequest httpRequest)
+        {
+            List<object?> requestsData = new(arguments);
+
+            // The request's URL:
+            if (httpRequest.Path.HasValue)
+            {
+                requestsData.Add(httpRequest.Path.ToString());
+            }
+
+            return Utils.GetHash(_hashAlgorithm, JsonConvert.SerializeObject(requestsData));
+        }
+
+        private async Task<string> GenerateRequestsDataHash(HttpRequest httpRequest)
         {
             List<object> requestsData = new();
 
             // The Request body:
-            // 2019-10-13: Use CanSeek to check if the stream does not support seeking (set position)
             if (httpRequest.ContentLength.HasValue
                 && httpRequest.Body != null)
             {
-                // 2022-08-18: Enable buffering for large body requests and then read the buffer asynchronously.
-                httpRequest.EnableBuffering();
-
-                if (httpRequest.Body.CanRead
-                    && httpRequest.Body.CanSeek)
+                string? rawBody = await httpRequest.GetRawBodyAsync();
+                if (rawBody != null)
                 {
-                    using MemoryStream memoryStream = new();
-                    httpRequest.Body.Position = 0;
-
-                    await httpRequest.Body.CopyToAsync(memoryStream)
-                        .ConfigureAwait(false);
-
-                    requestsData.Add(memoryStream.ToArray());
+                    requestsData.Add(rawBody);
                 }
             }
 
