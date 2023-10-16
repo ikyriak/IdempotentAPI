@@ -86,22 +86,31 @@ Console.WriteLine($"Distributed Access Lock Method: {distributedAccessLock}");
 
 var app = builder.Build();
 
-app.MapPost("/v6/TestingIdempotentAPI/test",
-    ([FromHeader(Name = "IdempotencyKey")] string idempotencyKey) =>
+app.MapPost("/v6/TestingIdempotentAPI/test", () =>
     {
         return Results.Ok(new ResponseDTOs());
     })
     .AddEndpointFilter<IdempotentAPIEndpointFilter>();
 
-app.MapPost("/v6/TestingIdempotentAPI/testobject",
-    ([FromHeader(Name = "IdempotencyKey")] string idempotencyKey) =>
+app.MapPost("/v6/TestingIdempotentAPI/testobject", () =>
     {
         return new ResponseDTOs();
     })
     .AddEndpointFilter<IdempotentAPIEndpointFilter>();
 
+app.MapPost("/v6/TestingIdempotentAPI/testobjectbody",
+    ([FromBody] RequestDTOs requestDTOs) =>
+    {
+        return new ResponseDTOs()
+        {
+            CreatedOn = requestDTOs.CreatedOn,
+            Idempotency = requestDTOs.Idempotency,
+        };
+    })
+    .AddEndpointFilter<IdempotentAPIEndpointFilter>();
+
 app.MapPost("/v6/TestingIdempotentAPI/testobjectWithHttpError",
-    async ([FromHeader(Name = "IdempotencyKey")] string idempotencyKey, int delaySeconds, int httpErrorCode) =>
+    async (int delaySeconds, int httpErrorCode) =>
     {
         await Task.Delay(delaySeconds * 1000);
         return Results.StatusCode(httpErrorCode);
@@ -109,7 +118,7 @@ app.MapPost("/v6/TestingIdempotentAPI/testobjectWithHttpError",
     .AddEndpointFilter<IdempotentAPIEndpointFilter>();
 
 app.MapPost("/v6/TestingIdempotentAPI/testobjectWithException",
-    async ([FromHeader(Name = "IdempotencyKey")] string idempotencyKey, int delaySeconds) =>
+    async (int delaySeconds) =>
     {
         await Task.Delay(delaySeconds * 1000);
         throw new Exception("Something when wrong!");

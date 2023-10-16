@@ -2,7 +2,7 @@
 
 namespace IdempotentAPI.Extensions
 {
-    internal static class HttpResponseExtenions
+    internal static class HttpResponseExtensions
     {
         public static bool IsSuccessStatusCode(this HttpResponse httpResponse)
         {

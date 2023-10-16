@@ -1,5 +1,7 @@
 using System.Net;
+using System.Net.Http.Json;
 using FluentAssertions;
+using IdempotentAPI.TestWebAPIs.DTOs;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -13,6 +15,9 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
 {
     private readonly ITestOutputHelper _testOutputHelper;
     private readonly HttpClient[] _httpClients;
+
+    private const int WebApiClientIndex = 0;
+    private const int WebMinimalApiClientIndex = 1;
 
     public SingleApiTests(
         WebApi1ApplicationFactory api1ApplicationFactory,
@@ -28,13 +33,14 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
+    [InlineData(WebApiClientIndex)]
+    [InlineData(WebMinimalApiClientIndex)]
     public async Task PostTest_ShouldReturnCachedResponse(int httpClientIndex)
     {
         // Arrange
         var guid = Guid.NewGuid().ToString();
 
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Clear();
         _httpClients[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
 
         // Act
@@ -54,13 +60,14 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
+    [InlineData(WebApiClientIndex)]
+    [InlineData(WebMinimalApiClientIndex)]
     public async Task PostTestObject_ShouldReturnCachedResponse(int httpClientIndex)
     {
         // Arrange
         var guid = Guid.NewGuid().ToString();
 
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Clear();
         _httpClients[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
 
         // Act
@@ -81,14 +88,42 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
         content1.Should().Be(content2);
     }
 
+
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
+    [InlineData(WebApiClientIndex)]
+    [InlineData(WebMinimalApiClientIndex)]
+    public async Task PostTestTheSameRequestObject_WithDifferentIdempotencyKeys_ShouldReturnBadRequestResponse(int httpClientIndex)
+    {
+        // Arrange
+        var guid = Guid.NewGuid().ToString();
+
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Clear();
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
+
+        var requestDTO1 = new RequestDTOs() { Description = "A request body." };
+        var requestDTO2 = new RequestDTOs() { Description = "A different request body with the same IdempotencyKey." };
+
+        // Act
+        var response1 = await _httpClients[httpClientIndex].PostAsJsonAsync("v6/TestingIdempotentAPI/testobjectbody", requestDTO1);
+        var response2 = await _httpClients[httpClientIndex].PostAsJsonAsync("v6/TestingIdempotentAPI/testobjectbody", requestDTO2);
+
+        // Assert
+        response1.StatusCode.Should().Be(HttpStatusCode.OK);
+        response2.StatusCode.Should().Be(HttpStatusCode.BadRequest, "Because the IdempotencyKey exists for a different request body.");
+
+        var content2 = await response2.Content.ReadAsStringAsync();
+        content2.Should().MatchRegex("The Idempotency header key value '.*' was used in a different request\\.");
+    }
+
+    [Theory]
+    [InlineData(WebApiClientIndex)]
+    [InlineData(WebMinimalApiClientIndex)]
     public async Task PostTestObjectWithHttpError_ShouldReturnExpectedStatusCode_NotCaching(int httpClientIndex)
     {
         // Arrange
         var guid = Guid.NewGuid().ToString();
 
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Clear();
         _httpClients[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
 
         // Act
@@ -108,13 +143,14 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
+    [InlineData(WebApiClientIndex)]
+    [InlineData(WebMinimalApiClientIndex)]
     public async Task PostTestObjectWithHttpError_ShouldReturnExpectedStatusCode_Cached(int httpClientIndex)
     {
         // Arrange
         var guid = Guid.NewGuid().ToString();
 
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Clear();
         _httpClients[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
 
         // Act
@@ -137,13 +173,14 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
+    [InlineData(WebApiClientIndex)]
+    [InlineData(WebMinimalApiClientIndex)]
     public async Task PostRequestsConcurrent_OnSameAPI_WithErrorResponse_ShouldReturnTheErrorAndA409Response(int httpClientIndex)
     {
         // Arrange
         var guid = Guid.NewGuid().ToString();
 
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Clear();
         _httpClients[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
 
         // Act
@@ -172,13 +209,14 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
 
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
+    [InlineData(WebApiClientIndex)]
+    [InlineData(WebMinimalApiClientIndex)]
     public async Task Post_DifferentEndpoints_SameIdempotentKey_ShouldReturnFailure(int httpClientIndex)
     {
         // Arrange
         var guid = Guid.NewGuid().ToString();
 
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Clear();
         _httpClients[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
 
         // Act
