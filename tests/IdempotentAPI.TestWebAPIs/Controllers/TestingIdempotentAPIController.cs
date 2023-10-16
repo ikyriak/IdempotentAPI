@@ -2,7 +2,6 @@ using System.Net;
 using IdempotentAPI.Filters;
 using IdempotentAPI.TestWebAPIs.DTOs;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Primitives;
 
 namespace IdempotentAPI.TestWebAPIs.Controllers
 {
@@ -24,21 +23,29 @@ namespace IdempotentAPI.TestWebAPIs.Controllers
         }
 
         [HttpPost("test")]
-        public ActionResult Test([FromHeader(Name = "IdempotencyKey")] string idempotencyKey)
+        public ActionResult Test()
         {
             return Ok(new ResponseDTOs());
         }
 
         [HttpPost("testobject")]
-        public ResponseDTOs TestObject([FromHeader(Name = "IdempotencyKey")] string idempotencyKey)
+        public ResponseDTOs TestObject()
         {
             return new ResponseDTOs();
         }
 
+        [HttpPost("testobjectbody")]
+        public ResponseDTOs TestObject([FromBody] RequestDTOs requestDTOs)
+        {
+            return new ResponseDTOs()
+            {
+                CreatedOn = requestDTOs.CreatedOn,
+                Idempotency = requestDTOs.Idempotency,
+            };
+        }
 
         [HttpPost("testobjectWithHttpError")]
-        public async Task<ActionResult> TestObjectWithHttpErrorAsync(
-            [FromHeader(Name = "IdempotencyKey")] string idempotencyKey, int delaySeconds, int httpErrorCode)
+        public async Task<ActionResult> TestObjectWithHttpErrorAsync(int delaySeconds, int httpErrorCode)
         {
             await Task.Delay(delaySeconds * 1000);
 
@@ -47,8 +54,7 @@ namespace IdempotentAPI.TestWebAPIs.Controllers
 
 
         [HttpPost("testobjectWithException")]
-        public async Task<ActionResult> TestObjectWithExceptionAsync(
-            [FromHeader(Name = "IdempotencyKey")] string idempotencyKey, int delaySeconds)
+        public async Task<ActionResult> TestObjectWithExceptionAsync(int delaySeconds)
         {
             await Task.Delay(delaySeconds * 1000);
 
