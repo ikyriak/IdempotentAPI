@@ -150,7 +150,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 result,
                 Mock.Of<Controller>());
         }
-        
+
         private ResultExecutedContext CreateResultExecutedContext(ActionContext actionContext, IActionResult result)
         {
             return new ResultExecutedContext(
@@ -182,6 +182,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = false;
 
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
                 null,
@@ -191,7 +192,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
             // Act
             await idempotencyAttributeFilter.OnActionExecutionAsync(actionExecutingContext, () => Task.FromResult(actionExecutedContext));
@@ -223,6 +225,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = false;
 
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
                 null,
@@ -232,10 +235,11 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
             // Act
-            var ex = await Assert.ThrowsAsync<ArgumentNullException>(() => idempotencyAttributeFilter.OnActionExecutionAsync(actionExecutingContext, 
+            var ex = await Assert.ThrowsAsync<ArgumentNullException>(() => idempotencyAttributeFilter.OnActionExecutionAsync(actionExecutingContext,
                 () => Task.FromResult(actionExecutedContext)));
 
             // Assert (Exception message)
@@ -260,7 +264,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
         [InlineData("PATCH", CacheImplementation.DistributedCache, DistributedAccessLockImplementation.None)]
         [InlineData("POST", CacheImplementation.FusionCache, DistributedAccessLockImplementation.None)]
         [InlineData("PATCH", CacheImplementation.FusionCache, DistributedAccessLockImplementation.None)]
-        public async Task ThrowsException_IfIdempotencyKeyHeaderNotExistsOnPostAndPatch(string httpMethod, CacheImplementation cacheImplementation, DistributedAccessLockImplementation distributedAccessLock)
+        public async Task ThrowsException_IfIdempotencyKeyHeaderNotExists_WhenNotOptional_OnPostAndPatch(string httpMethod, CacheImplementation cacheImplementation, DistributedAccessLockImplementation distributedAccessLock)
         {
             // Arrange
             var actionContext = ArrangeActionContextMock(httpMethod);
@@ -274,6 +278,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = false;
 
             // Expected error messages for different .NET Target Frameworks:
             List<string> expectedExceptionMessages = new List<string>
@@ -290,7 +295,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
             // Act
             var ex = await Assert.ThrowsAsync<ArgumentNullException>(() => idempotencyAttributeFilter.OnActionExecutionAsync(actionExecutingContext,
@@ -298,6 +304,65 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             // Assert (Exception message)
             Assert.Contains(ex.Message, expectedExceptionMessages);
+        }
+
+
+        /// <summary>
+        /// Scenario:
+        /// The Idempotency Attribute is enabled but IS Optional, receiving a POST or PATCH request without
+        /// defining the IdempotencyKey as a header variable.
+        ///
+        /// Action:
+        /// The response is received!
+        ///
+        /// Background:
+        /// Idempotency is performed only for Post and Patch HTTP requests.
+        /// </summary>
+        /// <param name="httpMethod"></param>
+        [Theory]
+        [InlineData("POST", CacheImplementation.DistributedCache, DistributedAccessLockImplementation.None)]
+        [InlineData("PATCH", CacheImplementation.DistributedCache, DistributedAccessLockImplementation.None)]
+        [InlineData("POST", CacheImplementation.FusionCache, DistributedAccessLockImplementation.None)]
+        [InlineData("PATCH", CacheImplementation.FusionCache, DistributedAccessLockImplementation.None)]
+        public async Task NotThrowingException_IfIdempotencyKeyHeaderNotExists_WhenIsOptional_OnPostAndPatch(string httpMethod, CacheImplementation cacheImplementation, DistributedAccessLockImplementation distributedAccessLock)
+        {
+            // Arrange
+            var actionContext = ArrangeActionContextMock(httpMethod);
+            var actionExecutingContext = new ActionExecutingContext(
+                actionContext,
+                new List<IFilterMetadata>(),
+                new Dictionary<string, object>(),
+                Mock.Of<Controller>()
+            );
+            var actionExecutedContext = CreateActionExecutedContext(actionContext);
+
+            TimeSpan? distributedLockTimeout = null;
+            bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = true;
+
+            // Expected error messages for different .NET Target Frameworks:
+            List<string> expectedExceptionMessages = new List<string>
+            {
+                "The Idempotency header key is not found. (Parameter 'IdempotencyKey')"
+            };
+
+            IIdempotencyAccessCache distributedCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation, distributedAccessLock);
+            var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
+                distributedCache,
+                _loggerFactory,
+                true,
+                1,
+                _headerKeyName,
+                _distributedCacheKeysPrefix,
+                distributedLockTimeout,
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
+
+            // Act
+            await idempotencyAttributeFilter.OnActionExecutionAsync(actionExecutingContext, () => Task.FromResult(actionExecutedContext));
+
+            // Assert
+            Assert.Null(actionExecutingContext.Result);
         }
 
 
@@ -337,6 +402,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = false;
 
             // Expected error messages per .NET Target Framework:
             List<string> expectedExceptionMessages = new List<string>
@@ -354,7 +420,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
             // Act
             var ex = await Assert.ThrowsAsync<ArgumentNullException>(() => idempotencyAttributeFilter.OnActionExecutionAsync(actionExecutingContext,
@@ -399,6 +466,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = false;
 
             // Expected error messages per .NET Target Framework:
             List<string> expectedExceptionMessages = new List<string>
@@ -415,10 +483,11 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
             // Act
-            var ex = await Assert.ThrowsAsync<ArgumentException>(() => idempotencyAttributeFilter.OnActionExecutionAsync(actionExecutingContext, 
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => idempotencyAttributeFilter.OnActionExecutionAsync(actionExecutingContext,
                 () => Task.FromResult(actionExecutedContext)));
 
             // Assert (Exception message)
@@ -467,6 +536,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = false;
 
             IIdempotencyAccessCache distributedCache = MemoryDistributedCacheFixture.CreateCacheInstance(cacheImplementation, accessLockImplementation);
             var idempotencyAttributeFilter = new IdempotencyAttributeFilter(
@@ -477,7 +547,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
             // Act
             await idempotencyAttributeFilter.OnActionExecutionAsync(actionExecutingContext, () => Task.FromResult(actionExecutedContext));
@@ -523,6 +594,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = false;
 
             var actionContext = ArrangeActionContextMock(httpMethod, requestHeaders, requestBodyString, responseHeaders, controllerExecutionResult, controllerExecutionResult.StatusCode);
             var actionExecutingContext = new ActionExecutingContext(
@@ -545,7 +617,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
 
             // Act Part 1 (check cache):
@@ -598,6 +671,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = false;
             int statusCode = StatusCodes.Status200OK;
 
             var controllerExecutionResult = new ObjectResult(
@@ -644,7 +718,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
 
             // Act Part 1 (check cache):
@@ -703,6 +778,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = false;
+            bool isIdempotencyOptional = false;
 
             HttpStatusCode httpStatusCode = HttpStatusCode.NotAcceptable;
             HttpStatusCode expectedResponseStatusCode = HttpStatusCode.NotAcceptable;
@@ -744,7 +820,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
             var idempotencyRequest2 = new IdempotencyAttributeFilter(
                 idempotencyCache,
@@ -754,7 +831,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
             // Act Part 1 (check cache):
             await idempotencyRequest1.OnActionExecutionAsync(actionExecutingContext, () => Task.FromResult(actionExecutedContext));
@@ -820,6 +898,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = false;
+
             HttpStatusCode httpStatusCode = HttpStatusCode.NotAcceptable;
             int statusCode = (int)httpStatusCode;
 
@@ -859,7 +939,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
             var idempotencyRequest2 = new IdempotencyAttributeFilter(
                 idempotencyCache,
@@ -869,7 +950,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
             // Act Part 1 (check cache):
             await idempotencyRequest1.OnActionExecutionAsync(actionExecutingContext, () => Task.FromResult(actionExecutedContext));
@@ -927,6 +1009,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = false;
 
             var actionContext = ArrangeActionContextMock(httpMethod, requestHeaders, requestBodyFile, responseHeaders, controllerExecutionResult, controllerExecutionResult.StatusCode);
             var actionExecutingContext = new ActionExecutingContext(
@@ -950,7 +1033,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
 
             // Act Part 1 (check cache):
@@ -1009,6 +1093,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = false;
 
             // Execution Result
             var expectedCachedModel = new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) };
@@ -1068,7 +1153,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
             var idempotencyAttributeFilterRequest2 = new IdempotencyAttributeFilter(
                 idempotencyCache,
@@ -1078,7 +1164,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
             // Act Part 1 (check cache):
             await idempotencyAttributeFilterRequest1.OnActionExecutionAsync(actionExecutingContext, () => Task.FromResult(actionExecutedContext));
@@ -1158,6 +1245,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = false;
 
             // The expected result
             int statusCode = StatusCodes.Status200OK;
@@ -1204,7 +1292,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
 
             // Act
@@ -1253,6 +1342,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = false;
 
             // Execution Result
             var controllerExecutionResult = new OkObjectResult(new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) });
@@ -1277,7 +1367,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 new Dictionary<string, object>(),
                 Mock.Of<Controller>()
             );
-            
+
             var firstRequestExecutedContext = CreateActionExecutedContext(actionContext);
             var secondRequestExecutedContext = CreateActionExecutedContext(actionContext);
 
@@ -1291,7 +1381,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
             var idempotencyAttributeFilterRequest2 = new IdempotencyAttributeFilter(
                 idempotencyCache,
@@ -1301,12 +1392,13 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
             // Act with concurrent requests (check cache):
-            var firstRequestTask = Task.Run(async () => await idempotencyAttributeFilterRequest1.OnActionExecutionAsync(firstRequestExecutingContext, 
+            var firstRequestTask = Task.Run(async () => await idempotencyAttributeFilterRequest1.OnActionExecutionAsync(firstRequestExecutingContext,
                 () => Task.FromResult(firstRequestExecutedContext)));
-            var secondRequestTask = Task.Run(async () => await idempotencyAttributeFilterRequest2.OnActionExecutionAsync(secondRequestExecutingContext, 
+            var secondRequestTask = Task.Run(async () => await idempotencyAttributeFilterRequest2.OnActionExecutionAsync(secondRequestExecutingContext,
                 () => Task.FromResult(secondRequestExecutedContext)));
 
             Task.WaitAll(firstRequestTask, secondRequestTask);
@@ -1364,6 +1456,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
             TimeSpan? distributedLockTimeout = null;
             bool cacheOnlySuccessResponses = true;
+            bool isIdempotencyOptional = false;
 
             // Execution Result
             var expectedCachedModel = new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) };
@@ -1390,7 +1483,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
 
             // Act & Assert Part 1: Before the execution of the controller we store in-flight data (cache exists)
@@ -1443,6 +1537,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
             };
 
             TimeSpan? distributedLockTimeout = null;
+            bool isIdempotencyOptional = false;
 
             // Execution Result
             var expectedCachedModel = new ResponseModelBasic() { Id = 1, CreatedOn = new DateTime(2019, 10, 12, 5, 25, 25) };
@@ -1475,7 +1570,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 _headerKeyName,
                 _distributedCacheKeysPrefix,
                 distributedLockTimeout,
-                cacheOnlySuccessResponses);
+                cacheOnlySuccessResponses,
+                isIdempotencyOptional);
 
 
             // Act & Assert Part 1: Before the execution of the controller we store in-flight data (cache exists)
@@ -1486,7 +1582,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
                 Assert.Null(inflightExecutingContextWithError.Result);
                 return inflightExecutedContextWithError;
             });
-           
+
 
             // Act & Assert Part 2: When the response is an error, but an exception is NOT thrown, the cached data continue to exist.
             var cachedDataBytes = await idempotencyCache.GetOrDefault(distributedCacheKey, defaultValue: null, options: null);
@@ -1495,7 +1591,7 @@ namespace IdempotentAPI.UnitTests.FiltersTests
 
 
             // Assert Part 3: When cacheOnlySuccessResponses is Enabled, we DO NOT cache the response.
-            await idempotencyAttributeFilter.OnResultExecutionAsync(resultExecutingContextWithError, 
+            await idempotencyAttributeFilter.OnResultExecutionAsync(resultExecutingContextWithError,
                 () => Task.FromResult(resultExecutedContextWithError));
             cachedDataBytes = await idempotencyCache.GetOrDefault(distributedCacheKey, defaultValue: null, options: null);
 

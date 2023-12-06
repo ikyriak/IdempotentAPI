@@ -11,5 +11,7 @@
         public const bool CacheOnlySuccessResponses = true;
 
         public const double DistributedLockTimeoutMilli = -1;
+
+        public const bool IsIdempotencyOptional = false;
     }
 }
