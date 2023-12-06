@@ -16,5 +16,8 @@
 
         ///<inheritdoc/>
         public double DistributedLockTimeoutMilli { get; set; } = DefaultIdempotencyOptions.DistributedLockTimeoutMilli;
+
+        ///<inheritdoc/>
+        public bool IsIdempotencyOptional { get; set; } = DefaultIdempotencyOptions.IsIdempotencyOptional;
     }
 }

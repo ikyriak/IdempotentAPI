@@ -16,6 +16,7 @@ namespace IdempotentAPI.Filters
         private readonly string _distributedCacheKeysPrefix;
         private readonly TimeSpan? _distributedLockTimeout;
         private readonly bool _cacheOnlySuccessResponses;
+        private readonly bool _isIdempotencyOptional;
         private readonly IIdempotencyAccessCache _distributedCache;
         private readonly ILogger<Idempotency> _logger;
 
@@ -29,7 +30,8 @@ namespace IdempotentAPI.Filters
             string headerKeyName,
             string distributedCacheKeysPrefix,
             TimeSpan? distributedLockTimeout,
-            bool cacheOnlySuccessResponses)
+            bool cacheOnlySuccessResponses,
+            bool isIdempotencyOptional)
         {
             _distributedCache = distributedCache;
             _enabled = enabled;
@@ -38,6 +40,7 @@ namespace IdempotentAPI.Filters
             _distributedCacheKeysPrefix = distributedCacheKeysPrefix;
             _distributedLockTimeout = distributedLockTimeout;
             _cacheOnlySuccessResponses = cacheOnlySuccessResponses;
+            _isIdempotencyOptional = isIdempotencyOptional;
 
             if (loggerFactory != null)
             {
@@ -74,7 +77,8 @@ namespace IdempotentAPI.Filters
                     _headerKeyName,
                     _distributedCacheKeysPrefix,
                     _distributedLockTimeout,
-                    _cacheOnlySuccessResponses);
+                    _cacheOnlySuccessResponses,
+                    _isIdempotencyOptional);
             }
 
             await _idempotency.PrepareIdempotency(context);
@@ -107,7 +111,8 @@ namespace IdempotentAPI.Filters
                     _headerKeyName,
                     _distributedCacheKeysPrefix,
                     _distributedLockTimeout,
-                    _cacheOnlySuccessResponses);
+                    _cacheOnlySuccessResponses,
+                    _isIdempotencyOptional);
             }
 
             await _idempotency.ApplyPreIdempotency(context);

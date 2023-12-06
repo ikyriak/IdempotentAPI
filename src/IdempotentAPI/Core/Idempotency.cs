@@ -36,10 +36,10 @@ namespace IdempotentAPI.Core
         private readonly HashAlgorithm _hashAlgorithm;
         private readonly string _headerKeyName;
         private readonly ILogger<Idempotency>? _logger;
+        private readonly bool _isIdempotencyOptional;
+
         private string _idempotencyKey = string.Empty;
-
         private bool _isPreIdempotencyApplied = false;
-
         private bool _isPreIdempotencyCacheReturned = false;
 
         public Idempotency(
@@ -49,7 +49,8 @@ namespace IdempotentAPI.Core
             string headerKeyName,
             string distributedCacheKeysPrefix,
             TimeSpan? distributedLockTimeout,
-            bool cacheOnlySuccessResponses)
+            bool cacheOnlySuccessResponses,
+            bool isIdempotencyOptional)
         {
             _distributedCache = distributedCache ?? throw new ArgumentNullException($"An {nameof(IIdempotencyAccessCache)} is not configured. You should register the required services by using the \"AddIdempotentAPIUsing{{YourCacheProvider}}\" function.");
             _expireHours = expireHours;
@@ -61,6 +62,7 @@ namespace IdempotentAPI.Core
             _hashAlgorithm = new SHA256CryptoServiceProvider();
             _cacheEntryOptions = _distributedCache.CreateCacheEntryOptions(_expireHours);
             _cacheOnlySuccessResponses = cacheOnlySuccessResponses;
+            _isIdempotencyOptional = isIdempotencyOptional;
         }
 
         private string DistributedCacheKey
@@ -184,22 +186,31 @@ namespace IdempotentAPI.Core
                 return;
             }
 
-            // Try to get the IdempotencyKey value from header:
-            if (!TryGetIdempotencyKey(context.HttpContext.Request, out _idempotencyKey))
+            // Try to get the IdempotencyKey value from header. If its optional and not found just return.
+            if (_isIdempotencyOptional
+                && !TryGetIdempotencyKey(context.HttpContext.Request, out _idempotencyKey))
             {
-                context.Result = null;
+                if (IsLoggerEnabled(LogLevel.Information))
+                {
+                    _logger.LogInformation("IdempotencyFilterAttribute [Before Controller execution]: Idempotency SKIPPED, because it is optional, and a unique IdempotencyKey was not found.");
+                }
+
                 return;
+            }
+            else
+            {
+                _idempotencyKey = GetIdempotencyKeyOrThrow(context.HttpContext.Request);
             }
 
             // Check if idempotencyKey exists in cache and return value:
-            Guid uniqueRequesId = Guid.NewGuid();
+            Guid uniqueRequestId = Guid.NewGuid();
             byte[] cacheDataBytes;
 
             try
             {
                 cacheDataBytes = await _distributedCache.GetOrSet(
                     DistributedCacheKey,
-                    defaultValue: GenerateRequestInFlightCacheData(uniqueRequesId),
+                    defaultValue: GenerateRequestInFlightCacheData(uniqueRequestId),
                     options: _cacheEntryOptions,
                     distributedLockTimeout: _distributedLockTimeout)
                     .ConfigureAwait(false);
@@ -218,10 +229,9 @@ namespace IdempotentAPI.Core
                 throw new Exception("Cannot DeSerialize cached data.");
             }
 
-            // RPG - 2021-07-05 - Check if there is a copy of this request in flight,
-            // if so return a 409 Http Conflict response.
+            // RPG - 2021-07-05 - Check if there is a copy of this request in flight, if so return a 409 HTTP Conflict response.
             if (cacheData.ContainsKey("Request.Inflight")
-                && uniqueRequesId.ToString().ToLower() != cacheData["Request.Inflight"].ToString().ToLower())
+                && uniqueRequestId.ToString().ToLower() != cacheData["Request.Inflight"].ToString().ToLower())
             {
                 context.Result = new ConflictResult();
                 return;
@@ -534,10 +544,15 @@ namespace IdempotentAPI.Core
             }
         }
 
-        private bool TryGetIdempotencyKey(HttpRequest httpRequest, out string idempotencyKey)
+        /// <summary>
+        /// Get the IdempotencyKey from Headers or Throw Exception.
+        /// </summary>
+        /// <param name="httpRequest"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentException"></exception>
+        private string GetIdempotencyKeyOrThrow(HttpRequest httpRequest)
         {
-            idempotencyKey = string.Empty;
-
             // The "headerKeyName" must be provided as a Header:
             if (!httpRequest.Headers.ContainsKey(_headerKeyName))
             {
@@ -554,13 +569,46 @@ namespace IdempotentAPI.Core
                 throw new ArgumentException("Multiple Idempotency keys were found.", _headerKeyName);
             }
 
-            if (idempotencyKeys.Count <= 0
-                || string.IsNullOrEmpty(idempotencyKeys.First()))
+            if (idempotencyKeys.Count <= 0 || string.IsNullOrEmpty(idempotencyKeys.First()))
             {
                 throw new ArgumentNullException(_headerKeyName, "An Idempotency header value is not found.");
             }
 
-            idempotencyKey = idempotencyKeys.ToString();
+            return idempotencyKeys.ToString();
+        }
+
+        /// <summary>
+        /// Try to get the IdempotencyKey from Headers.
+        /// </summary>
+        /// <param name="httpRequest"></param>
+        /// <param name="idempotencyKey"></param>
+        /// <returns></returns>
+        private bool TryGetIdempotencyKey(HttpRequest httpRequest, out string idempotencyKey)
+        {
+            idempotencyKey = string.Empty;
+
+            // The "headerKeyName" must be provided as a Header:
+            if (!httpRequest.Headers.ContainsKey(_headerKeyName))
+            {
+                return false;
+            }
+
+            if (!httpRequest.Headers.TryGetValue(_headerKeyName, out StringValues idempotencyKeys))
+            {
+                return false;
+            }
+
+            if (idempotencyKeys.Count > 1)
+            {
+                return false;
+            }
+
+            if (idempotencyKeys.Count <= 0 || string.IsNullOrEmpty(idempotencyKeys.First()))
+            {
+                return false;
+            }
+
+            idempotencyKey= idempotencyKeys.ToString();
             return true;
         }
     }
