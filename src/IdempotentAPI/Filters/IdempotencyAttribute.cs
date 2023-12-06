@@ -31,6 +31,9 @@ namespace IdempotentAPI.Filters
         ///<inheritdoc/>
         public double DistributedLockTimeoutMilli { get; set; } = DefaultIdempotencyOptions.DistributedLockTimeoutMilli;
 
+        ///<inheritdoc/>
+        public bool IsIdempotencyOptional { get; set; } = DefaultIdempotencyOptions.IsIdempotencyOptional;
+
         public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
         {
             var distributedCache = (IIdempotencyAccessCache)serviceProvider.GetService(typeof(IIdempotencyAccessCache));
@@ -48,7 +51,8 @@ namespace IdempotentAPI.Filters
                 HeaderKeyName,
                 DistributedCacheKeysPrefix,
                 distributedLockTimeout,
-                CacheOnlySuccessResponses);
+                CacheOnlySuccessResponses,
+                IsIdempotencyOptional);
         }
     }
 }

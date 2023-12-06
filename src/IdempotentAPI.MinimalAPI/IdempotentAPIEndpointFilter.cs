@@ -53,7 +53,8 @@ public class IdempotentAPIEndpointFilter : IEndpointFilter
                 _idempotencyOptions.HeaderKeyName,
                 _idempotencyOptions.DistributedCacheKeysPrefix,
                 TimeSpan.FromMilliseconds(_idempotencyOptions.DistributedLockTimeoutMilli),
-                _idempotencyOptions.CacheOnlySuccessResponses);
+                _idempotencyOptions.CacheOnlySuccessResponses,
+                _idempotencyOptions.IsIdempotencyOptional);
         }
 
         try
