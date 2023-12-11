@@ -11,7 +11,7 @@ namespace IdempotentAPI.Filters
     public class IdempotencyAttributeFilter : IAsyncActionFilter, IAsyncResultFilter, IAsyncResourceFilter
     {
         private readonly bool _enabled;
-        private readonly int _expireHours;
+        private readonly double _expiresInMilliseconds;
         private readonly string _headerKeyName;
         private readonly string _distributedCacheKeysPrefix;
         private readonly TimeSpan? _distributedLockTimeout;
@@ -31,11 +31,24 @@ namespace IdempotentAPI.Filters
             string distributedCacheKeysPrefix,
             TimeSpan? distributedLockTimeout,
             bool cacheOnlySuccessResponses,
+            bool isIdempotencyOptional) : this(distributedCache, loggerFactory, enabled, TimeSpan.FromHours(expireHours).TotalMilliseconds, headerKeyName, distributedCacheKeysPrefix, distributedLockTimeout, cacheOnlySuccessResponses, isIdempotencyOptional)
+        {
+        }
+
+        public IdempotencyAttributeFilter(
+            IIdempotencyAccessCache distributedCache,
+            ILoggerFactory loggerFactory,
+            bool enabled,
+            double expiresInMilliseconds,
+            string headerKeyName,
+            string distributedCacheKeysPrefix,
+            TimeSpan? distributedLockTimeout,
+            bool cacheOnlySuccessResponses,
             bool isIdempotencyOptional)
         {
             _distributedCache = distributedCache;
             _enabled = enabled;
-            _expireHours = expireHours;
+            _expiresInMilliseconds = expiresInMilliseconds;
             _headerKeyName = headerKeyName;
             _distributedCacheKeysPrefix = distributedCacheKeysPrefix;
             _distributedLockTimeout = distributedLockTimeout;
@@ -73,7 +86,7 @@ namespace IdempotentAPI.Filters
                 _idempotency = new Idempotency(
                     _distributedCache,
                     _logger,
-                    _expireHours,
+                    _expiresInMilliseconds,
                     _headerKeyName,
                     _distributedCacheKeysPrefix,
                     _distributedLockTimeout,
@@ -107,7 +120,7 @@ namespace IdempotentAPI.Filters
                 _idempotency = new Idempotency(
                     _distributedCache,
                     _logger,
-                    _expireHours,
+                    _expiresInMilliseconds,
                     _headerKeyName,
                     _distributedCacheKeysPrefix,
                     _distributedLockTimeout,

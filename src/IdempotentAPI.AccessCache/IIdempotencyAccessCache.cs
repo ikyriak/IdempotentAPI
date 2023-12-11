@@ -64,7 +64,15 @@ namespace IdempotentAPI.AccessCache
         /// </summary>
         /// <param name="expireHours">The number of hours that the value will be saved in the cache.</param>
         /// <returns></returns>
+        [Obsolete("Use the double Milliseconds overload")]
         object CreateCacheEntryOptions(int expireHours);
+
+        /// <summary>
+        /// Create an instance of the options used for the cache entries to expire in <paramref name="expiresInMilliseconds"/> span.
+        /// </summary>
+        /// <param name="expiresInMilliseconds">The milliseconds that the value will be saved in the cache.</param>
+        /// <returns></returns>
+        object CreateCacheEntryOptions(double expiresInMilliseconds);
 
         /// <summary>
         /// Remove the value from the cache for the specified key.

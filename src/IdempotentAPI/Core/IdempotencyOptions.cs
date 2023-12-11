@@ -1,9 +1,24 @@
-﻿namespace IdempotentAPI.Core
+﻿using System;
+
+namespace IdempotentAPI.Core
 {
     public class IdempotencyOptions : IIdempotencyOptions
     {
+        private TimeSpan _expiresIn = DefaultIdempotencyOptions.ExpiresIn;
+
         ///<inheritdoc/>
-        public int ExpireHours { get; set; } = DefaultIdempotencyOptions.ExpireHours;
+        public int ExpireHours
+        {
+            get => Convert.ToInt32(_expiresIn.TotalHours);
+            set => _expiresIn = TimeSpan.FromHours(value);
+        }
+
+        ///<inheritdoc/>
+        public double ExpiresInMilliseconds
+        {
+            get => _expiresIn.TotalMilliseconds;
+            set => _expiresIn = TimeSpan.FromMilliseconds(value);
+        }
 
         ///<inheritdoc/>
         public string DistributedCacheKeysPrefix { get; set; } = DefaultIdempotencyOptions.DistributedCacheKeysPrefix;

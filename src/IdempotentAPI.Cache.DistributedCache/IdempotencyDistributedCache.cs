@@ -17,11 +17,22 @@ namespace IdempotentAPI.Cache.DistributedCache
 
         /// <returns>An object of type <see cref="DistributedCacheEntryOptions"/>.</returns>
         /// <inheritdoc/>
+        [Obsolete("Use the double Milliseconds overload")]
         public object CreateCacheEntryOptions(int expireHours)
         {
             return new DistributedCacheEntryOptions()
             {
-                AbsoluteExpirationRelativeToNow = new TimeSpan(expireHours, 0, 0)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(expireHours),
+            };
+        }
+
+        /// <returns>An object of type <see cref="DistributedCacheEntryOptions"/>.</returns>
+        /// <inheritdoc/>
+        public object CreateCacheEntryOptions(double expiresInMilliseconds)
+        {
+            return new DistributedCacheEntryOptions()
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMilliseconds(expiresInMilliseconds),
             };
         }
 
