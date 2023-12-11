@@ -49,7 +49,7 @@ public class IdempotentAPIEndpointFilter : IEndpointFilter
             _idempotency = new Idempotency(
                 _distributedCache,
                 _logger,
-                _idempotencyOptions.ExpireHours,
+                _idempotencyOptions.ExpiresInMilliseconds,
                 _idempotencyOptions.HeaderKeyName,
                 _idempotencyOptions.DistributedCacheKeysPrefix,
                 TimeSpan.FromMilliseconds(_idempotencyOptions.DistributedLockTimeoutMilli),

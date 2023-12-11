@@ -1,4 +1,3 @@
-using System.Net;
 using IdempotentAPI.Filters;
 using IdempotentAPI.TestWebAPIs.DTOs;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +11,7 @@ namespace IdempotentAPI.TestWebAPIs.Controllers
     [Consumes("application/json")]
     [Produces("application/json")]
 
-    [Idempotent(CacheOnlySuccessResponses = true, DistributedLockTimeoutMilli = 2000, IsIdempotencyOptional = true)]
+    [Idempotent(CacheOnlySuccessResponses = true, DistributedLockTimeoutMilli = 2000, IsIdempotencyOptional = true, ExpiresInMilliseconds = (1000 * 60 * 60))]
     public class TestingIdempotentOptionalAPIController : ControllerBase
     {
         private readonly ILogger<TestingIdempotentOptionalAPIController> _logger;
