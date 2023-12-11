@@ -21,15 +21,21 @@ namespace IdempotentAPI.AccessCache
             _distributedAccessLockProvider = distributedAccessLockProvider;
         }
 
-        /// <inheritdoc/>
-        public object CreateCacheEntryOptions(int expireHours)
-        {
-            return _idempotencyCache.CreateCacheEntryOptions(expireHours);
-        }
+		/// <inheritdoc/>
+		public object CreateCacheEntryOptions(int expireHours)
+		{
+			return _idempotencyCache.CreateCacheEntryOptions(expireHours);
+		}
 
-        /// <inheritdoc/>
-        /// <exception cref="ArgumentNullException"></exception>
-        public async Task<byte[]> GetOrDefault(string key, byte[] defaultValue, object? options, CancellationToken cancellationToken = default)
+		/// <inheritdoc/>
+		public object CreateCacheEntryOptions(TimeSpan expiresIn)
+		{
+			return _idempotencyCache.CreateCacheEntryOptions(expiresIn);
+		}
+
+		/// <inheritdoc/>
+		/// <exception cref="ArgumentNullException"></exception>
+		public async Task<byte[]> GetOrDefault(string key, byte[] defaultValue, object? options, CancellationToken cancellationToken = default)
         {
             if (key is null)
             {

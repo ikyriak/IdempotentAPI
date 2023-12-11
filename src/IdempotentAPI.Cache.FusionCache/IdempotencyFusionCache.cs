@@ -15,16 +15,24 @@ namespace IdempotentAPI.Cache.FusionCache
             _fusionCache = fusionCache;
         }
 
-        /// <returns>An object of type <see cref="FusionCacheEntryOptions"/>.</returns>
-        /// <inheritdoc/>
-        public object CreateCacheEntryOptions(int expireHours)
-        {
-            return new FusionCacheEntryOptions(new TimeSpan(expireHours, 0, 0));
-        }
+		/// <returns>An object of type <see cref="FusionCacheEntryOptions"/>.</returns>
+		/// <inheritdoc/>
+		public object CreateCacheEntryOptions(int expireHours)
+		{
+			return new FusionCacheEntryOptions(new TimeSpan(expireHours, 0, 0));
+		}
 
-        /// <inheritdoc/>
-        /// <exception cref="ArgumentNullException"></exception>
-        public async Task<byte[]> GetOrDefault(
+		/// <returns>An object of type <see cref="FusionCacheEntryOptions"/>.</returns>
+		/// <inheritdoc/>
+		[Obsolete("Use the TimeSpan overload")]
+		public object CreateCacheEntryOptions(TimeSpan expiresIn)
+		{
+			return new FusionCacheEntryOptions(expiresIn);
+		}
+
+		/// <inheritdoc/>
+		/// <exception cref="ArgumentNullException"></exception>
+		public async Task<byte[]> GetOrDefault(
             string key,
             byte[] defaultValue,
             object? options = null,

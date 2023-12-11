@@ -12,15 +12,28 @@ namespace IdempotentAPI.Filters
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
     public class IdempotentAttribute : Attribute, IFilterFactory, IIdempotencyOptions
     {
-        public bool IsReusable => false;
+        private TimeSpan _expiresIn = DefaultIdempotencyOptions.ExpiresIn;
+
+		public bool IsReusable => false;
 
         public bool Enabled { get; set; } = true;
 
-        ///<inheritdoc/>
-        public int ExpireHours { get; set; } = DefaultIdempotencyOptions.ExpireHours;
+		///<inheritdoc/>
+		public int ExpireHours
+        {
+            get => Convert.ToInt32(this._expiresIn.TotalHours);
+            set => this._expiresIn = TimeSpan.FromHours(value);
+        }
 
-        ///<inheritdoc/>
-        public string DistributedCacheKeysPrefix { get; set; } = DefaultIdempotencyOptions.DistributedCacheKeysPrefix;
+		///<inheritdoc/>
+		public TimeSpan ExpiresIn
+        {
+            get => this._expiresIn;
+            set => this._expiresIn = value;
+        }
+
+		///<inheritdoc/>
+		public string DistributedCacheKeysPrefix { get; set; } = DefaultIdempotencyOptions.DistributedCacheKeysPrefix;
 
         ///<inheritdoc/>
         public string HeaderKeyName { get; set; } = DefaultIdempotencyOptions.HeaderKeyName;
@@ -44,7 +57,7 @@ namespace IdempotentAPI.Filters
                 distributedCache,
                 loggerFactory,
                 Enabled,
-                ExpireHours,
+                ExpiresIn,
                 HeaderKeyName,
                 DistributedCacheKeysPrefix,
                 distributedLockTimeout,

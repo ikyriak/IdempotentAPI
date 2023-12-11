@@ -1,8 +1,19 @@
-﻿namespace IdempotentAPI.Core
+﻿using System;
+
+namespace IdempotentAPI.Core
 {
     public interface IIdempotencyOptions
     {
-        public int ExpireHours { get; set; }
+		/// <summary>
+		/// The cached idempotent data retention period in hours
+		/// </summary>
+		[Obsolete("Use the TimeSpan overload")]
+		public int ExpireHours { get; set; }
+
+		/// <summary>
+		/// The cached idempotent data retention period in hours
+		/// </summary>
+		public TimeSpan ExpiresIn { get; set; }
 
         public string DistributedCacheKeysPrefix { get; set; }
 

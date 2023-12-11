@@ -1,8 +1,10 @@
-﻿namespace IdempotentAPI.Core
+﻿using System;
+
+namespace IdempotentAPI.Core
 {
     public static class DefaultIdempotencyOptions
     {
-        public const int ExpireHours = 24;
+        public static readonly TimeSpan ExpiresIn = TimeSpan.FromHours(24);
 
         public const string DistributedCacheKeysPrefix = "IdempAPI_";
 

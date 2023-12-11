@@ -15,19 +15,30 @@ namespace IdempotentAPI.Cache.DistributedCache
             _distributedCache = distributedCache;
         }
 
-        /// <returns>An object of type <see cref="DistributedCacheEntryOptions"/>.</returns>
-        /// <inheritdoc/>
-        public object CreateCacheEntryOptions(int expireHours)
-        {
-            return new DistributedCacheEntryOptions()
-            {
-                AbsoluteExpirationRelativeToNow = new TimeSpan(expireHours, 0, 0)
-            };
-        }
+		/// <returns>An object of type <see cref="DistributedCacheEntryOptions"/>.</returns>
+		/// <inheritdoc/>
+		[Obsolete("Use the TimeSpan overload")]
+		public object CreateCacheEntryOptions(int expireHours)
+		{
+			return new DistributedCacheEntryOptions()
+			{
+				AbsoluteExpirationRelativeToNow = new TimeSpan(expireHours, 0, 0)
+			};
+		}
+
+		/// <returns>An object of type <see cref="DistributedCacheEntryOptions"/>.</returns>
+		/// <inheritdoc/>
+		public object CreateCacheEntryOptions(TimeSpan expiresIn)
+		{
+			return new DistributedCacheEntryOptions()
+			{
+				AbsoluteExpirationRelativeToNow = expiresIn
+			};
+		}
 
 
-        /// <inheritdoc/>
-        public async Task<byte[]> GetOrDefault(
+		/// <inheritdoc/>
+		public async Task<byte[]> GetOrDefault(
             string key,
             byte[] defaultValue,
             object? options = null,

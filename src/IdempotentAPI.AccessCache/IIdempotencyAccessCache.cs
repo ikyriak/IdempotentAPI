@@ -59,21 +59,29 @@ namespace IdempotentAPI.AccessCache
             TimeSpan? distributedLockTimeout,
             CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Create an instance of the options used for the cache entries to expire in <paramref name="expireHours"/> hours.
-        /// </summary>
-        /// <param name="expireHours">The number of hours that the value will be saved in the cache.</param>
-        /// <returns></returns>
-        object CreateCacheEntryOptions(int expireHours);
+		/// <summary>
+		/// Create an instance of the options used for the cache entries to expire in <paramref name="expireHours"/> hours.
+		/// </summary>
+		/// <param name="expireHours">The number of hours that the value will be saved in the cache.</param>
+		/// <returns></returns>
+		[Obsolete("Use the TimeSpan overload")]
+		object CreateCacheEntryOptions(int expireHours);
 
-        /// <summary>
-        /// Remove the value from the cache for the specified key.
-        /// </summary>
-        /// <param name="key">The cache key which identifies the entry in the cache.</param>
-        /// <param name="distributedLockTimeout">The lock timeout is required when a <see cref="IDistributedAccessLockProvider"/> is provided.</param>
-        /// <param name="cancellationToken">An optional System.Threading.CancellationToken to cancel the operation.</param>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="Exceptions.DistributedLockNotAcquiredException"></exception>
-        Task Remove(string key, TimeSpan? distributedLockTimeout, CancellationToken cancellationToken = default);
+		/// <summary>
+		/// Create an instance of the options used for the cache entries to expire in <paramref name="expiresIn"/> span.
+		/// </summary>
+		/// <param name="expiresIn">The timespan that the value will be saved in the cache.</param>
+		/// <returns></returns>
+		object CreateCacheEntryOptions(TimeSpan expiresIn);
+
+		/// <summary>
+		/// Remove the value from the cache for the specified key.
+		/// </summary>
+		/// <param name="key">The cache key which identifies the entry in the cache.</param>
+		/// <param name="distributedLockTimeout">The lock timeout is required when a <see cref="IDistributedAccessLockProvider"/> is provided.</param>
+		/// <param name="cancellationToken">An optional System.Threading.CancellationToken to cancel the operation.</param>
+		/// <exception cref="ArgumentNullException"></exception>
+		/// <exception cref="Exceptions.DistributedLockNotAcquiredException"></exception>
+		Task Remove(string key, TimeSpan? distributedLockTimeout, CancellationToken cancellationToken = default);
     }
 }

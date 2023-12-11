@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace IdempotentAPI.Cache.Abstractions
@@ -49,19 +50,28 @@ namespace IdempotentAPI.Cache.Abstractions
             object? options = null,
             CancellationToken token = default);
 
-        /// <summary>
-        /// Create an instance of the options used for the cache entries to expire in <paramref name="expireHours"/> hours.
-        /// </summary>
-        /// <param name="expireHours">The number of hours that the value will be saved in the cache.</param>
-        /// <returns></returns>
-        object CreateCacheEntryOptions(int expireHours);
+		/// <summary>
+		/// Create an instance of the options used for the cache entries to expire in <paramref name="expireHours"/> hours.
+		/// </summary>
+		/// <param name="expireHours">The number of hours that the value will be saved in the cache.</param>
+		/// <returns></returns>
+		[Obsolete("Use the TimeSpan overload")]
+		object CreateCacheEntryOptions(int expireHours);
 
 
-        /// <summary>
-        /// Remove the value from the cache for the specified key.
-        /// </summary>
-        /// <param name="key">The cache key which identifies the entry in the cache.</param>
-        /// <param name="token">An optional System.Threading.CancellationToken to cancel the operation.</param>
-        Task Remove(string key, CancellationToken token = default);
+		/// <summary>
+		/// Create an instance of the options used for the cache entries to expire in <paramref name="expireIn"/> span.
+		/// </summary>
+		/// <param name="expiresIn">The time span that the value will be saved in the cache.</param>
+		/// <returns></returns>
+		object CreateCacheEntryOptions(TimeSpan expiresIn);
+
+
+		/// <summary>
+		/// Remove the value from the cache for the specified key.
+		/// </summary>
+		/// <param name="key">The cache key which identifies the entry in the cache.</param>
+		/// <param name="token">An optional System.Threading.CancellationToken to cancel the operation.</param>
+		Task Remove(string key, CancellationToken token = default);
     }
 }
