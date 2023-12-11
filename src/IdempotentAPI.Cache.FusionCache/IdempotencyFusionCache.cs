@@ -17,9 +17,17 @@ namespace IdempotentAPI.Cache.FusionCache
 
         /// <returns>An object of type <see cref="FusionCacheEntryOptions"/>.</returns>
         /// <inheritdoc/>
+        [Obsolete("Use the double Milliseconds overload")]
         public object CreateCacheEntryOptions(int expireHours)
         {
-            return new FusionCacheEntryOptions(new TimeSpan(expireHours, 0, 0));
+            return new FusionCacheEntryOptions(TimeSpan.FromHours(expireHours));
+        }
+
+        /// <returns>An object of type <see cref="FusionCacheEntryOptions"/>.</returns>
+        /// <inheritdoc/>
+        public object CreateCacheEntryOptions(double expiresInMilliseconds)
+        {
+            return new FusionCacheEntryOptions(TimeSpan.FromMilliseconds(expiresInMilliseconds));
         }
 
         /// <inheritdoc/>

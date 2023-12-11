@@ -32,7 +32,7 @@ namespace IdempotentAPI.Core
         /// </summary>
         private readonly IReadOnlyList<string> _excludeHttpHeaderKeys = new List<string>() { "Transfer-Encoding" };
 
-        private readonly int _expireHours;
+        private readonly double _expiresInMilliseconds;
         private readonly HashAlgorithm _hashAlgorithm;
         private readonly string _headerKeyName;
         private readonly ILogger<Idempotency>? _logger;
@@ -42,6 +42,7 @@ namespace IdempotentAPI.Core
         private bool _isPreIdempotencyApplied = false;
         private bool _isPreIdempotencyCacheReturned = false;
 
+        [Obsolete("Use the double Milliseconds overload")]
         public Idempotency(
             IIdempotencyAccessCache distributedCache,
             ILogger<Idempotency> logger,
@@ -50,17 +51,29 @@ namespace IdempotentAPI.Core
             string distributedCacheKeysPrefix,
             TimeSpan? distributedLockTimeout,
             bool cacheOnlySuccessResponses,
-            bool isIdempotencyOptional)
+            bool isIdempotencyOptional) : this(distributedCache, logger, TimeSpan.FromHours(expireHours).TotalMilliseconds, headerKeyName, distributedCacheKeysPrefix, distributedLockTimeout, cacheOnlySuccessResponses, isIdempotencyOptional)
+        {
+        }
+
+        public Idempotency(
+             IIdempotencyAccessCache distributedCache,
+             ILogger<Idempotency> logger,
+             double expiresInMilliseconds,
+             string headerKeyName,
+             string distributedCacheKeysPrefix,
+             TimeSpan? distributedLockTimeout,
+             bool cacheOnlySuccessResponses,
+             bool isIdempotencyOptional)
         {
             _distributedCache = distributedCache ?? throw new ArgumentNullException($"An {nameof(IIdempotencyAccessCache)} is not configured. You should register the required services by using the \"AddIdempotentAPIUsing{{YourCacheProvider}}\" function.");
-            _expireHours = expireHours;
+            _expiresInMilliseconds = expiresInMilliseconds;
             _headerKeyName = headerKeyName;
             _distributedCacheKeysPrefix = distributedCacheKeysPrefix;
             _distributedLockTimeout = distributedLockTimeout;
             _logger = logger;
 
             _hashAlgorithm = new SHA256CryptoServiceProvider();
-            _cacheEntryOptions = _distributedCache.CreateCacheEntryOptions(_expireHours);
+            _cacheEntryOptions = _distributedCache.CreateCacheEntryOptions(_expiresInMilliseconds);
             _cacheOnlySuccessResponses = cacheOnlySuccessResponses;
             _isIdempotencyOptional = isIdempotencyOptional;
         }
@@ -608,7 +621,7 @@ namespace IdempotentAPI.Core
                 return false;
             }
 
-            idempotencyKey= idempotencyKeys.ToString();
+            idempotencyKey = idempotencyKeys.ToString();
             return true;
         }
     }
