@@ -1,4 +1,4 @@
-# Idempotent API (v2.1.0)
+# Idempotent API (v2.2.0)
 
 
 
@@ -86,7 +86,7 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 
 
 
-## 📦 Main NuGet Packages (v2.1.0)
+## 📦 Main NuGet Packages (v2.2.0)
 
 | Package Name                                                 | Description                                                  | Release                                                      |
 | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -96,7 +96,7 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 
 
 
-## 📦 Caching NuGet Packages (v2.1.0)
+## 📦 Caching NuGet Packages (v2.2.0)
 
 | Package Name                                                 | Description                                                  | Release                                                      |
 | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -121,7 +121,7 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 Let's see how we could use the NuGet packages in a Web API project. For more examples and code, you can check the [sample projects](https://github.com/ikyriak/IdempotentAPI/tree/master/samples). The `IdempotentAPI` can be installed via the NuGet UI or the NuGet package manager console:
 
 ```powershell
-PM> Install-Package IdempotentAPI -Version 2.1.0
+PM> Install-Package IdempotentAPI -Version 2.2.0
 ```
 
 and, register the IdempotentAPI Core services:
@@ -335,11 +335,13 @@ The Idempotent attribute provides a list of options, as shown in the following t
 | **Name**                    | **Type** | **Default Value** | **Description**                                              |
 | --------------------------- | -------- | ----------------- | ------------------------------------------------------------ |
 | Enabled                     | bool     | true              | Enable or Disable the Idempotent operation on an API Controller’s  class or method. |
-| ExpireHours                 | int      | 24                | The retention period (in hours) of the idempotent cached data. |
+| ExpireHours (Obsolete)      | int      | 24 hours          | The retention period (in hours) of the idempotent cached data. This option will be deprecated. |
+| ExpiresInMilliseconds       | double   | 24 hours          | The retention period (in milliseconds) of the idempotent cached data. |
 | HeaderKeyName               | string   | IdempotencyKey    | The name of the Idempotency-Key header.                      |
 | DistributedCacheKeysPrefix  | string   | IdempAPI_         | A prefix for the DistributedCache key names.                 |
 | CacheOnlySuccessResponses   | bool     | True              | When true, only the responses with 2xx HTTP status codes will be cached. |
 | DistributedLockTimeoutMilli | double   | NULL              | The time the distributed lock will wait for the lock to be acquired (in milliseconds). This is Required when a `IDistributedAccessLockProvider` is provided. |
+| IsIdempotencyOptional       | bool     | False             | Set the idempotency as optional to be introduced to existing endpoints easily (which should be backward compatible). |
 
  
 

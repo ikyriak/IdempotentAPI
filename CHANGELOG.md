@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.2.0] - 2023-12-26
+
+### Added
+
+- 🌟 Configure idempotency to be optional by setting the `IsIdempotencyOptional` option in the attribute. Thank you to  [@vIceBerg](https://github.com/vIceBerg), [@morgan35543](https://github.com/morgan35543), and [@SebastianBienert](https://github.com/SebastianBienert) for requesting this feature ([#56](https://github.com/ikyriak/IdempotentAPI/issues/56)) 🙏❤.
+- 🌟 Use `double` milliseconds (`ExpiresInMilliseconds`) to define cache expiration instead of hours in integer.
+  - ❗ The `ExpireHours` option is obsolete and will be deprecated. 
+  - Thank you  [@vIceBerg](https://github.com/vIceBerg) for taking the time to report and implement this new feature ([#59](https://github.com/ikyriak/IdempotentAPI/issues/59)) 💪🙏.
+
+
+### Fixed
+
+- ✅ The request data hash always returns an empty byte array. This results in unwanted behavior because requests with different payloads and the same idempotency key are treated the same way. Thanks to **[@vaspopinex](https://github.com/vaspopinex)** for identifying and reporting this issue ([#58](https://github.com/ikyriak/IdempotentAPI/issues/58)) 🙏.
+
 
 ## [2.1.0] - 2023-06-11
 

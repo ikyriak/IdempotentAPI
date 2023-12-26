@@ -4,7 +4,7 @@
 		<TargetFramework>net7.0</TargetFramework>
 		<Authors>Ioannis Kyriakidis</Authors>
 		<Company>ikyriakidis.com</Company>
-		<Version>2.1.1-prerelease-03</Version>
+		<Version>2.2.0</Version>
 		<Description>IdempotentAPI support in Minimal APIs.</Description>
 		<PackageTags>cache;idempotent api;idempotency;asp.net core;attribute;middleware;rest</PackageTags>
 		<RepositoryUrl>https://github.com/ikyriak/IdempotentAPI.git</RepositoryUrl>
