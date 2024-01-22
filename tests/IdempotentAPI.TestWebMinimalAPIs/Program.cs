@@ -1,5 +1,6 @@
 using System.Net;
 using System.Security.Claims;
+using IdempotentAPI.AccessCache;
 using IdempotentAPI.Cache.DistributedCache.Extensions.DependencyInjection;
 using IdempotentAPI.Cache.FusionCache.Extensions.DependencyInjection;
 using IdempotentAPI.Core;
@@ -20,6 +21,22 @@ builder.Services.AddIdempotentAPI();
 
 // This is REQUIRED for Minimal APIs to configure the Idempotency:
 builder.Services.AddSingleton<IIdempotencyOptions, IdempotencyOptions>();
+builder.Services.AddTransient(serviceProvider =>
+{
+    var distributedCache = serviceProvider.GetRequiredService<IIdempotencyAccessCache>();
+    var logger = serviceProvider.GetRequiredService<ILogger<Idempotency>>();
+    var idempotencyOptions = serviceProvider.GetRequiredService<IIdempotencyOptions>();
+
+    return new Idempotency(
+        distributedCache,
+        logger,
+        idempotencyOptions.ExpiresInMilliseconds,
+        idempotencyOptions.HeaderKeyName,
+        idempotencyOptions.DistributedCacheKeysPrefix,
+        TimeSpan.FromMilliseconds(idempotencyOptions.DistributedLockTimeoutMilli),
+        idempotencyOptions.CacheOnlySuccessResponses,
+        idempotencyOptions.IsIdempotencyOptional);
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(x =>
