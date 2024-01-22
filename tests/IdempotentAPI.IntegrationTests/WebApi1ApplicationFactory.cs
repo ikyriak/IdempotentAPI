@@ -10,8 +10,8 @@ namespace IdempotentAPI.IntegrationTests
         {
             builder.ConfigureAppConfiguration(c => c.AddInMemoryCollection(new Dictionary<string, string>()
             {
-                {"Caching", "FusionCache"},
-                {"DALock", "MadelsonDistLock"}
+                {"Caching", "MemoryCache"},
+                {"DALock", "None"}
             }));
         }
     }

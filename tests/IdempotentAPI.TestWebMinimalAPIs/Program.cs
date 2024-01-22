@@ -92,8 +92,9 @@ app.MapPost("/v6/TestingIdempotentAPI/test", () =>
     })
     .AddEndpointFilter<IdempotentAPIEndpointFilter>();
 
-app.MapPost("/v6/TestingIdempotentAPI/testobject", () =>
+app.MapPost("/v6/TestingIdempotentAPI/testobject", (HttpRequest httpRequest) =>
     {
+        Console.WriteLine(httpRequest.Path);
         return new ResponseDTOs();
     })
     .AddEndpointFilter<IdempotentAPIEndpointFilter>();
