@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using IdempotentAPI.AccessCache;
 using IdempotentAPI.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -9,53 +8,23 @@ using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace IdempotentAPI.MinimalAPI;
 
 public class IdempotentAPIEndpointFilter : IEndpointFilter
 {
-    private readonly IIdempotencyAccessCache _distributedCache;
-    private readonly ILogger<Idempotency> _logger;
-    private IIdempotencyOptions _idempotencyOptions;
-
-    private Idempotency? _idempotency = null;
-
+    private readonly IServiceProvider _serviceProvider;
 
     public IdempotentAPIEndpointFilter(
-        IIdempotencyAccessCache distributedCache,
-        ILoggerFactory loggerFactory,
-        IIdempotencyOptions idempotencyOptions)
+        IServiceProvider serviceProvider)
     {
-        _distributedCache = distributedCache;
-        _idempotencyOptions = idempotencyOptions;
-
-        if (loggerFactory != null)
-        {
-            _logger = loggerFactory.CreateLogger<Idempotency>();
-        }
-        else
-        {
-            _logger = NullLogger<Idempotency>.Instance;
-        }
+        _serviceProvider = serviceProvider;
     }
 
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
-        // Initialize only on its null (in case of multiple executions):
-        if (_idempotency == null)
-        {
-            _idempotency = new Idempotency(
-                _distributedCache,
-                _logger,
-                _idempotencyOptions.ExpiresInMilliseconds,
-                _idempotencyOptions.HeaderKeyName,
-                _idempotencyOptions.DistributedCacheKeysPrefix,
-                TimeSpan.FromMilliseconds(_idempotencyOptions.DistributedLockTimeoutMilli),
-                _idempotencyOptions.CacheOnlySuccessResponses,
-                _idempotencyOptions.IsIdempotencyOptional);
-        }
+        var idempotency = _serviceProvider.GetRequiredService<Idempotency>();
 
         try
         {
@@ -64,11 +33,11 @@ public class IdempotentAPIEndpointFilter : IEndpointFilter
             var filters = new List<IFilterMetadata>();
             var actionArguments = new Dictionary<string, object?>();
 
-            _idempotency.PrepareMinimalApiIdempotency(context.HttpContext, context.Arguments);
+            idempotency.PrepareMinimalApiIdempotency(context.HttpContext, context.Arguments);
 
             var actionExecutingContext = new ActionExecutingContext(actionContext, filters, actionArguments, null!);
 
-            await _idempotency.ApplyPreIdempotency(actionExecutingContext);
+            await idempotency.ApplyPreIdempotency(actionExecutingContext);
 
             // short-circuit to exit for async filter when result already set
             // https://learn.microsoft.com/en-us/aspnet/core/mvc/controllers/filters?view=aspnetcore-7.0#action-filters
@@ -130,13 +99,13 @@ public class IdempotentAPIEndpointFilter : IEndpointFilter
 
             var resultExecutingContext = new ResultExecutingContext(actionContext, filters, objectResult, null!);
 
-            await _idempotency.ApplyPostIdempotency(resultExecutingContext);
+            await idempotency.ApplyPostIdempotency(resultExecutingContext);
 
             return objectResult.Value;
         }
         catch
         {
-            await _idempotency.CancelIdempotency();
+            await idempotency.CancelIdempotency();
             throw;
         }
 
