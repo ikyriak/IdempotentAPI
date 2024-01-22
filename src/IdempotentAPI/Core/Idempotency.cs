@@ -474,7 +474,9 @@ namespace IdempotentAPI.Core
                 requestsData.Add(httpRequest.Path.ToString());
             }
 
-            return Utils.GetHash(_hashAlgorithm, JsonConvert.SerializeObject(requestsData));
+            return Utils.GetHash(_hashAlgorithm,
+                JsonConvert.SerializeObject(requestsData,
+                    new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore }));
         }
 
         private async Task<string> GenerateRequestsDataHash(HttpRequest httpRequest)
