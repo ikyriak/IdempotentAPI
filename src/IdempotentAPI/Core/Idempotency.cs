@@ -172,7 +172,7 @@ namespace IdempotentAPI.Core
                 return;
             }
 
-            string requestsDataHash = GenerateRequestsDataHashMinimalApi(arguments, httpContext.Request);
+            string requestsDataHash = GenerateRequestsDataHashMinimalApi(arguments, httpContext.Request, _hashAlgorithm);
 
             httpContext.SetRequestsDataHash(requestsDataHash);
         }
@@ -464,7 +464,7 @@ namespace IdempotentAPI.Core
             return serializedCacheData;
         }
 
-        private string GenerateRequestsDataHashMinimalApi(IList<object?> arguments, HttpRequest httpRequest)
+        public static string GenerateRequestsDataHashMinimalApi(IList<object?> arguments, HttpRequest httpRequest, HashAlgorithm hashAlgorithm)
         {
             List<object?> requestsData = new(arguments);
 
@@ -474,9 +474,14 @@ namespace IdempotentAPI.Core
                 requestsData.Add(httpRequest.Path.ToString());
             }
 
-            return Utils.GetHash(_hashAlgorithm,
-                JsonConvert.SerializeObject(requestsData,
-                    new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore }));
+            var serializeObject = JsonConvert.SerializeObject(requestsData,
+                new JsonSerializerSettings
+                {
+                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                    ContractResolver = new IgnoreHttpContextContractResolver()
+                });
+            
+            return Utils.GetHash(hashAlgorithm, serializeObject);
         }
 
         private async Task<string> GenerateRequestsDataHash(HttpRequest httpRequest)
