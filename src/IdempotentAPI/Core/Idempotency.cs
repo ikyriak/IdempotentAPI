@@ -172,7 +172,11 @@ namespace IdempotentAPI.Core
                 return;
             }
 
-            string requestsDataHash = GenerateRequestsDataHashMinimalApi(arguments, httpContext.Request);
+            // Remove the HttpRequest because it causes a self-referencing loop when serializing.
+            // In addition, the HttpRequest is unnecessary to generate the request's data hash.
+            var filteredArguments = arguments.Where(a => a is not HttpRequest);
+
+            string requestsDataHash = GenerateRequestsDataHashMinimalApi(filteredArguments, httpContext.Request);
 
             httpContext.SetRequestsDataHash(requestsDataHash);
         }
@@ -464,7 +468,7 @@ namespace IdempotentAPI.Core
             return serializedCacheData;
         }
 
-        private string GenerateRequestsDataHashMinimalApi(IList<object?> arguments, HttpRequest httpRequest)
+        private string GenerateRequestsDataHashMinimalApi(IEnumerable<object?> arguments, HttpRequest httpRequest)
         {
             List<object?> requestsData = new(arguments);
 
