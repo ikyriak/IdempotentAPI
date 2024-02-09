@@ -39,7 +39,7 @@ HTTP defines a set of request [methods](https://developer.mozilla.org/en-US/docs
 
 ### Idempotent Web Consumer
 
-The creation of an `idempotent consumer` is an essential factor in HTTP idempotency. The API server would need a way to recognize subsequent retries of the same request. Commonly, the consumer generates a unique value, called [idempotency-key](https://tools.ietf.org/id/draft-idempotency-header-01.html#section-2), which the API server uses for that purpose. In addition, when building an idempotent consumer, it is recommended to:
+The creation of an `idempotent consumer` is an essential factor in HTTP idempotency. The API server would need a way to recognize subsequent retries of the same request. Commonly, the consumer generates a unique value, called [idempotency-key](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/), which the API server uses for that purpose. In addition, when building an idempotent consumer, it is recommended to:
 
 - Use "[V4 UUIDs](https://en.wikipedia.org/wiki/Universally_unique_identifier)" for the creation of the idempotency unique keys (e.g. “07cd2d27-e0dc-466f-8193-28453e9c3023”).
 - Use techniques like the [exponential backoff and random jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/), i.e., including an exponential and random delay between continuous requests.

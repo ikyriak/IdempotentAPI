@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Claims;
 using IdempotentAPI.Cache.DistributedCache.Extensions.DependencyInjection;
 using IdempotentAPI.Cache.FusionCache.Extensions.DependencyInjection;
 using IdempotentAPI.Core;
@@ -92,7 +93,13 @@ app.MapPost("/v6/TestingIdempotentAPI/test", () =>
     })
     .AddEndpointFilter<IdempotentAPIEndpointFilter>();
 
-app.MapPost("/v6/TestingIdempotentAPI/testobject", (HttpRequest httpRequest) =>
+app.MapPost("/v6/TestingIdempotentAPI/testobject", (
+    HttpRequest httpRequest,
+    HttpContext context,
+    HttpResponse response,
+    ClaimsPrincipal user,
+    CancellationToken cancellationToken
+    ) =>
     {
         return new ResponseDTOs();
     })
@@ -111,7 +118,13 @@ app.MapPost("/v6/TestingIdempotentOptionalAPI/testobject", () =>
     .AddEndpointFilter<IdempotentAPIEndpointFilter>();
 
 app.MapPost("/v6/TestingIdempotentAPI/testobjectbody",
-    ([FromBody] RequestDTOs requestDTOs, HttpRequest httpRequest) =>
+    ([FromBody] RequestDTOs requestDTOs,
+    HttpRequest httpRequest,
+    HttpContext context,
+    HttpResponse response,
+    ClaimsPrincipal user,
+    CancellationToken cancellationToken
+    ) =>
     {
         return new ResponseDTOs()
         {

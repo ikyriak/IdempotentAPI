@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.2.1] - 2024-02-??
+- Fix for Minimal API: When the special types (such as `HttpRequest`) are used as arguments, a Newtonsoft serialization exception for a self-referencing loop is thrown. The primary exception information is the following. Thank you to [@hartmark](https://github.com/hartmark) for reporting and investigating this issue ([#65](https://github.com/ikyriak/IdempotentAPI/issues/65)) 🙏.
+    - `Newtonsoft.Json.JsonSerializationException: Self referencing loop detected for property 'ServiceProvider' with type 'Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope'`
+
 ## [2.2.0] - 2023-12-26
 
 ### Added
