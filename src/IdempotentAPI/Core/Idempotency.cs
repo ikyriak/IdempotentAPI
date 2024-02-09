@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Threading;
 using System.Threading.Tasks;
 using IdempotentAPI.AccessCache;
 using IdempotentAPI.AccessCache.Exceptions;
@@ -172,9 +174,15 @@ namespace IdempotentAPI.Core
                 return;
             }
 
-            // Remove the HttpRequest because it causes a self-referencing loop when serializing.
-            // In addition, the HttpRequest is unnecessary to generate the request's data hash.
-            var filteredArguments = arguments.Where(a => a is not HttpRequest);
+            // Remove the special types because they causes a self-referencing loop when serializing.
+            // In addition, they are unnecessary to generate the request's data hash.
+            // Reference: https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis?view=aspnetcore-8.0#special-types
+            var filteredArguments = arguments.Where(a =>
+                a is not HttpRequest
+                and not HttpContext
+                and not HttpResponse
+                and not ClaimsPrincipal
+                and not CancellationToken);
 
             string requestsDataHash = GenerateRequestsDataHashMinimalApi(filteredArguments, httpContext.Request);
 
