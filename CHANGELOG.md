@@ -4,7 +4,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [2.2.1] - 2024-02-??
+## [2.3.0] - 2024-02-??  - Minimal APIs (IdempotentAPI.MinimalAPI v3.0.0)
+- The `AddIdempotentMinimalAPI(...)` extension is introduced to simplify the  `IdempotentAPI.MinimalAPI` registration with DI improvements by [@hartmark](https://github.com/hartmark).
+    - IMPORTANT: To use the new extensions, the **BREAKING** `IdempotentAPI.MinimalAPI v3.0.0` should be used.
+    - The new extensions register the following services:
+    ```c#
+    public static IServiceCollection AddIdempotentMinimalAPI(this IServiceCollection serviceCollection, IdempotencyOptions idempotencyOptions)
+    {
+        serviceCollection.AddSingleton<IIdempotencyAccessCache, IdempotencyAccessCache>();
+        serviceCollection.AddSingleton<IIdempotencyOptions>(idempotencyOptions);
+        serviceCollection.AddTransient(serviceProvider =>
+        {
+            var distributedCache = serviceProvider.GetRequiredService<IIdempotencyAccessCache>();
+            var logger = serviceProvider.GetRequiredService<ILogger<Idempotency>>();
+            var idempotencyOptions = serviceProvider.GetRequiredService<IIdempotencyOptions>();
+
+            return new Idempotency(
+                distributedCache,
+                logger,
+                idempotencyOptions.ExpiresInMilliseconds,
+                idempotencyOptions.HeaderKeyName,
+                idempotencyOptions.DistributedCacheKeysPrefix,
+                TimeSpan.FromMilliseconds(idempotencyOptions.DistributedLockTimeoutMilli),
+                idempotencyOptions.CacheOnlySuccessResponses,
+                idempotencyOptions.IsIdempotencyOptional);
+        });
+
+        return serviceCollection;
+    }
+    ```
 - Fix for Minimal API: When the special types (such as `HttpRequest`) are used as arguments, a Newtonsoft serialization exception for a self-referencing loop is thrown. The primary exception information is the following. Thank you to [@hartmark](https://github.com/hartmark) for reporting and investigating this issue ([#65](https://github.com/ikyriak/IdempotentAPI/issues/65)) 🙏.
     - `Newtonsoft.Json.JsonSerializationException: Self referencing loop detected for property 'ServiceProvider' with type 'Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope'`
 

@@ -18,7 +18,6 @@
 		<ProjectReference Include="..\..\src\IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock\IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock.csproj" />
 		<ProjectReference Include="..\..\src\IdempotentAPI.DistributedAccessLock.RedLockNet\IdempotentAPI.DistributedAccessLock.RedLockNet.csproj" />
 		<ProjectReference Include="..\..\src\IdempotentAPI.MinimalAPI\IdempotentAPI.MinimalAPI.csproj" />
-		<ProjectReference Include="..\..\src\IdempotentAPI\IdempotentAPI.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
