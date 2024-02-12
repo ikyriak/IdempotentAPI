@@ -16,8 +16,7 @@ public class IdempotentAPIEndpointFilter : IEndpointFilter
 {
     private readonly IServiceProvider _serviceProvider;
 
-    public IdempotentAPIEndpointFilter(
-        IServiceProvider serviceProvider)
+    public IdempotentAPIEndpointFilter(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
     }
