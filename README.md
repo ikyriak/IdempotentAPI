@@ -1,4 +1,4 @@
-# Idempotent API (v2.2.0)
+# Idempotent API (v2.3.0)
 
 
 
@@ -86,7 +86,7 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 
 
 
-## 📦 Main NuGet Packages (v2.2.0)
+## 📦 Main NuGet Packages
 
 | Package Name                                                 | Description                                                  | Release                                                      |
 | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -96,7 +96,7 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 
 
 
-## 📦 Caching NuGet Packages (v2.2.0)
+## 📦 Caching NuGet Packages
 
 | Package Name                                                 | Description                                                  | Release                                                      |
 | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -106,7 +106,7 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 
 
 
-## 📦 Distributed Locking NuGet Packages (v2.1.0)
+## 📦 Distributed Locking NuGet Packages
 
 | Package Name                                                 | Description                                                  | Release                                                      |
 | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -121,13 +121,21 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 Let's see how we could use the NuGet packages in a Web API project. For more examples and code, you can check the [sample projects](https://github.com/ikyriak/IdempotentAPI/tree/master/samples). The `IdempotentAPI` can be installed via the NuGet UI or the NuGet package manager console:
 
 ```powershell
-PM> Install-Package IdempotentAPI -Version 2.2.0
+PM> Install-Package IdempotentAPI -Version 2.3.0
 ```
 
-and, register the IdempotentAPI Core services:
+and, register the **IdempotentAPI Core services** for either controller-based APIs or minimal APIs.
 
 ```c#
+// For Controller-Based APIs:
 services.AddIdempotentAPI();
+```
+
+OR
+
+```c#
+// For Minimal APIs:
+builder.Services.AddIdempotentMinimalAPI(new IdempotencyOptions());
 ```
 
 
@@ -313,7 +321,7 @@ public IActionResult Post([FromBody] SimpleRequest simpleRequest)
 
 #### Using the IdempotentAPI Endpoint Filter on Minimal APIs
 
-The [IdempotentAPI.MinimalAPI](https://www.nuget.org/packages/IdempotentAPI.MinimalAPI) package should be installed and then add the `IdempotentAPIEndpointFilter` in your endpoints.
+The latest [IdempotentAPI.MinimalAPI](https://www.nuget.org/packages/IdempotentAPI.MinimalAPI) package should be installed and then add the `IdempotentAPIEndpointFilter` in your endpoints.
 
 ```c#
 app.MapPost("/example",
