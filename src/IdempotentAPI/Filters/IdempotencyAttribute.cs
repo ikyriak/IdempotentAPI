@@ -2,6 +2,7 @@
 using IdempotentAPI.AccessCache;
 using IdempotentAPI.Core;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace IdempotentAPI.Filters
@@ -47,25 +48,32 @@ namespace IdempotentAPI.Filters
         ///<inheritdoc/>
         public bool IsIdempotencyOptional { get; set; } = DefaultIdempotencyOptions.IsIdempotencyOptional;
 
+        /// <summary>
+        /// By default, idempotency settings are taken from the attribute properties.
+        /// When this flag is set to true, the settings will be taken from the registered <see cref="IIdempotencyOptions"/> in the ServiceCollection
+        /// </summary>
+        public bool UseIdempotencyOption { get; set; } = false;
+
         public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
         {
             var distributedCache = (IIdempotencyAccessCache)serviceProvider.GetService(typeof(IIdempotencyAccessCache));
             var loggerFactory = (ILoggerFactory)serviceProvider.GetService(typeof(ILoggerFactory));
+            var idempotencyOptions = UseIdempotencyOption ? serviceProvider.GetRequiredService<IIdempotencyOptions>() : this;
 
-            TimeSpan? distributedLockTimeout = DistributedLockTimeoutMilli >= 0
-                ? TimeSpan.FromMilliseconds(DistributedLockTimeoutMilli)
+            TimeSpan? distributedLockTimeout = idempotencyOptions.DistributedLockTimeoutMilli >= 0
+                ? TimeSpan.FromMilliseconds(idempotencyOptions.DistributedLockTimeoutMilli)
                 : null;
 
             return new IdempotencyAttributeFilter(
                 distributedCache,
                 loggerFactory,
                 Enabled,
-                ExpiresInMilliseconds,
-                HeaderKeyName,
-                DistributedCacheKeysPrefix,
+                idempotencyOptions.ExpiresInMilliseconds,
+                idempotencyOptions.HeaderKeyName,
+                idempotencyOptions.DistributedCacheKeysPrefix,
                 distributedLockTimeout,
-                CacheOnlySuccessResponses,
-                IsIdempotencyOptional);
+                idempotencyOptions.CacheOnlySuccessResponses,
+                idempotencyOptions.IsIdempotencyOptional);
         }
     }
 }
