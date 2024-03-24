@@ -9,7 +9,7 @@ namespace IdempotentAPI.Extensions.DependencyInjection
     public static class IdempotentAPIExtensions
     {
         /// <summary>
-        /// Register the Core services that are required by the IdempotentAPI. Currently, it only registers the service to access the cache (<see cref="IIdempotencyAccessCache"/>).
+        /// Register the Core service that is required by the IdempotentAPI (<see cref="IIdempotencyAccessCache"/>).
         /// </summary>
         /// <param name="serviceCollection"></param>
         /// <returns></returns>
@@ -21,9 +21,24 @@ namespace IdempotentAPI.Extensions.DependencyInjection
         }
 
         /// <summary>
+        /// Register the Core service that is required by the IdempotentAPI (<see cref="IIdempotencyAccessCache"/>) and register the <see cref="IIdempotencyOptions"/> that will enable the use of the <see cref="Filters.IdempotentAttribute.UseIdempotencyOption"/>.
+        /// </summary>
+        /// <param name="serviceCollection"></param>
+        /// <param name="idempotencyOptions">It will enable the use of the <see cref="Filters.IdempotentAttribute.UseIdempotencyOption"/>. So, afterward, you could use the: <code>[Idempotent(UseIdempotencyOption = true)]</code></param>
+        /// <returns></returns>
+        public static IServiceCollection AddIdempotentAPI(this IServiceCollection serviceCollection, IdempotencyOptions idempotencyOptions)
+        {
+            serviceCollection.AddSingleton<IIdempotencyAccessCache, IdempotencyAccessCache>();
+            serviceCollection.AddSingleton<IIdempotencyOptions>(idempotencyOptions);
+
+            return serviceCollection;
+        }
+
+        /// <summary>
         /// Register the Core services that are required by the IdempotentAPI for Minimal APIs.
         /// </summary>
         /// <param name="serviceCollection"></param>
+        /// <param name="idempotencyOptions"></param>
         /// <returns></returns>
         public static IServiceCollection AddIdempotentMinimalAPI(this IServiceCollection serviceCollection, IdempotencyOptions idempotencyOptions)
         {
