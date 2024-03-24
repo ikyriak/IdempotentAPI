@@ -59,6 +59,33 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
         content1.Should().Be(content2);
     }
 
+
+    [Fact]
+    public async Task PostTest_WhenUsingIdempotencyOptionOnWebApiClient_ShouldReturnCachedResponse()
+    {
+        // Arrange
+        var guid = Guid.NewGuid().ToString();
+
+        int httpClientIndex = WebApiClientIndex;
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Clear();
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
+
+        // Act
+        var response1 = await _httpClients[httpClientIndex].PostAsync("v6/TestingIdempotentAPIPerMethod/testUseIdempotencyOption", null);
+        var response2 = await _httpClients[httpClientIndex].PostAsync("v6/TestingIdempotentAPIPerMethod/testUseIdempotencyOption", null);
+
+        // Assert
+        var content1 = await response1.Content.ReadAsStringAsync();
+        var content2 = await response2.Content.ReadAsStringAsync();
+        _testOutputHelper.WriteLine($"content1: {Environment.NewLine}{content1}");
+        _testOutputHelper.WriteLine($"content2: {Environment.NewLine}{content2}");
+
+        response1.StatusCode.Should().Be(HttpStatusCode.OK, content1);
+        response2.StatusCode.Should().Be(HttpStatusCode.OK, content2);
+
+        content1.Should().Be(content2);
+    }
+
     [Theory]
     [InlineData(WebApiClientIndex)]
     [InlineData(WebMinimalApiClientIndex)]

@@ -1,6 +1,7 @@
 using System.Net;
 using IdempotentAPI.Cache.DistributedCache.Extensions.DependencyInjection;
 using IdempotentAPI.Cache.FusionCache.Extensions.DependencyInjection;
+using IdempotentAPI.Core;
 using IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock.Extensions.DependencyInjection;
 using IdempotentAPI.DistributedAccessLock.RedLockNet.Extensions.DependencyInjection;
 using IdempotentAPI.Extensions.DependencyInjection;
@@ -33,9 +34,14 @@ namespace IdempotentAPI.TestWebAPIs
             // Add services to the container.
             services.AddApiVersioningConfigured();
 
+            IdempotencyOptions idempotencyOptions = new()
+            {
+                CacheOnlySuccessResponses = true,
+                DistributedLockTimeoutMilli = 2000,
+            };
 
             // Register the IdempotentAPI Core services.
-            services.AddIdempotentAPI();
+            services.AddIdempotentAPI(idempotencyOptions);
 
             services.AddSwaggerGen(x =>
                 x.SwaggerDoc("v6", new OpenApiInfo { Title = "IdempotentAPI.TestWebAPIs1 - Swagger", Version = "v6" }));
