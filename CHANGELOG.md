@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.4.0] - 2024-04-04
+- Add an extension to register the `IIdempotencyOptions` that will enable the use of the `[Idempotent(UseIdempotencyOption = true)]` option. In this way, the attribute will use the predefined `IIdempotencyOptions`.
+    ```c#
+    // Register the Core service and the `IIdempotencyOptions`.
+    services.AddIdempotentAPI(idempotencyOptions);
+    ```
+
+    ```c#
+    // To use the `IIdempotencyOptions`, set the `UseIdempotencyOption` property to `true`.
+    [HttpPost()]
+    [Idempotent(UseIdempotencyOption = true)]
+    public ActionResult AddMyEntity()
+    {
+        // ...
+    }
+    ```
+
 ## [2.3.0] - 2024-03-07  - Minimal APIs (IdempotentAPI.MinimalAPI v3.0.0)
 - 🌟 The `AddIdempotentMinimalAPI(...)` extension is introduced to simplify the  `IdempotentAPI.MinimalAPI` registration with DI improvements by [@hartmark](https://github.com/hartmark).
     - ❗ IMPORTANT: To use the new extensions, the **BREAKING** `IdempotentAPI.MinimalAPI v3.0.0` should be used.

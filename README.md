@@ -1,4 +1,4 @@
-# Idempotent API (v2.3.0)
+# Idempotent API (v2.4.0)
 
 
 
@@ -121,7 +121,7 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 Let's see how we could use the NuGet packages in a Web API project. For more examples and code, you can check the [sample projects](https://github.com/ikyriak/IdempotentAPI/tree/master/samples). The `IdempotentAPI` can be installed via the NuGet UI or the NuGet package manager console:
 
 ```powershell
-PM> Install-Package IdempotentAPI -Version 2.3.0
+PM> Install-Package IdempotentAPI -Version 2.4.0
 ```
 
 and, register the **IdempotentAPI Core services** for either controller-based APIs or minimal APIs.
@@ -129,6 +129,12 @@ and, register the **IdempotentAPI Core services** for either controller-based AP
 ```c#
 // For Controller-Based APIs:
 services.AddIdempotentAPI();
+
+// OR
+
+// For Controller-Based APIs: Register the `IIdempotencyOptions` that will enable the use of the `[Idempotent(UseIdempotencyOption = true)]` option.
+services.AddIdempotentAPI(idempotencyOptions);
+
 ```
 
 OR
