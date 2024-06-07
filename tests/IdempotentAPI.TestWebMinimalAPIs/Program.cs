@@ -43,7 +43,7 @@ builder.Services.AddIdempotentMinimalAPI(new IdempotencyOptionsProvider());
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(x =>
-    x.SwaggerDoc("v6", new OpenApiInfo { Title = "IdempotentAPI.TestWebAPIs3 - Swagger", Version = "v6" }));
+    x.SwaggerDoc("v6", new OpenApiInfo { Title = "IdempotentAPI.TestWebMinimalAPIs - Swagger", Version = "v6" }));
 
 
 // TODO: Hard-code the "Caching" and "Distributed Access Lock" methods until the following issue is resolved.

@@ -19,8 +19,13 @@ namespace IdempotentAPI.Helpers
 
         public static string GetHash(HashAlgorithm hashAlgorithm, string input)
         {
+            return GetHash(hashAlgorithm, Encoding.UTF8.GetBytes(input));
+        }
+
+        public static string GetHash(HashAlgorithm hashAlgorithm, byte[] input)
+        {
             // Convert the input string to a byte array and compute the hash.
-            byte[] data = hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(input));
+            byte[] data = hashAlgorithm.ComputeHash(input);
 
             // Create a new Stringbuilder to collect the bytes
             // and create a string.
