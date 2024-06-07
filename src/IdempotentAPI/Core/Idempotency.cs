@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,6 +24,8 @@ namespace IdempotentAPI.Core
 {
     public class Idempotency
     {
+        private const string FastEndpointsResponseItemKey = "FastEndpointsResponse";
+        private const string FastEndpointsEndpointFactory = "FastEndpoints.EndpointFactory";
         private readonly object _cacheEntryOptions;
         private readonly bool _cacheOnlySuccessResponses;
         private readonly IIdempotencyAccessCache _distributedCache;
@@ -161,12 +164,12 @@ namespace IdempotentAPI.Core
                 return;
             }
 
-            string requestsDataHash = await GenerateRequestsDataHash(context.HttpContext.Request);
+            string requestsDataHash = await GenerateRequestsDataHashAsync(context.HttpContext.Request);
 
             context.HttpContext.SetRequestsDataHash(requestsDataHash);
         }
 
-        public void PrepareMinimalApiIdempotency(HttpContext httpContext, IList<object?> arguments)
+        public async Task PrepareMinimalApiIdempotencyAsync(HttpContext httpContext, IList<object?> arguments)
         {
             // Check if Idempotency can be applied:
             if (!CanPerformIdempotency(httpContext.Request))
@@ -184,7 +187,7 @@ namespace IdempotentAPI.Core
                 and not ClaimsPrincipal
                 and not CancellationToken);
 
-            string requestsDataHash = GenerateRequestsDataHashMinimalApi(filteredArguments, httpContext.Request);
+            string requestsDataHash = await GenerateRequestsDataHashMinimalApiAsync(filteredArguments, httpContext.Request);
 
             httpContext.SetRequestsDataHash(requestsDataHash);
         }
@@ -409,11 +412,11 @@ namespace IdempotentAPI.Core
             cacheData.Add("Response.StatusCode", context.HttpContext.Response.StatusCode);
             cacheData.Add("Response.ContentType", context.HttpContext.Response.ContentType);
 
-            Dictionary<string, List<string>> Headers = context.HttpContext.Response.Headers
+            Dictionary<string, List<string>> headers = context.HttpContext.Response.Headers
                 .Where(h => !_excludeHttpHeaderKeys.Contains(h.Key))
                 .ToDictionary(h => h.Key, h => h.Value.ToList());
 
-            cacheData.Add("Response.Headers", Headers);
+            cacheData.Add("Response.Headers", headers);
 
 
             // 2019-07-05: Response.Body cannot be accessed because its not yet created.
@@ -422,7 +425,11 @@ namespace IdempotentAPI.Core
             var contextResult = context.Result;
             resultObjects.Add("ResultType", contextResult.GetType().AssemblyQualifiedName);
 
-            if (contextResult is CreatedAtRouteResult route)
+            if (context.HttpContext.Items.ContainsKey(FastEndpointsResponseItemKey))
+            {
+                resultObjects.Add("ResultValue", context.HttpContext.Items[FastEndpointsResponseItemKey]);
+            }
+            else if (contextResult is CreatedAtRouteResult route)
             {
                 //CreatedAtRouteResult.CreatedAtRouteResult(string routeName, object routeValues, object value)
                 resultObjects.Add("ResultValue", route.Value);
@@ -476,7 +483,7 @@ namespace IdempotentAPI.Core
             return serializedCacheData;
         }
 
-        private string GenerateRequestsDataHashMinimalApi(IEnumerable<object?> arguments, HttpRequest httpRequest)
+        private async Task<string> GenerateRequestsDataHashMinimalApiAsync(IEnumerable<object?> arguments, HttpRequest httpRequest)
         {
             List<object?> requestsData = new(arguments);
 
@@ -486,10 +493,42 @@ namespace IdempotentAPI.Core
                 requestsData.Add(httpRequest.Path.ToString());
             }
 
+            // Read the post data from the request body
+            if (arguments.Any(a => a?.GetType().ToString() == FastEndpointsEndpointFactory))
+            {
+                string requestBodyHash = await GenerateRequestsBodyHashAsync(httpRequest);
+                requestsData.Add(requestBodyHash);
+            }
+
             return Utils.GetHash(_hashAlgorithm, JsonConvert.SerializeObject(requestsData));
         }
 
-        private async Task<string> GenerateRequestsDataHash(HttpRequest httpRequest)
+        private async Task<string> GenerateRequestsBodyHashAsync(HttpRequest httpRequest)
+        {
+            httpRequest.EnableBuffering();
+            httpRequest.Body.Position = 0;
+
+            var buffer = ArrayPool<byte>.Shared.Rent(4096);
+            int bytesRead;
+
+            string requestBodyHash;
+            using (var ms = new MemoryStream())
+            {
+                while ((bytesRead = await httpRequest.Body.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                {
+                    ms.Write(buffer, 0, bytesRead);
+                }
+
+                requestBodyHash = Utils.GetHash(_hashAlgorithm, ms.ToArray());
+            }
+
+            ArrayPool<byte>.Shared.Return(buffer);
+
+            httpRequest.Body.Position = 0;
+            return requestBodyHash;
+        }
+
+        private async Task<string> GenerateRequestsDataHashAsync(HttpRequest httpRequest)
         {
             List<object> requestsData = new();
 
