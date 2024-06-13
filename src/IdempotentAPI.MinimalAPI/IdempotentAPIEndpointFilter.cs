@@ -32,7 +32,7 @@ public class IdempotentAPIEndpointFilter : IEndpointFilter
             var filters = new List<IFilterMetadata>();
             var actionArguments = new Dictionary<string, object?>();
 
-            idempotency.PrepareMinimalApiIdempotency(context.HttpContext, context.Arguments);
+            await idempotency.PrepareMinimalApiIdempotencyAsync(context.HttpContext, context.Arguments);
 
             var actionExecutingContext = new ActionExecutingContext(actionContext, filters, actionArguments, null!);
 

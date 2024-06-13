@@ -44,7 +44,7 @@ namespace IdempotentAPI.TestWebAPIs
             services.AddIdempotentAPI(idempotencyOptions);
 
             services.AddSwaggerGen(x =>
-                x.SwaggerDoc("v6", new OpenApiInfo { Title = "IdempotentAPI.TestWebAPIs1 - Swagger", Version = "v6" }));
+                x.SwaggerDoc("v6", new OpenApiInfo { Title = "IdempotentAPI.TestWebAPIs - Swagger", Version = "v6" }));
 
             services.AddControllers();
 

@@ -125,6 +125,8 @@ namespace IdempotentAPI.UnitTests.FiltersTests
             }
             httpContext.SetupGet(c => c.Response).Returns(() => httpResponse.Object);
 
+            IDictionary<object, object> contextItems = new Dictionary<object, object>();
+            httpContext.SetupGet(c => c.Items).Returns(() => contextItems);
 
             var actionContext = new ActionContext(
                 httpContext.Object,
