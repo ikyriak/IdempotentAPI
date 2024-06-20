@@ -2,6 +2,7 @@ using System.Net;
 using IdempotentAPI.Filters;
 using IdempotentAPI.TestWebAPIs.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using NodaTime;
 
 namespace IdempotentAPI.TestWebAPIs.Controllers
 {
@@ -40,6 +41,7 @@ namespace IdempotentAPI.TestWebAPIs.Controllers
             return new ResponseDTOs()
             {
                 CreatedOn = requestDTOs.CreatedOn,
+                CreatedOnNodaTime = Instant.FromDateTimeUtc(requestDTOs.CreatedOn.ToUniversalTime()),
                 Idempotency = requestDTOs.Idempotency,
             };
         }

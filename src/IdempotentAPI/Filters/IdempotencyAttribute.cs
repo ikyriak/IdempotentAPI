@@ -4,6 +4,7 @@ using IdempotentAPI.Core;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace IdempotentAPI.Filters
 {
@@ -54,11 +55,15 @@ namespace IdempotentAPI.Filters
         /// </summary>
         public bool UseIdempotencyOption { get; set; } = false;
 
+        public JsonSerializerSettings? SerializerSettings { get => null; set => throw new NotImplementedException(); }
+
         public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
         {
             var distributedCache = (IIdempotencyAccessCache)serviceProvider.GetService(typeof(IIdempotencyAccessCache));
             var loggerFactory = (ILoggerFactory)serviceProvider.GetService(typeof(ILoggerFactory));
-            var idempotencyOptions = UseIdempotencyOption ? serviceProvider.GetRequiredService<IIdempotencyOptions>() : this;
+
+            var generalIdempotencyOptions = serviceProvider.GetRequiredService<IIdempotencyOptions>();
+            var idempotencyOptions = UseIdempotencyOption ? generalIdempotencyOptions : this;
 
             TimeSpan? distributedLockTimeout = idempotencyOptions.DistributedLockTimeoutMilli >= 0
                 ? TimeSpan.FromMilliseconds(idempotencyOptions.DistributedLockTimeoutMilli)
@@ -73,7 +78,8 @@ namespace IdempotentAPI.Filters
                 idempotencyOptions.DistributedCacheKeysPrefix,
                 distributedLockTimeout,
                 idempotencyOptions.CacheOnlySuccessResponses,
-                idempotencyOptions.IsIdempotencyOptional);
+                idempotencyOptions.IsIdempotencyOptional,
+                generalIdempotencyOptions.SerializerSettings);
         }
     }
 }
