@@ -1,4 +1,5 @@
 ﻿using System;
+using Newtonsoft.Json;
 
 namespace IdempotentAPI.Core
 {
@@ -34,5 +35,7 @@ namespace IdempotentAPI.Core
 
         ///<inheritdoc/>
         public bool IsIdempotencyOptional { get; set; } = DefaultIdempotencyOptions.IsIdempotencyOptional;
+
+        public JsonSerializerSettings? SerializerSettings { get; set; }
     }
 }

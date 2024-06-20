@@ -27,16 +27,16 @@ namespace IdempotentAPI.Cache.FusionCache.Extensions.DependencyInjection
 
             // Register the FusionCache
             serviceCollection.AddFusionCache(options =>
-            {
-                // Set custom cache options
-                if (cacheEntryOptions != null)
+                {
+                    // Set custom cache options
+                    if (cacheEntryOptions != null)
                     options.DefaultEntryOptions = cacheEntryOptions;
 
                 // Distributed cache circuit-breaker
                 if (distributedCacheCircuitBreakerDuration.HasValue)
                     options.DistributedCacheCircuitBreakerDuration = distributedCacheCircuitBreakerDuration.Value;
-            });
-
+                });
+;
             return serviceCollection;
         }
 
