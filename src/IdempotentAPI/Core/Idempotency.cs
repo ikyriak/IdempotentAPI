@@ -42,6 +42,7 @@ namespace IdempotentAPI.Core
         private readonly string _headerKeyName;
         private readonly ILogger<Idempotency>? _logger;
         private readonly bool _isIdempotencyOptional;
+        private readonly JsonSerializerSettings? _serializerSettings = null;
 
         private string _idempotencyKey = string.Empty;
         private bool _isPreIdempotencyApplied = false;
@@ -68,7 +69,8 @@ namespace IdempotentAPI.Core
              string distributedCacheKeysPrefix,
              TimeSpan? distributedLockTimeout,
              bool cacheOnlySuccessResponses,
-             bool isIdempotencyOptional)
+             bool isIdempotencyOptional,
+             JsonSerializerSettings? serializerSettings = null)
         {
             _distributedCache = distributedCache ?? throw new ArgumentNullException($"An {nameof(IIdempotencyAccessCache)} is not configured. You should register the required services by using the \"AddIdempotentAPIUsing{{YourCacheProvider}}\" function.");
             _expiresInMilliseconds = expiresInMilliseconds;
@@ -81,6 +83,7 @@ namespace IdempotentAPI.Core
             _cacheEntryOptions = _distributedCache.CreateCacheEntryOptions(_expiresInMilliseconds);
             _cacheOnlySuccessResponses = cacheOnlySuccessResponses;
             _isIdempotencyOptional = isIdempotencyOptional;
+            _serializerSettings = serializerSettings;
         }
 
         private string DistributedCacheKey
@@ -251,7 +254,7 @@ namespace IdempotentAPI.Core
                 return;
             }
 
-            IReadOnlyDictionary<string, object>? cacheData = cacheDataBytes.DeSerialize<IReadOnlyDictionary<string, object>>();
+            IReadOnlyDictionary<string, object>? cacheData = cacheDataBytes.DeSerialize<IReadOnlyDictionary<string, object>>(_serializerSettings);
             if (cacheData is null)
             {
                 throw new Exception("Cannot DeSerialize cached data.");
@@ -461,7 +464,7 @@ namespace IdempotentAPI.Core
             cacheData.Add("Context.Result", resultObjects);
 
 
-            byte[]? serializedCacheData = cacheData.Serialize();
+            byte[]? serializedCacheData = cacheData.Serialize(_serializerSettings);
 
             if (serializedCacheData is null)
                 throw new Exception("Cannot Serialize the inFlightCacheData.");
@@ -476,7 +479,7 @@ namespace IdempotentAPI.Core
                 { "Request.Inflight", guid }
             };
 
-            byte[]? serializedCacheData = inFlightCacheData.Serialize();
+            byte[]? serializedCacheData = inFlightCacheData.Serialize(_serializerSettings);
             if (serializedCacheData is null)
                 throw new Exception("Cannot Serialize the inFlightCacheData.");
 

@@ -1,4 +1,6 @@
 using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using IdempotentAPI.Cache.DistributedCache.Extensions.DependencyInjection;
 using IdempotentAPI.Cache.FusionCache.Extensions.DependencyInjection;
 using IdempotentAPI.Core;
@@ -9,6 +11,10 @@ using IdempotentAPI.TestWebAPIs.Extensions;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
 using Microsoft.OpenApi.Models;
+using Newtonsoft.Json;
+using NodaTime;
+using NodaTime.Serialization.JsonNet;
+using NodaTime.Serialization.SystemTextJson;
 using StackExchange.Redis;
 
 namespace IdempotentAPI.TestWebAPIs
@@ -38,6 +44,8 @@ namespace IdempotentAPI.TestWebAPIs
             {
                 CacheOnlySuccessResponses = true,
                 DistributedLockTimeoutMilli = 2000,
+                SerializerSettings = new JsonSerializerSettings(){}
+                    .ConfigureForNodaTime(DateTimeZoneProviders.Tzdb)
             };
 
             // Register the IdempotentAPI Core services.
@@ -62,7 +70,23 @@ namespace IdempotentAPI.TestWebAPIs
                     {
                         options.Configuration = "localhost:6379";
                     });
-                    services.AddFusionCacheNewtonsoftJsonSerializer();
+
+
+                    // TODO: Test the NewtonsoftJsonSerializer with NodaTime!
+                    // services.AddFusionCacheNewtonsoftJsonSerializer();
+
+
+                    // Configure FusionCache with System.Text.Json, NodaTime serializer and more.
+                    services.AddFusionCacheSystemTextJsonSerializer(new JsonSerializerOptions
+                    {
+                        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                        Converters =
+                        {
+                            new JsonStringEnumConverter(),
+                        }
+                    }.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb));
+
+
                     services.AddIdempotentAPIUsingFusionCache();
                     break;
                 default:
