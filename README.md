@@ -1,4 +1,4 @@
-# Idempotent API (v2.4.0)
+# Idempotent API (v2.5.0)
 
 
 
@@ -121,18 +121,20 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 Let's see how we could use the NuGet packages in a Web API project. For more examples and code, you can check the [sample projects](https://github.com/ikyriak/IdempotentAPI/tree/master/samples). The `IdempotentAPI` can be installed via the NuGet UI or the NuGet package manager console:
 
 ```powershell
-PM> Install-Package IdempotentAPI -Version 2.4.0
+PM> Install-Package IdempotentAPI -Version 2.5.0
 ```
 
 and, register the **IdempotentAPI Core services** for either controller-based APIs or minimal APIs.
 
 ```c#
-// For Controller-Based APIs:
+//------------------------------
+// For Controller-Based APIs
+//------------------------------
+
+// Option 1: Use the options defined per Controller (i.e., in the attributes).
 services.AddIdempotentAPI();
 
-// OR
-
-// For Controller-Based APIs: Register the `IIdempotencyOptions` that will enable the use of the `[Idempotent(UseIdempotencyOption = true)]` option.
+// Option 2: Register the `IIdempotencyOptions` that will enable the use of the `[Idempotent(UseIdempotencyOption = true)]` option to set global default options.
 services.AddIdempotentAPI(idempotencyOptions);
 
 ```
@@ -140,8 +142,15 @@ services.AddIdempotentAPI(idempotencyOptions);
 OR
 
 ```c#
+//------------------------------
 // For Minimal APIs:
+//------------------------------
+
+// Option 1: Define the default options:
 builder.Services.AddIdempotentMinimalAPI(new IdempotencyOptions());
+
+// Option 2: Configure the idempotent options by implementing the `IIdempotencyOptionsProvider` to provide the `IIdempotencyOptions` based on our needs (e.g., per endpoint).
+builder.Services.AddIdempotentMinimalAPI(new IdempotencyOptionsProvider());
 ```
 
 
