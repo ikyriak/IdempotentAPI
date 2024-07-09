@@ -2,22 +2,22 @@ using System.Net;
 using System.Security.Claims;
 using IdempotentAPI.Cache.DistributedCache.Extensions.DependencyInjection;
 using IdempotentAPI.Cache.FusionCache.Extensions.DependencyInjection;
-using IdempotentAPI.Core;
 using IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock.Extensions.DependencyInjection;
 using IdempotentAPI.DistributedAccessLock.RedLockNet.Extensions.DependencyInjection;
 using IdempotentAPI.Extensions.DependencyInjection;
 using IdempotentAPI.MinimalAPI;
+using IdempotentAPI.MinimalAPI.Extensions.DependencyInjection;
+using IdempotentAPI.TestWebMinimalAPIs;
 using IdempotentAPI.TestWebMinimalAPIs.DTOs;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
-
 var builder = WebApplication.CreateBuilder(args);
 
 
-builder.Services.AddIdempotentMinimalAPI(new IdempotencyOptions());
+builder.Services.AddIdempotentMinimalAPI(new IdempotencyOptionsProvider());
 
 // FYI: The following commended code was replaced by the AddIdempotentMinimalAPI(...) extension above.
 //builder.Services.AddIdempotentAPI();
