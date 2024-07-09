@@ -3,6 +3,35 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2024-07-00
+- IdempotentAPI.MinimalAPI `v3.1.0`:
+    - Configure the idempotent options by implementing the `IIdempotencyOptionsProvider` to provide the `IIdempotencyOptions` based on our needs (e.g., per endpoint). For example, we could return the `IIdempotencyOptions` based on the requested path and register `IdempotencyOptionsProvider` in the `Program.cs`. Thank you, [@JonasLeetTheWay](https://github.com/JonasLeetTheWay) for reporting issue [#73](https://github.com/ikyriak/IdempotentAPI/issues/73).
+        ```c#
+        // Program.cs
+        builder.Services.AddIdempotentMinimalAPI(new IdempotencyOptionsProvider());
+        ```
+        ```c#
+        public class IdempotencyOptionsProvider : IIdempotencyOptionsProvider
+        {
+            public IIdempotencyOptions GetIdempotencyOptions(IHttpContextAccessor httpContextAccessor)
+            {
+                switch (httpContextAccessor?.HttpContext?.Request.Path)
+                {
+                    case "/v6/TestingIdempotentAPI/test":
+                        return new IdempotencyOptions()
+                        {
+                            ExpireHours = 1,
+                        };
+                }
+
+                return new IdempotencyOptions();
+            }
+        }
+        ```
+        
+    - ...
+- 
+
 
 ## [2.4.0] - 2024-04-03
 - Add an extension to register the `IIdempotencyOptions` that will enable the use of the `[Idempotent(UseIdempotencyOption = true)]` option. In this way, the attribute will use the predefined `IIdempotencyOptions`.
