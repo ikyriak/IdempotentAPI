@@ -74,6 +74,7 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
 - ⚙ **Configurable**: Customize the idempotency in your needs.
     - Configuration Options (see [below](#idempotent-attribute-options) for more details)
     - Logging Level configuration
+    - ✳ NEW ✳ - Configure the Newtonsoft `SerializerSettings` based on your needs.
 - 🔧 **Caching Implementation based on your needs.**
     - 🏠 `DistributedCache`:  A build-in caching that is based on the standard `IDistributedCache` interface.
     - 🦥 [FusionCache](https://github.com/jodydonetti/ZiggyCreatures.FusionCache):   A high performance and robust cache with an optional distributed 2nd layer and some advanced features.

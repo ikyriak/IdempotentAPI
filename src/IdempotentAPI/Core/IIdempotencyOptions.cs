@@ -1,4 +1,5 @@
 ﻿using System;
+using Newtonsoft.Json;
 
 namespace IdempotentAPI.Core
 {
@@ -35,5 +36,7 @@ namespace IdempotentAPI.Core
         /// system, which should be backward compatible.
         /// </summary>
         public bool IsIdempotencyOptional { get; set; }
+
+        public JsonSerializerSettings? SerializerSettings{ get; set; }
     }
 }

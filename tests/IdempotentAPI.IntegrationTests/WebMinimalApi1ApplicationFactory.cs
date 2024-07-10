@@ -9,7 +9,7 @@ namespace IdempotentAPI.IntegrationTests
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            builder.ConfigureAppConfiguration(c => c.AddInMemoryCollection(new Dictionary<string, string>()
+            builder.ConfigureAppConfiguration(c => c.AddInMemoryCollection(new Dictionary<string, string?>()
             {
                 {"Caching", "FusionCache"},
                 {"DALock", "MadelsonDistLock"}

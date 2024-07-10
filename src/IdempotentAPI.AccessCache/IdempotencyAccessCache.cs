@@ -21,10 +21,11 @@ namespace IdempotentAPI.AccessCache
             _distributedAccessLockProvider = distributedAccessLockProvider;
         }
 
-		/// <inheritdoc/>
-		public object CreateCacheEntryOptions(int expireHours)
+        /// <inheritdoc/>
+        [Obsolete("Use the double Milliseconds overload")]
+        public object CreateCacheEntryOptions(int expireHours)
 		{
-			return _idempotencyCache.CreateCacheEntryOptions(expireHours);
+            return _idempotencyCache.CreateCacheEntryOptions(expireHours);
 		}
 
 		/// <inheritdoc/>
