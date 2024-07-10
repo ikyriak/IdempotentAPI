@@ -11,17 +11,21 @@ namespace IdempotentAPI.IntegrationTests;
 /// Used for testing a single API
 /// NOTE: The API project needs to be running prior to running this test
 /// </summary>
-public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFixture<WebMinimalApi1ApplicationFactory>
+public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>
+    , IClassFixture<WebMinimalApi1ApplicationFactory>
+    , IClassFixture<WebTestFastEndpointsAPI1ApplicationFactory>
 {
     private readonly ITestOutputHelper _testOutputHelper;
     private readonly HttpClient[] _httpClients;
 
     private const int WebApiClientIndex = 0;
     private const int WebMinimalApiClientIndex = 1;
+    private const int WebFastEndpointsAPIClientIndex = 2;
 
     public SingleApiTests(
         WebApi1ApplicationFactory api1ApplicationFactory,
         WebMinimalApi1ApplicationFactory minimalApi1ApplicationFactory,
+        WebTestFastEndpointsAPI1ApplicationFactory webTestFastEndpointsAPI1ApplicationFactory,
         ITestOutputHelper testOutputHelper)
     {
         _testOutputHelper = testOutputHelper;
@@ -29,12 +33,14 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
             {
                 api1ApplicationFactory.CreateClient(),
                 minimalApi1ApplicationFactory.CreateClient(),
+                webTestFastEndpointsAPI1ApplicationFactory.CreateClient(),
             };
     }
 
     [Theory]
     [InlineData(WebApiClientIndex)]
     [InlineData(WebMinimalApiClientIndex)]
+    [InlineData(WebFastEndpointsAPIClientIndex)]
     public async Task PostTest_ShouldReturnCachedResponse(int httpClientIndex)
     {
         // Arrange
@@ -89,6 +95,7 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
     [Theory]
     [InlineData(WebApiClientIndex)]
     [InlineData(WebMinimalApiClientIndex)]
+    [InlineData(WebFastEndpointsAPIClientIndex)]
     public async Task PostTestObject_ShouldReturnCachedResponse(int httpClientIndex)
     {
         // Arrange
@@ -119,7 +126,8 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
     [Theory]
     [InlineData(WebApiClientIndex)]
     [InlineData(WebMinimalApiClientIndex)]
-    public async Task PostTestTheSameRequestObject_WithDifferentIdempotencyKeys_ShouldReturnBadRequestResponse(int httpClientIndex)
+    [InlineData(WebFastEndpointsAPIClientIndex)]
+    public async Task PostTestDifferentRequestObject_WithSameIdempotencyKey_ShouldReturnBadRequestResponse(int httpClientIndex)
     {
         // Arrange
         var guid = Guid.NewGuid().ToString();
@@ -172,6 +180,36 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
     [Theory]
     [InlineData(WebApiClientIndex)]
     [InlineData(WebMinimalApiClientIndex)]
+    [InlineData(WebFastEndpointsAPIClientIndex)]
+    public async Task PostJsonTestObjectWithHttpError_ShouldReturnExpectedStatusCode_NotCaching(int httpClientIndex)
+    {
+        // Arrange
+        var guid = Guid.NewGuid().ToString();
+
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Clear();
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
+
+        var dummyRequest = new RequestDTOs() { Description = "Empty Body!" };
+
+        // Act
+        const HttpStatusCode expectedhttpStatusCode = HttpStatusCode.BadGateway;
+        const int delaySeconds = 1;
+        var response1 = await _httpClients[httpClientIndex].PostAsJsonAsync($"v6/TestingIdempotentAPI/testobjectWithHttpError?delaySeconds={delaySeconds}&httpErrorCode={(int)expectedhttpStatusCode}", dummyRequest);
+        var response2 = await _httpClients[httpClientIndex].PostAsJsonAsync($"v6/TestingIdempotentAPI/testobjectWithHttpError?delaySeconds={delaySeconds}&httpErrorCode={(int)expectedhttpStatusCode}", dummyRequest);
+
+        // Assert
+        var content1 = await response1.Content.ReadAsStringAsync();
+        var content2 = await response2.Content.ReadAsStringAsync();
+        _testOutputHelper.WriteLine($"content1: {Environment.NewLine}{content1}");
+        _testOutputHelper.WriteLine($"content2: {Environment.NewLine}{content2}");
+
+        response1.StatusCode.Should().Be(expectedhttpStatusCode, content1);
+        response2.StatusCode.Should().Be(expectedhttpStatusCode, content2);
+    }
+
+    [Theory]
+    [InlineData(WebApiClientIndex)]
+    [InlineData(WebMinimalApiClientIndex)]
     public async Task PostTestObjectWithHttpError_ShouldReturnExpectedStatusCode_Cached(int httpClientIndex)
     {
         // Arrange
@@ -197,6 +235,39 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
 
         content1.Should().Be(string.Empty);
         content2.Should().Be(string.Empty);
+    }
+
+    [Theory]
+    [InlineData(WebApiClientIndex)]
+    [InlineData(WebMinimalApiClientIndex)]
+    [InlineData(WebFastEndpointsAPIClientIndex)]
+    public async Task PostJsonTestObjectWithHttpError_ShouldReturnExpectedStatusCode_Cached(int httpClientIndex)
+    {
+        // Arrange
+        var guid = Guid.NewGuid().ToString();
+
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Clear();
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
+
+        var dummyRequest = new RequestDTOs() { Description = "Empty Body!" };
+
+        // Act
+        const HttpStatusCode expectedhttpStatusCode = HttpStatusCode.Created;
+        const int delaySeconds = 1;
+        var response1 = await _httpClients[httpClientIndex].PostAsJsonAsync($"v6/TestingIdempotentAPI/testobjectWithHttpError?delaySeconds={delaySeconds}&httpErrorCode={(int)expectedhttpStatusCode}", dummyRequest);
+        var response2 = await _httpClients[httpClientIndex].PostAsJsonAsync($"v6/TestingIdempotentAPI/testobjectWithHttpError?delaySeconds={delaySeconds}&httpErrorCode={(int)expectedhttpStatusCode}", dummyRequest);
+
+        // Assert
+        var content1 = await response1.Content.ReadAsStringAsync();
+        var content2 = await response2.Content.ReadAsStringAsync();
+        _testOutputHelper.WriteLine($"content1: {Environment.NewLine}{content1}");
+        _testOutputHelper.WriteLine($"content2: {Environment.NewLine}{content2}");
+
+        response1.StatusCode.Should().Be(expectedhttpStatusCode, content1);
+        response2.StatusCode.Should().Be(expectedhttpStatusCode, content2);
+
+        content1.Should().Match(c => string.IsNullOrEmpty(c) || c == "null");
+        content2.Should().Match(c => string.IsNullOrEmpty(c) || c == "null");
     }
 
     [Theory]
@@ -237,6 +308,45 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
     [Theory]
     [InlineData(WebApiClientIndex)]
     [InlineData(WebMinimalApiClientIndex)]
+    [InlineData(WebFastEndpointsAPIClientIndex)]
+    public async Task PostJsonRequestsConcurrent_OnSameAPI_WithErrorResponse_ShouldReturnTheErrorAndA409Response(int httpClientIndex)
+    {
+        // Arrange
+        var guid = Guid.NewGuid().ToString();
+
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Clear();
+        _httpClients[httpClientIndex].DefaultRequestHeaders.Add("IdempotencyKey", guid);
+
+        var dummyRequest = new RequestDTOs() { Description = "Empty Body!" };
+
+        // Act
+        const int delaySeconds = 1;
+        var httpPostTask1 = _httpClients[httpClientIndex]
+            .PostAsJsonAsync($"v6/TestingIdempotentAPI/customNotAcceptable406?delaySeconds={delaySeconds}", dummyRequest);
+        var httpPostTask2 = _httpClients[httpClientIndex]
+            .PostAsJsonAsync($"v6/TestingIdempotentAPI/customNotAcceptable406?delaySeconds={delaySeconds}", dummyRequest);
+
+        await Task.WhenAll(httpPostTask1, httpPostTask2);
+
+        var content1 = await httpPostTask1.Result.Content.ReadAsStringAsync();
+        var content2 = await httpPostTask2.Result.Content.ReadAsStringAsync();
+        _testOutputHelper.WriteLine($"content1: {Environment.NewLine}{content1}");
+        _testOutputHelper.WriteLine($"content2: {Environment.NewLine}{content2}");
+
+        // Assert
+        var resultStatusCodes = new List<HttpStatusCode>
+        {
+            httpPostTask1.Result.StatusCode,
+            httpPostTask2.Result.StatusCode
+        };
+        resultStatusCodes.Should().Contain(HttpStatusCode.NotAcceptable);
+        resultStatusCodes.Should().Contain(HttpStatusCode.Conflict);
+    }
+
+    [Theory]
+    [InlineData(WebApiClientIndex)]
+    [InlineData(WebMinimalApiClientIndex)]
+    [InlineData(WebFastEndpointsAPIClientIndex)]
     public async Task Post_DifferentEndpoints_SameIdempotentKey_ShouldReturnFailure(int httpClientIndex)
     {
         // Arrange
@@ -262,6 +372,7 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
     [Theory]
     [InlineData(WebApiClientIndex)]
     //[InlineData(WebMinimalApiClientIndex)]
+    //[InlineData(WebFastEndpointsAPIClientIndex)]
     public async Task PostTest_WhenIdempotencyIsOptional_ShouldReturnResponse(int httpClientIndex)
     {
         // Arrange
@@ -292,6 +403,7 @@ public class SingleApiTests : IClassFixture<WebApi1ApplicationFactory>, IClassFi
     [Theory]
     [InlineData(WebApiClientIndex)]
     //[InlineData(WebMinimalApiClientIndex)]
+    //[InlineData(WebFastEndpointsAPIClientIndex)]
     public async Task PostTestObject_WhenIdempotencyIsOptional__ShouldReturnResponse(int httpClientIndex)
     {
         // Arrange
