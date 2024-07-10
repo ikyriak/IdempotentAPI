@@ -71,11 +71,6 @@ namespace IdempotentAPI.TestWebAPIs
                         options.Configuration = "localhost:6379";
                     });
 
-
-                    // TODO: Test the NewtonsoftJsonSerializer with NodaTime!
-                    // services.AddFusionCacheNewtonsoftJsonSerializer();
-
-
                     // Configure FusionCache with System.Text.Json, NodaTime serializer and more.
                     services.AddFusionCacheSystemTextJsonSerializer(new JsonSerializerOptions
                     {
@@ -85,7 +80,6 @@ namespace IdempotentAPI.TestWebAPIs
                             new JsonStringEnumConverter(),
                         }
                     }.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb));
-
 
                     services.AddIdempotentAPIUsingFusionCache();
                     break;
