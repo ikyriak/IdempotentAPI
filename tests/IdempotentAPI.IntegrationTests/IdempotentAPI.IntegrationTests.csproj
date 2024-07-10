@@ -24,8 +24,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\IdempotentAPI.TestFastEndpointsAPIs\IdempotentAPI.TestFastEndpointsAPIs.csproj">
+      <Aliases>TestFastEndpointsAPIs</Aliases>
+    </ProjectReference>
     <ProjectReference Include="..\IdempotentAPI.TestWebAPIs\IdempotentAPI.TestWebAPIs.csproj" />
-    <ProjectReference Include="..\IdempotentAPI.TestWebMinimalAPIs\IdempotentAPI.TestWebMinimalAPIs.csproj" />
+    <ProjectReference Include="..\IdempotentAPI.TestWebMinimalAPIs\IdempotentAPI.TestWebMinimalAPIs.csproj">
+      <Aliases>TestWebMinimalAPIs</Aliases>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>
