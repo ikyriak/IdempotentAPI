@@ -4,8 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.5.0] - 2024-07-00
+- 🌟 Support [FastEndpoints](https://fast-endpoints.com/), a developer-friendly alternative to Minimal APIs and MVC. Thank you, [@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle), for reporting issue [#72](https://github.com/ikyriak/IdempotentAPI/issues/72) and [@dj-nitehawk](https://github.com/dj-nitehawk) for helping me integrate with `FastEndpoints` 🙏💪.
 - IdempotentAPI.MinimalAPI `v3.1.0`:
-    - Configure the idempotent options by implementing the `IIdempotencyOptionsProvider` to provide the `IIdempotencyOptions` based on our needs (e.g., per endpoint). For example, we could return the `IIdempotencyOptions` based on the requested path and register `IdempotencyOptionsProvider` in the `Program.cs`. Thank you, [@JonasLeetTheWay](https://github.com/JonasLeetTheWay) for reporting issue [#73](https://github.com/ikyriak/IdempotentAPI/issues/73).
+    - ⚙ Configure the idempotent options by implementing the `IIdempotencyOptionsProvider` to provide the `IIdempotencyOptions` based on our needs (e.g., per endpoint). For example, we could return the `IIdempotencyOptions` based on the requested path and register `IdempotencyOptionsProvider` in the `Program.cs`. Thank you, [@JonasLeetTheWay](https://github.com/JonasLeetTheWay) for reporting issue [#73](https://github.com/ikyriak/IdempotentAPI/issues/73) 🙏.
         ```c#
         // Program.cs
         builder.Services.AddIdempotentMinimalAPI(new IdempotencyOptionsProvider());
@@ -28,7 +29,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
             }
         }
         ```
-        
     - ...
 - 
 

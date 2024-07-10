@@ -82,7 +82,8 @@ The following figure shows a simplified example of the `IdempotentAPI` library f
     - [samcook/RedLock.net](https://github.com/samcook/RedLock.net): Supports the [Redis Redlock](https://redis.io/docs/reference/patterns/distributed-locks/) algorithm.
     - [madelson/DistributedLock](https://github.com/madelson/DistributedLock): Supports multiple technologies such as Redis, SqlServer, Postgres and many [more](https://github.com/madelson/DistributedLock#implementations).
 - 💪**Powerful**: Can be used in high-load scenarios.
-- ✳ **NEW** ✳ - ✅ Supports Minimal APIs.
+- 🌟 Supports Minimal APIs.
+- ✳ **NEW** ✳ - 🌟 Support [FastEndpoints](https://fast-endpoints.com/), a developer-friendly alternative to Minimal APIs and MVC.
 
 
 
