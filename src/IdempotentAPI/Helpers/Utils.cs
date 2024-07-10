@@ -47,14 +47,23 @@ namespace IdempotentAPI.Helpers
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public static byte[]? Serialize(this object obj)
+        public static byte[]? Serialize(this object obj, JsonSerializerSettings? serializerSettings = null)
         {
             if (obj is null)
             {
                 return null;
             }
 
-            string jsonString = JsonConvert.SerializeObject(obj, _jsonSerializerSettingsAll);
+            string jsonString;
+            if (serializerSettings is null)
+            {
+                jsonString = JsonConvert.SerializeObject(obj, _jsonSerializerSettingsAll);
+            }
+            else
+            {
+                serializerSettings.TypeNameHandling = TypeNameHandling.All;
+                jsonString = JsonConvert.SerializeObject(obj, serializerSettings);
+            }
 
             byte[] encodedData = Encoding.UTF8.GetBytes(jsonString);
 
@@ -67,7 +76,7 @@ namespace IdempotentAPI.Helpers
         /// <typeparam name="T"></typeparam>
         /// <param name="compressedBytes"></param>
         /// <returns></returns>
-        public static T? DeSerialize<T>(this byte[]? compressedBytes)
+        public static T? DeSerialize<T>(this byte[]? compressedBytes, JsonSerializerSettings? serializerSettings = null)
         {
             if (compressedBytes is null)
             {
@@ -77,8 +86,15 @@ namespace IdempotentAPI.Helpers
             byte[]? encodedData = Decompress(compressedBytes);
 
             string jsonString = Encoding.UTF8.GetString(encodedData);
-
-            return JsonConvert.DeserializeObject<T>(jsonString, _jsonSerializerSettingsAuto);
+            if (serializerSettings is null)
+            {
+                return JsonConvert.DeserializeObject<T>(jsonString, _jsonSerializerSettingsAuto);
+            }
+            else
+            {
+                serializerSettings.TypeNameHandling = TypeNameHandling.Auto;
+                return JsonConvert.DeserializeObject<T>(jsonString, serializerSettings);
+            }
         }
 
 

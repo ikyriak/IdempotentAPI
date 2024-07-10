@@ -58,7 +58,8 @@ namespace IdempotentAPI.Extensions.DependencyInjection
                     idempotencyOptions.DistributedCacheKeysPrefix,
                     TimeSpan.FromMilliseconds(idempotencyOptions.DistributedLockTimeoutMilli),
                     idempotencyOptions.CacheOnlySuccessResponses,
-                    idempotencyOptions.IsIdempotencyOptional);
+                    idempotencyOptions.IsIdempotencyOptional,
+                    idempotencyOptions.SerializerSettings);
             });
 
             return serviceCollection;
