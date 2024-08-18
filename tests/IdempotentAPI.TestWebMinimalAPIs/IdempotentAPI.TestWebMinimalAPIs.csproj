@@ -8,6 +8,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="DistributedLock.Redis" Version="1.0.2" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="7.0.20" />
 		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="6.0.9" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
 	</ItemGroup>

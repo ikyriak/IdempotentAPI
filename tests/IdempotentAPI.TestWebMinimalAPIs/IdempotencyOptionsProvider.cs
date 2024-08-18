@@ -1,5 +1,6 @@
 ﻿using IdempotentAPI.Core;
 using IdempotentAPI.MinimalAPI;
+using Microsoft.EntityFrameworkCore;
 
 namespace IdempotentAPI.TestWebMinimalAPIs
 {
@@ -8,6 +9,11 @@ namespace IdempotentAPI.TestWebMinimalAPIs
     /// </summary>
     public class IdempotencyOptionsProvider : IIdempotencyOptionsProvider
     {
+        private readonly List<Type> ExcludeRequestSpecialTypes = new()
+        {
+            typeof(DbContext),
+        };
+
         public IIdempotencyOptions GetIdempotencyOptions(IHttpContextAccessor httpContextAccessor)
         {
             switch (httpContextAccessor?.HttpContext?.Request.Path)
@@ -16,10 +22,14 @@ namespace IdempotentAPI.TestWebMinimalAPIs
                     return new IdempotencyOptions()
                     {
                         ExpireHours = 1,
+                        ExcludeRequestSpecialTypes = ExcludeRequestSpecialTypes,
                     };
             }
 
-            return new IdempotencyOptions();
+            return new IdempotencyOptions()
+            {
+                ExcludeRequestSpecialTypes = ExcludeRequestSpecialTypes,
+            };
         }
     }
 }

@@ -8,10 +8,12 @@ using IdempotentAPI.Extensions.DependencyInjection;
 using IdempotentAPI.MinimalAPI;
 using IdempotentAPI.MinimalAPI.Extensions.DependencyInjection;
 using IdempotentAPI.TestWebMinimalAPIs;
+using IdempotentAPI.TestWebMinimalAPIs.ApiContext;
 using IdempotentAPI.TestWebMinimalAPIs.DTOs;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 var builder = WebApplication.CreateBuilder(args);
@@ -45,6 +47,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(x =>
     x.SwaggerDoc("v6", new OpenApiInfo { Title = "IdempotentAPI.TestWebMinimalAPIs - Swagger", Version = "v6" }));
 
+// The following dummy EF is used to test self-referencing loop when injecting the DbContext into the actions.
+builder.Services
+    .AddEntityFrameworkInMemoryDatabase()
+    .AddDbContext<ApiDbContext>(opt => opt.UseInMemoryDatabase("TestDb"))
+    .AddScoped<DbContext, ApiDbContext>();
 
 // TODO: Hard-code the "Caching" and "Distributed Access Lock" methods until the following issue is resolved.
 // Issue: https://github.com/dotnet/aspnetcore/issues/37680
@@ -114,6 +121,7 @@ app.MapPost("/v6/TestingIdempotentAPI/test", () =>
     .AddEndpointFilter<IdempotentAPIEndpointFilter>();
 
 app.MapPost("/v6/TestingIdempotentAPI/testobject", (
+    [FromServices] DbContext dbContext,
     HttpRequest httpRequest,
     HttpContext context,
     HttpResponse response,
@@ -138,7 +146,9 @@ app.MapPost("/v6/TestingIdempotentOptionalAPI/testobject", () =>
     .AddEndpointFilter<IdempotentAPIEndpointFilter>();
 
 app.MapPost("/v6/TestingIdempotentAPI/testobjectbody",
-    ([FromBody] RequestDTOs requestDTOs,
+    (
+    [FromServices] DbContext dbContext,
+    [FromBody] RequestDTOs requestDTOs,
     HttpRequest httpRequest,
     HttpContext context,
     HttpResponse response,
