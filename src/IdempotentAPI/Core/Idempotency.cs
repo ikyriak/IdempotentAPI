@@ -43,6 +43,7 @@ namespace IdempotentAPI.Core
         private readonly ILogger<Idempotency>? _logger;
         private readonly bool _isIdempotencyOptional;
         private readonly JsonSerializerSettings? _serializerSettings = null;
+        private readonly List<Type>? _excludeRequestSpecialTypes = null;
 
         private string _idempotencyKey = string.Empty;
         private bool _isPreIdempotencyApplied = false;
@@ -70,7 +71,8 @@ namespace IdempotentAPI.Core
              TimeSpan? distributedLockTimeout,
              bool cacheOnlySuccessResponses,
              bool isIdempotencyOptional,
-             JsonSerializerSettings? serializerSettings = null)
+             JsonSerializerSettings? serializerSettings = null,
+             List<Type>? excludeRequestSpecialTypes = null)
         {
             _distributedCache = distributedCache ?? throw new ArgumentNullException($"An {nameof(IIdempotencyAccessCache)} is not configured. You should register the required services by using the \"AddIdempotentAPIUsing{{YourCacheProvider}}\" function.");
             _expiresInMilliseconds = expiresInMilliseconds;
@@ -84,6 +86,7 @@ namespace IdempotentAPI.Core
             _cacheOnlySuccessResponses = cacheOnlySuccessResponses;
             _isIdempotencyOptional = isIdempotencyOptional;
             _serializerSettings = serializerSettings;
+            _excludeRequestSpecialTypes = excludeRequestSpecialTypes;
         }
 
         private string DistributedCacheKey
@@ -184,11 +187,14 @@ namespace IdempotentAPI.Core
             // In addition, they are unnecessary to generate the request's data hash.
             // Reference: https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis?view=aspnetcore-8.0#special-types
             var filteredArguments = arguments.Where(a =>
-                a is not HttpRequest
-                and not HttpContext
-                and not HttpResponse
-                and not ClaimsPrincipal
-                and not CancellationToken);
+                a is not null
+                && (a is not HttpRequest
+                    and not HttpContext
+                    and not HttpResponse
+                    and not ClaimsPrincipal
+                    and not CancellationToken)
+                && (_excludeRequestSpecialTypes is null || (_excludeRequestSpecialTypes is not null && !_excludeRequestSpecialTypes.Contains(a.GetType())))
+                ).ToList();
 
             string requestsDataHash = await GenerateRequestsDataHashMinimalApiAsync(filteredArguments, httpContext.Request);
 
@@ -486,7 +492,7 @@ namespace IdempotentAPI.Core
             return serializedCacheData;
         }
 
-        private async Task<string> GenerateRequestsDataHashMinimalApiAsync(IEnumerable<object?> arguments, HttpRequest httpRequest)
+        private async Task<string> GenerateRequestsDataHashMinimalApiAsync(IList<object?> arguments, HttpRequest httpRequest)
         {
             List<object?> requestsData = new(arguments);
 
