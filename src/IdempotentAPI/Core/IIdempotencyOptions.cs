@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace IdempotentAPI.Core
@@ -37,6 +38,13 @@ namespace IdempotentAPI.Core
         /// </summary>
         public bool IsIdempotencyOptional { get; set; }
 
-        public JsonSerializerSettings? SerializerSettings{ get; set; }
+        public JsonSerializerSettings? SerializerSettings { get; set; }
+
+        /// <summary>
+        /// Exclude special types that are injected in the related action because they cause a
+        /// self-referencing loop when serializing and are unnecessary for generating the request's
+        /// data hash.
+        /// </summary>
+        public List<Type>? ExcludeRequestSpecialTypes { get; set; }
     }
 }

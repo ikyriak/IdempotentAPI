@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace IdempotentAPI.Core
@@ -37,5 +38,8 @@ namespace IdempotentAPI.Core
         public bool IsIdempotencyOptional { get; set; } = DefaultIdempotencyOptions.IsIdempotencyOptional;
 
         public JsonSerializerSettings? SerializerSettings { get; set; }
+
+        ///<inheritdoc/>
+        public List<Type>? ExcludeRequestSpecialTypes { get; set; }
     }
 }

@@ -14,7 +14,9 @@ namespace IdempotentAPI.MinimalAPI.Extensions.DependencyInjection
         /// </summary>
         /// <param name="serviceCollection"></param>
         /// <returns></returns>
-        public static IServiceCollection AddIdempotentMinimalAPI(this IServiceCollection serviceCollection, IIdempotencyOptionsProvider idempotencyOptionsProvider)
+        public static IServiceCollection AddIdempotentMinimalAPI(
+            this IServiceCollection serviceCollection,
+            IIdempotencyOptionsProvider idempotencyOptionsProvider)
         {
             serviceCollection.AddHttpContextAccessor();
             serviceCollection.AddSingleton<IIdempotencyAccessCache, IdempotencyAccessCache>();
@@ -34,7 +36,8 @@ namespace IdempotentAPI.MinimalAPI.Extensions.DependencyInjection
                     idempotencyOptions.DistributedCacheKeysPrefix,
                     TimeSpan.FromMilliseconds(idempotencyOptions.DistributedLockTimeoutMilli),
                     idempotencyOptions.CacheOnlySuccessResponses,
-                    idempotencyOptions.IsIdempotencyOptional);
+                    idempotencyOptions.IsIdempotencyOptional,
+                    excludeRequestSpecialTypes: idempotencyOptions.ExcludeRequestSpecialTypes);
             });
 
             return serviceCollection;

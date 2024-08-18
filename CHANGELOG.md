@@ -3,6 +3,55 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [2.6.0] - 2024-08-22
+- ⚙ IdempotentAPI.MinimalAPI `v3.2.0`: Add the option to configure special types in the `IIdempotencyOptionsProvider` to be excluded from the API actions (e.g., `[FromServices] DbContext context`). This will solve the self-referencing loop issue. For example, we can configure the `ExcludeRequestSpecialTypes` in the following way. Thank you, [@csimonsson](https://github.com/csimonsson), for reporting issue [#81](https://github.com/ikyriak/IdempotentAPI/issues/81) and help improving the code.
+
+    ```c#
+    // Program.cs
+    // ...
+    builder.Services.AddIdempotentMinimalAPI(new IdempotencyOptionsProvider());
+    // ...
+    ```
+    ```c#
+    // IdempotencyOptionsProvider.cs
+    using IdempotentAPI.Core;
+    using IdempotentAPI.MinimalAPI;
+    using IdempotentAPI.TestWebMinimalAPIs.ApiContext;
+    using Microsoft.EntityFrameworkCore;
+
+    namespace IdempotentAPI.TestWebMinimalAPIs
+    {
+        public class IdempotencyOptionsProvider : IIdempotencyOptionsProvider
+        {
+            private readonly List<Type> ExcludeRequestSpecialTypes = new()
+            {
+                typeof(DbContext),
+            };
+
+            public IIdempotencyOptions GetIdempotencyOptions(IHttpContextAccessor httpContextAccessor)
+            {
+                // WARNING: This example implementation shows we can provide different IdempotencyOptions per case.
+                //switch (httpContextAccessor?.HttpContext?.Request.Path)
+                //{
+                //    case "/v6/TestingIdempotentAPI/test":
+                //        return new IdempotencyOptions()
+                //        {
+                //            ExpireHours = 1,
+                //            ExcludeRequestSpecialTypes = ExcludeRequestSpecialTypes,
+                //        };
+                //}
+
+                return new IdempotencyOptions()
+                {
+                    ExcludeRequestSpecialTypes = ExcludeRequestSpecialTypes,
+                };
+            }
+        }
+    }
+    ```
+
+
 ## [2.5.0] - 2024-07-10
 - 🌟 Support [FastEndpoints](https://fast-endpoints.com/), a developer-friendly alternative to Minimal APIs and MVC. Thank you, [@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle), for reporting issue [#72](https://github.com/ikyriak/IdempotentAPI/issues/72) and [@dj-nitehawk](https://github.com/dj-nitehawk) for helping me integrate with `FastEndpoints` 🙏💪.
 - ⚙ Add the option to configure the Newtonsoft `SerializerSettings` based on our needs. For example, this will enable us to use [NodaTime](https://nodatime.org/) in our DTOs. Thank you, [@angularsen](https://github.com/angularsen), for reporting the issue [#74](https://github.com/ikyriak/IdempotentAPI/issues/74) and sharing your ideas to improve the `IdempotentAPI` library 🙏.

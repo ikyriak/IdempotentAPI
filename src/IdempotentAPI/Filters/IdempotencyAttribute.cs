@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using IdempotentAPI.AccessCache;
 using IdempotentAPI.Core;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -56,6 +57,7 @@ namespace IdempotentAPI.Filters
         public bool UseIdempotencyOption { get; set; } = false;
 
         public JsonSerializerSettings? SerializerSettings { get => null; set => throw new NotImplementedException(); }
+        public List<Type>? ExcludeRequestSpecialTypes { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
         {
