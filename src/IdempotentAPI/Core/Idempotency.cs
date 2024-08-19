@@ -193,7 +193,9 @@ namespace IdempotentAPI.Core
                     and not HttpResponse
                     and not ClaimsPrincipal
                     and not CancellationToken)
-                && (_excludeRequestSpecialTypes is null || (_excludeRequestSpecialTypes is not null && !_excludeRequestSpecialTypes.Contains(a.GetType())))
+                && (_excludeRequestSpecialTypes is null || 
+                    (_excludeRequestSpecialTypes is not null && 
+                     !_excludeRequestSpecialTypes.Any(t => a.GetType() == t || a.GetType().IsSubclassOf(t))))
                 ).ToList();
 
             string requestsDataHash = await GenerateRequestsDataHashMinimalApiAsync(filteredArguments, httpContext.Request);
