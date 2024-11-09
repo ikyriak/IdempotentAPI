@@ -20,6 +20,12 @@ namespace IdempotentAPI.Core
         public string DistributedCacheKeysPrefix { get; set; }
 
         public string HeaderKeyName { get; set; }
+
+        /// <summary>
+        /// The header which will be True when the operation is already completed and replayed from the cache.
+        /// </summary>
+        public string HeaderReplayKeyName { get; set; }
+
         /// <summary>
         /// When true, only the responses with 2xx HTTP status codes will be cached.
         /// </summary>

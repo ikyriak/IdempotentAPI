@@ -35,11 +35,12 @@ namespace IdempotentAPI.Core
         /// The read-only list of HTTP Header Keys will be handled from the selected HTTP Server and
         /// not included in the cache.
         /// </summary>
-        private readonly IReadOnlyList<string> _excludeHttpHeaderKeys = new List<string>() { "Transfer-Encoding" };
+        private readonly IList<string> _excludeHttpHeaderKeys = new List<string>() { "Transfer-Encoding" };
 
         private readonly double _expiresInMilliseconds;
         private readonly HashAlgorithm _hashAlgorithm;
         private readonly string _headerKeyName;
+        private readonly string _headerReplayKeyName;
         private readonly ILogger<Idempotency>? _logger;
         private readonly bool _isIdempotencyOptional;
         private readonly JsonSerializerSettings? _serializerSettings = null;
@@ -49,18 +50,7 @@ namespace IdempotentAPI.Core
         private bool _isPreIdempotencyApplied = false;
         private bool _isPreIdempotencyCacheReturned = false;
 
-        [Obsolete("Use the double Milliseconds overload")]
-        public Idempotency(
-            IIdempotencyAccessCache distributedCache,
-            ILogger<Idempotency> logger,
-            int expireHours,
-            string headerKeyName,
-            string distributedCacheKeysPrefix,
-            TimeSpan? distributedLockTimeout,
-            bool cacheOnlySuccessResponses,
-            bool isIdempotencyOptional) : this(distributedCache, logger, TimeSpan.FromHours(expireHours).TotalMilliseconds, headerKeyName, distributedCacheKeysPrefix, distributedLockTimeout, cacheOnlySuccessResponses, isIdempotencyOptional)
-        {
-        }
+
 
         public Idempotency(
              IIdempotencyAccessCache distributedCache,
@@ -71,12 +61,14 @@ namespace IdempotentAPI.Core
              TimeSpan? distributedLockTimeout,
              bool cacheOnlySuccessResponses,
              bool isIdempotencyOptional,
+             string headerReplayKeyName,
              JsonSerializerSettings? serializerSettings = null,
              List<Type>? excludeRequestSpecialTypes = null)
         {
             _distributedCache = distributedCache ?? throw new ArgumentNullException($"An {nameof(IIdempotencyAccessCache)} is not configured. You should register the required services by using the \"AddIdempotentAPIUsing{{YourCacheProvider}}\" function.");
             _expiresInMilliseconds = expiresInMilliseconds;
             _headerKeyName = headerKeyName;
+            _headerReplayKeyName = headerReplayKeyName;
             _distributedCacheKeysPrefix = distributedCacheKeysPrefix;
             _distributedLockTimeout = distributedLockTimeout;
             _logger = logger;
@@ -87,6 +79,8 @@ namespace IdempotentAPI.Core
             _isIdempotencyOptional = isIdempotencyOptional;
             _serializerSettings = serializerSettings;
             _excludeRequestSpecialTypes = excludeRequestSpecialTypes;
+
+            _excludeHttpHeaderKeys.Add(headerReplayKeyName);
         }
 
         private string DistributedCacheKey
@@ -193,8 +187,8 @@ namespace IdempotentAPI.Core
                     and not HttpResponse
                     and not ClaimsPrincipal
                     and not CancellationToken)
-                && (_excludeRequestSpecialTypes is null || 
-                    (_excludeRequestSpecialTypes is not null && 
+                && (_excludeRequestSpecialTypes is null ||
+                    (_excludeRequestSpecialTypes is not null &&
                      !_excludeRequestSpecialTypes.Any(t => a.GetType() == t || a.GetType().IsSubclassOf(t))))
                 ).ToList();
 
@@ -240,6 +234,9 @@ namespace IdempotentAPI.Core
             {
                 _idempotencyKey = GetIdempotencyKeyOrThrow(context.HttpContext.Request);
             }
+
+            // Ensure that "IdempotencyReplay" does not exist.
+            context.HttpContext.Response.Headers.Remove(_headerReplayKeyName);
 
             // Check if idempotencyKey exists in cache and return value:
             Guid uniqueRequestId = Guid.NewGuid();
@@ -299,7 +296,6 @@ namespace IdempotentAPI.Core
                     throw new NotImplementedException($"ApplyPreIdempotency, ResultType {resultObjects["ResultType"]} is not recognized");
                 }
 
-
                 // Initialize the IActionResult based on its type:
                 if (contextResultType == typeof(CreatedAtRouteResult))
                 {
@@ -338,15 +334,17 @@ namespace IdempotentAPI.Core
                 }
 
                 // Include cached headers (if does not exist) at the response:
-                Dictionary<string, List<string>> headerKeyValues = (Dictionary<string, List<string>>)cacheData["Response.Headers"];
-                if (headerKeyValues != null)
+                Dictionary<string, List<string>> headerKeyValues = ((Dictionary<string, List<string>>)cacheData["Response.Headers"]) ?? new Dictionary<string, List<string>>();
+
+                // Return the "IdempotencyReplay" header with True for an operation that had already been completed and is now being replayed.
+                headerKeyValues.Remove(_headerReplayKeyName);
+                headerKeyValues.Add(_headerReplayKeyName, new List<string>() { bool.TrueString });
+
+                foreach (KeyValuePair<string, List<string>> headerKeyValue in headerKeyValues)
                 {
-                    foreach (KeyValuePair<string, List<string>> headerKeyValue in headerKeyValues)
+                    if (!context.HttpContext.Response.Headers.ContainsKey(headerKeyValue.Key))
                     {
-                        if (!context.HttpContext.Response.Headers.ContainsKey(headerKeyValue.Key))
-                        {
-                            context.HttpContext.Response.Headers.Add(headerKeyValue.Key, headerKeyValue.Value.ToArray());
-                        }
+                        context.HttpContext.Response.Headers.Add(headerKeyValue.Key, headerKeyValue.Value.ToArray());
                     }
                 }
 
@@ -354,13 +352,22 @@ namespace IdempotentAPI.Core
                 {
                     _logger.LogInformation("IdempotencyFilterAttribute [Before Controller]: Return result from idempotency cache (of type {contextResultType})", contextResultType.ToString());
                 }
+
                 _isPreIdempotencyCacheReturned = true;
+            }
+
+            if (!_isPreIdempotencyCacheReturned)
+            {
+                // Return the "IdempotencyReplay" header with False for an operation currently being completed.
+                context.HttpContext.Response.Headers.Remove(_headerReplayKeyName);
+                context.HttpContext.Response.Headers.Add(_headerReplayKeyName, new StringValues(bool.FalseString));
             }
 
             if (IsLoggerEnabled(LogLevel.Information))
             {
                 _logger.LogInformation("IdempotencyFilterAttribute [Before Controller]: End");
             }
+
             _isPreIdempotencyApplied = true;
         }
 

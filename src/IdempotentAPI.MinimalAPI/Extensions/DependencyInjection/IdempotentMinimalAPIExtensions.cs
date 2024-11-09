@@ -37,6 +37,7 @@ namespace IdempotentAPI.MinimalAPI.Extensions.DependencyInjection
                     TimeSpan.FromMilliseconds(idempotencyOptions.DistributedLockTimeoutMilli),
                     idempotencyOptions.CacheOnlySuccessResponses,
                     idempotencyOptions.IsIdempotencyOptional,
+                    idempotencyOptions.HeaderReplayKeyName,
                     excludeRequestSpecialTypes: idempotencyOptions.ExcludeRequestSpecialTypes);
             });
 

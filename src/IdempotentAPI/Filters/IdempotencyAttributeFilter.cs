@@ -14,6 +14,7 @@ namespace IdempotentAPI.Filters
         private readonly bool _enabled;
         private readonly double _expiresInMilliseconds;
         private readonly string _headerKeyName;
+        private readonly string _headerReplayKeyName;
         private readonly string _distributedCacheKeysPrefix;
         private readonly TimeSpan? _distributedLockTimeout;
         private readonly bool _cacheOnlySuccessResponses;
@@ -33,7 +34,8 @@ namespace IdempotentAPI.Filters
             string distributedCacheKeysPrefix,
             TimeSpan? distributedLockTimeout,
             bool cacheOnlySuccessResponses,
-            bool isIdempotencyOptional) : this(distributedCache, loggerFactory, enabled, TimeSpan.FromHours(expireHours).TotalMilliseconds, headerKeyName, distributedCacheKeysPrefix, distributedLockTimeout, cacheOnlySuccessResponses, isIdempotencyOptional)
+            bool isIdempotencyOptional,
+            string headerReplayKeyName) : this(distributedCache, loggerFactory, enabled, TimeSpan.FromHours(expireHours).TotalMilliseconds, headerKeyName, distributedCacheKeysPrefix, distributedLockTimeout, cacheOnlySuccessResponses, isIdempotencyOptional, headerReplayKeyName)
         {
         }
 
@@ -47,12 +49,14 @@ namespace IdempotentAPI.Filters
             TimeSpan? distributedLockTimeout,
             bool cacheOnlySuccessResponses,
             bool isIdempotencyOptional,
+            string headerReplayKeyName,
             JsonSerializerSettings? serializerSettings = null)
         {
             _distributedCache = distributedCache;
             _enabled = enabled;
             _expiresInMilliseconds = expiresInMilliseconds;
             _headerKeyName = headerKeyName;
+            _headerReplayKeyName = headerReplayKeyName;
             _distributedCacheKeysPrefix = distributedCacheKeysPrefix;
             _distributedLockTimeout = distributedLockTimeout;
             _cacheOnlySuccessResponses = cacheOnlySuccessResponses;
@@ -96,6 +100,7 @@ namespace IdempotentAPI.Filters
                     _distributedLockTimeout,
                     _cacheOnlySuccessResponses,
                     _isIdempotencyOptional,
+                    _headerReplayKeyName,
                     _serializerSettings);
             }
 
@@ -131,6 +136,7 @@ namespace IdempotentAPI.Filters
                     _distributedLockTimeout,
                     _cacheOnlySuccessResponses,
                     _isIdempotencyOptional,
+                    _headerReplayKeyName,
                     _serializerSettings);
             }
 

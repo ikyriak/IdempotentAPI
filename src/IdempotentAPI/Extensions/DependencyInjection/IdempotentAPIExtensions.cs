@@ -59,8 +59,9 @@ namespace IdempotentAPI.Extensions.DependencyInjection
                     TimeSpan.FromMilliseconds(idempotencyOptions.DistributedLockTimeoutMilli),
                     idempotencyOptions.CacheOnlySuccessResponses,
                     idempotencyOptions.IsIdempotencyOptional,
+                    idempotencyOptions.HeaderReplayKeyName,
                     idempotencyOptions.SerializerSettings,
-                    idempotencyOptions.ExcludeRequestSpecialTypes    
+                    idempotencyOptions.ExcludeRequestSpecialTypes
                 );
             });
 
