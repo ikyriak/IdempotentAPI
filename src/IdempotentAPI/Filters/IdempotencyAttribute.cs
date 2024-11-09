@@ -42,6 +42,9 @@ namespace IdempotentAPI.Filters
         public string HeaderKeyName { get; set; } = DefaultIdempotencyOptions.HeaderKeyName;
 
         ///<inheritdoc/>
+        public string HeaderReplayKeyName { get; set; } = DefaultIdempotencyOptions.HeaderReplayKeyName;
+
+        ///<inheritdoc/>
         public bool CacheOnlySuccessResponses { get; set; } = DefaultIdempotencyOptions.CacheOnlySuccessResponses;
 
         ///<inheritdoc/>
@@ -81,6 +84,7 @@ namespace IdempotentAPI.Filters
                 distributedLockTimeout,
                 idempotencyOptions.CacheOnlySuccessResponses,
                 idempotencyOptions.IsIdempotencyOptional,
+                idempotencyOptions.HeaderReplayKeyName,
                 generalIdempotencyOptions.SerializerSettings);
         }
     }

@@ -10,6 +10,8 @@ namespace IdempotentAPI.Core
 
         public const string HeaderKeyName = "IdempotencyKey";
 
+        public const string HeaderReplayKeyName = "IdempotencyReplay";
+
         public const bool CacheOnlySuccessResponses = true;
 
         public const double DistributedLockTimeoutMilli = -1;

@@ -29,6 +29,9 @@ namespace IdempotentAPI.Core
         public string HeaderKeyName { get; set; } = DefaultIdempotencyOptions.HeaderKeyName;
 
         ///<inheritdoc/>
+        public string HeaderReplayKeyName { get; set; } = DefaultIdempotencyOptions.HeaderReplayKeyName;
+
+        ///<inheritdoc/>
         public bool CacheOnlySuccessResponses { get; set; } = DefaultIdempotencyOptions.CacheOnlySuccessResponses;
 
         ///<inheritdoc/>
