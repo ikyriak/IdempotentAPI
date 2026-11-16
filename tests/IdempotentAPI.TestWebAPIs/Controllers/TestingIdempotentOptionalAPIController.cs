@@ -2,35 +2,34 @@ using IdempotentAPI.Filters;
 using IdempotentAPI.TestWebAPIs.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
-namespace IdempotentAPI.TestWebAPIs.Controllers
+namespace IdempotentAPI.TestWebAPIs.Controllers;
+
+[ApiController]
+[ApiVersion("6.0")]
+[Route("v{version:apiVersion}/[controller]")]
+
+[Consumes("application/json")]
+[Produces("application/json")]
+
+[Idempotent(CacheOnlySuccessResponses = true, DistributedLockTimeoutMilli = 2000, IsIdempotencyOptional = true, ExpiresInMilliseconds = (1000 * 60 * 60))]
+public class TestingIdempotentOptionalAPIController : ControllerBase
 {
-    [ApiController]
-    [ApiVersion("6.0")]
-    [Route("v{version:apiVersion}/[controller]")]
+    private readonly ILogger<TestingIdempotentOptionalAPIController> _logger;
 
-    [Consumes("application/json")]
-    [Produces("application/json")]
-
-    [Idempotent(CacheOnlySuccessResponses = true, DistributedLockTimeoutMilli = 2000, IsIdempotencyOptional = true, ExpiresInMilliseconds = (1000 * 60 * 60))]
-    public class TestingIdempotentOptionalAPIController : ControllerBase
+    public TestingIdempotentOptionalAPIController(ILogger<TestingIdempotentOptionalAPIController> logger)
     {
-        private readonly ILogger<TestingIdempotentOptionalAPIController> _logger;
+        _logger = logger;
+    }
 
-        public TestingIdempotentOptionalAPIController(ILogger<TestingIdempotentOptionalAPIController> logger)
-        {
-            _logger = logger;
-        }
+    [HttpPost("test")]
+    public ActionResult Test()
+    {
+        return Ok(new ResponseDTOs());
+    }
 
-        [HttpPost("test")]
-        public ActionResult Test()
-        {
-            return Ok(new ResponseDTOs());
-        }
-
-        [HttpPost("testobject")]
-        public ResponseDTOs TestObject()
-        {
-            return new ResponseDTOs();
-        }
+    [HttpPost("testobject")]
+    public ResponseDTOs TestObject()
+    {
+        return new ResponseDTOs();
     }
 }

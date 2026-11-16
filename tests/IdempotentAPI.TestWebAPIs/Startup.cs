@@ -1,6 +1,3 @@
-using System.Net;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using IdempotentAPI.Cache.DistributedCache.Extensions.DependencyInjection;
 using IdempotentAPI.Cache.FusionCache.Extensions.DependencyInjection;
 using IdempotentAPI.Core;
@@ -10,134 +7,134 @@ using IdempotentAPI.Extensions.DependencyInjection;
 using IdempotentAPI.TestWebAPIs.Extensions;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
-using Microsoft.OpenApi.Models;
-using Newtonsoft.Json;
+using Microsoft.OpenApi;
 using NodaTime;
-using NodaTime.Serialization.JsonNet;
 using NodaTime.Serialization.SystemTextJson;
 using StackExchange.Redis;
+using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
-namespace IdempotentAPI.TestWebAPIs
+namespace IdempotentAPI.TestWebAPIs;
+
+/// <summary>
+/// - dotnet run Caching=MemoryCache DALock=RedLockNet
+/// - dotnet run Caching=MemoryCache DALock=MadelsonDistLock
+/// - dotnet run Caching=FusionCache DALock=RedLockNet
+/// - dotnet run Caching=FusionCache DALock=MadelsonDistLock
+/// </summary>
+public class Startup
 {
-    /// <summary>
-    /// - dotnet run Caching=MemoryCache DALock=RedLockNet
-    /// - dotnet run Caching=MemoryCache DALock=MadelsonDistLock
-    /// - dotnet run Caching=FusionCache DALock=RedLockNet
-    /// - dotnet run Caching=FusionCache DALock=MadelsonDistLock
-    /// </summary>
-    public class Startup
+    public Startup(IConfiguration configuration)
     {
-        public Startup(IConfiguration configuration)
+        Configuration = configuration;
+    }
+
+    public IConfiguration Configuration { get; }
+
+    // This method gets called by the runtime. Use this method to add services to the container.
+    public virtual void ConfigureServices(IServiceCollection services)
+    {
+        // Add services to the container.
+        services.AddApiVersioningConfigured();
+
+        IdempotencyOptions idempotencyOptions = new()
         {
-            Configuration = configuration;
-        }
+            CacheOnlySuccessResponses = true,
+            DistributedLockTimeoutMilli = 2000,
+            SerializerOptions = new JsonSerializerOptions()
+                .ConfigureForNodaTime(DateTimeZoneProviders.Tzdb)
+        };
 
-        public IConfiguration Configuration { get; }
+        // Register the IdempotentAPI Core services.
+        services.AddIdempotentAPI(idempotencyOptions);
 
-        // This method gets called by the runtime. Use this method to add services to the container.
-        public virtual void ConfigureServices(IServiceCollection services)
+        services.AddSwaggerGen(x =>
+            x.SwaggerDoc("v6", new OpenApiInfo { Title = "IdempotentAPI.TestWebAPIs - Swagger", Version = "v6" }));
+
+        services.AddControllers();
+
+        // Register the Caching Method:
+        var caching = Configuration.GetValue<string>("Caching");
+        switch (caching)
         {
-            // Add services to the container.
-            services.AddApiVersioningConfigured();
+            case "MemoryCache":
+                services.AddDistributedMemoryCache();
+                services.AddIdempotentAPIUsingDistributedCache();
+                break;
+            // Caching: FusionCache(via Redis)
+            case "FusionCache":
+                services.AddStackExchangeRedisCache(options =>
+                {
+                    options.Configuration = "localhost:6379";
+                });
 
-            IdempotencyOptions idempotencyOptions = new()
-            {
-                CacheOnlySuccessResponses = true,
-                DistributedLockTimeoutMilli = 2000,
-                SerializerSettings = new JsonSerializerSettings(){}
-                    .ConfigureForNodaTime(DateTimeZoneProviders.Tzdb)
-            };
-
-            // Register the IdempotentAPI Core services.
-            services.AddIdempotentAPI(idempotencyOptions);
-
-            services.AddSwaggerGen(x =>
-                x.SwaggerDoc("v6", new OpenApiInfo { Title = "IdempotentAPI.TestWebAPIs - Swagger", Version = "v6" }));
-
-            services.AddControllers();
-
-            // Register the Caching Method:
-            var caching = Configuration.GetValue<string>("Caching");
-            switch (caching)
-            {
-                case "MemoryCache":
-                    services.AddDistributedMemoryCache();
-                    services.AddIdempotentAPIUsingDistributedCache();
-                    break;
-                // Caching: FusionCache(via Redis)
-                case "FusionCache":
-                    services.AddStackExchangeRedisCache(options =>
-                    {
-                        options.Configuration = "localhost:6379";
-                    });
-
-                    // Configure FusionCache with System.Text.Json, NodaTime serializer and more.
-                    services.AddFusionCacheSystemTextJsonSerializer(new JsonSerializerOptions
-                    {
-                        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-                        Converters =
+                // Configure FusionCache with System.Text.Json, NodaTime serializer and more.
+                services.AddFusionCacheSystemTextJsonSerializer(new JsonSerializerOptions
+                {
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                    Converters =
                         {
                             new JsonStringEnumConverter(),
                         }
-                    }.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb));
+                }.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb));
 
-                    services.AddIdempotentAPIUsingFusionCache();
-                    break;
-                default:
-                    Console.WriteLine($"Caching method '{caching}' is not recognized. Options: MemoryCache, FusionCache.");
-                    Environment.Exit(0);
-                    break;
-            }
-            Console.WriteLine($"Caching method: {caching}");
+                services.AddIdempotentAPIUsingFusionCache();
+                break;
+            default:
+                Console.WriteLine($"Caching method '{caching}' is not recognized. Options: MemoryCache, FusionCache.");
+                Environment.Exit(0);
+                break;
+        }
+        Console.WriteLine($"Caching method: {caching}");
 
 
 
-            // Register the Distributed Access Lock Method:
-            var distributedAccessLock = Configuration.GetValue<string>("DALock");
-            switch (distributedAccessLock)
-            {
-                // RedLock.Net
-                case "RedLockNet":
-                    List<DnsEndPoint> redisEndpoints = new List<DnsEndPoint>()
+        // Register the Distributed Access Lock Method:
+        var distributedAccessLock = Configuration.GetValue<string>("DALock");
+        switch (distributedAccessLock)
+        {
+            // RedLock.Net
+            case "RedLockNet":
+                List<DnsEndPoint> redisEndpoints = new List<DnsEndPoint>()
                     {
                         new DnsEndPoint("localhost", 6379)
                     };
-                    services.AddRedLockNetDistributedAccessLock(redisEndpoints);
-                    break;
-                // Madelson/DistributedLock (via Redis)
-                case "MadelsonDistLock":
-                    var redicConnection = ConnectionMultiplexer.Connect("localhost:6379");
-                    services.AddSingleton<IDistributedLockProvider>(_ => new RedisDistributedSynchronizationProvider(redicConnection.GetDatabase()));
-                    services.AddMadelsonDistributedAccessLock();
-                    break;
-                case "None":
-                    Console.WriteLine("No distributed cache will be used.");
-                    break;
-                default:
-                    Console.WriteLine($"Distributed Access Lock Method '{distributedAccessLock}' is not recognized. Options: RedLockNet, MadelsonDistLock.");
-                    Environment.Exit(0);
-                    break;
-            }
-            Console.WriteLine($"Distributed Access Lock Method: {distributedAccessLock}");
+                services.AddRedLockNetDistributedAccessLock(redisEndpoints);
+                break;
+            // Madelson/DistributedLock (via Redis)
+            case "MadelsonDistLock":
+                var redicConnection = ConnectionMultiplexer.Connect("localhost:6379");
+                services.AddSingleton<IDistributedLockProvider>(_ => new RedisDistributedSynchronizationProvider(redicConnection.GetDatabase()));
+                services.AddMadelsonDistributedAccessLock();
+                break;
+            case "None":
+                Console.WriteLine("No distributed cache will be used.");
+                break;
+            default:
+                Console.WriteLine($"Distributed Access Lock Method '{distributedAccessLock}' is not recognized. Options: RedLockNet, MadelsonDistLock.");
+                Environment.Exit(0);
+                break;
         }
+        Console.WriteLine($"Distributed Access Lock Method: {distributedAccessLock}");
+    }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    {
+        app.UseRouting();
+
+        app.UseEndpoints(endpoints =>
         {
-            app.UseRouting();
+            endpoints.MapControllers();
+        });
 
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
-
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
-            {
-                c.DocumentTitle = "IdempotentAPI.TestWebAPIs1 - Swagger";
-                c.RoutePrefix = string.Empty;
-                c.SwaggerEndpoint("./swagger/v6/swagger.json", "v1");
-            });
-        }
+        app.UseSwagger();
+        app.UseSwaggerUI(c =>
+        {
+            c.DocumentTitle = "IdempotentAPI.TestWebAPIs1 - Swagger";
+            c.RoutePrefix = string.Empty;
+            c.SwaggerEndpoint("./swagger/v6/swagger.json", "v1");
+        });
     }
 }

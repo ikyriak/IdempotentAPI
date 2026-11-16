@@ -1,23 +1,22 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace IdempotentAPI.TestWebMinimalAPIs.ApiContext
+namespace IdempotentAPI.TestWebMinimalAPIs.ApiContext;
+
+public class ApiDbContext : DbContext
 {
-    public class ApiDbContext : DbContext
+    public ApiDbContext(DbContextOptions<ApiDbContext> options) : base(options)
     {
-        public ApiDbContext(DbContextOptions<ApiDbContext> options) : base(options)
-        {
-        }
-
-        protected ApiDbContext()
-        {
-        }
-
-        public DbSet<User> Users { get; set; }
     }
 
-    public class User
+    protected ApiDbContext()
     {
-        public int Id { get; set; }
-        public string Name { get; set; }
     }
+
+    public DbSet<User> Users { get; set; }
+}
+
+public class User
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
 }

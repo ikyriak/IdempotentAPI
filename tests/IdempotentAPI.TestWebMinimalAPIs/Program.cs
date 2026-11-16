@@ -14,7 +14,7 @@ using Medallion.Threading;
 using Medallion.Threading.Redis;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using StackExchange.Redis;
 var builder = WebApplication.CreateBuilder(args);
 
@@ -70,7 +70,7 @@ switch (caching)
         {
             options.Configuration = "localhost:6379";
         });
-        builder.Services.AddFusionCacheNewtonsoftJsonSerializer();
+        builder.Services.AddFusionCacheSystemTextJsonSerializer();
         builder.Services.AddIdempotentAPIUsingFusionCache();
         break;
     default:

@@ -1,9 +1,8 @@
-﻿namespace IdempotentAPI.UnitTests.Enums
+﻿namespace IdempotentAPI.UnitTests.Enums;
+
+public enum DistributedAccessLockImplementation
 {
-    public enum DistributedAccessLockImplementation
-    {
-        None = 0,
-        RedLockDotNet = 1,
-        MadelsonDistributedLock = 2,
-    }
+    None = 0,
+    RedLockDotNet = 1,
+    MadelsonDistributedLock = 2,
 }

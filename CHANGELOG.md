@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [3.0.0] - Unreleased
+- 💥 **Breaking:** All projects now target `net8.0` and `net10.0` only. Support for `netstandard2.0`, `netstandard2.1`, and older .NET versions has been dropped.
+- 💥 **Breaking:** Replaced `Newtonsoft.Json` with `System.Text.Json` for serializing/deserializing the cached idempotency data.
+  - `IdempotencyOptions.SerializerSettings` (`JsonSerializerSettings`) has been replaced by `IdempotencyOptions.SerializerOptions` (`JsonSerializerOptions`).
+  - Added the `TypedObjectJsonConverter` to preserve the runtime type of `object`-typed values (emulating Newtonsoft's `TypeNameHandling` behavior).
+  - IdempotentAPI.Cache.FusionCache `v3.0.0`: Switched from `ZiggyCreatures.FusionCache.Serialization.NewtonsoftJson` to `ZiggyCreatures.FusionCache.Serialization.SystemTextJson`.
+- 💥 **Breaking:** Bumped package versions: IdempotentAPI.AccessCache, IdempotentAPI.Cache.Abstractions, IdempotentAPI.Cache.DistributedCache, IdempotentAPI.Cache.FusionCache, IdempotentAPI.DistributedAccessLock.Abstractions, IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock, and IdempotentAPI.DistributedAccessLock.RedLockNet to `v3.0.0`; IdempotentAPI.MinimalAPI to `v4.0.0`.
+- ⚙ Introduced Central Package Management (`Directory.Packages.props`) for all NuGet package versions.
+- ⚙ Updated dependencies: `ZiggyCreatures.FusionCache` `v2.9.0`, `DistributedLock.Core` `v1.0.9`, `DistributedLock.Redis` `v1.1.1`, `FastEndpoints` `v9.0.0`, `Swashbuckle.AspNetCore` `v11.0.1`, Microsoft.Extensions.* `v10.0.15`.
+- ⚙ Modernized the codebase to use file-scoped namespaces and added an `.editorconfig`.
+- ⚙ Tests: Migrated to `xunit.v3`, `FluentAssertions v8`, and `Microsoft.NET.Test.Sdk v18`; test web projects updated to .NET 10.
+
 ## [2.6.0] - 2024-08-22
 - ⚙ IdempotentAPI.MinimalAPI `v3.2.0`: Add the option to configure special types in the `IIdempotencyOptionsProvider` to be excluded from the API actions (e.g., `[FromServices] DbContext context`). This will solve the self-referencing loop issue. For example, we can configure the `ExcludeRequestSpecialTypes` in the following way. Thank you, [@csimonsson](https://github.com/csimonsson), for reporting issue [#81](https://github.com/ikyriak/IdempotentAPI/issues/81) and help improving the code.
 

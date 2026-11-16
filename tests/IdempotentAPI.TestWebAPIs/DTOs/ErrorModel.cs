@@ -1,11 +1,10 @@
 ﻿using System.Net;
 
-namespace IdempotentAPI.TestWebAPIs.DTOs
+namespace IdempotentAPI.TestWebAPIs.DTOs;
+
+public class ErrorModel
 {
-    public class ErrorModel
-    {
-        public HttpStatusCode Title { get; set; }
-        public int StatusCode { get; set; }
-        public string[]? Errors { get; set; }
-    }
+    public HttpStatusCode Title { get; set; }
+    public int StatusCode { get; set; }
+    public string[]? Errors { get; set; }
 }
