@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using IdempotentAPI.TestWebAPIs.DTOs;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace IdempotentAPI.IntegrationTests;
 

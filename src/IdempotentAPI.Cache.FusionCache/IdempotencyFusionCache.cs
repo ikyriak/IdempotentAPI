@@ -4,107 +4,106 @@ using System.Threading.Tasks;
 using IdempotentAPI.Cache.Abstractions;
 using ZiggyCreatures.Caching.Fusion;
 
-namespace IdempotentAPI.Cache.FusionCache
+namespace IdempotentAPI.Cache.FusionCache;
+
+public class IdempotencyFusionCache : IIdempotencyCache
 {
-    public class IdempotencyFusionCache : IIdempotencyCache
+    private readonly IFusionCache _fusionCache;
+
+    public IdempotencyFusionCache(IFusionCache fusionCache)
     {
-        private readonly IFusionCache _fusionCache;
+        _fusionCache = fusionCache;
+    }
 
-        public IdempotencyFusionCache(IFusionCache fusionCache)
+    /// <returns>An object of type <see cref="FusionCacheEntryOptions"/>.</returns>
+    /// <inheritdoc/>
+    [Obsolete("Use the double Milliseconds overload")]
+    public object CreateCacheEntryOptions(int expireHours)
+    {
+        return new FusionCacheEntryOptions(TimeSpan.FromHours(expireHours));
+    }
+
+    /// <returns>An object of type <see cref="FusionCacheEntryOptions"/>.</returns>
+    /// <inheritdoc/>
+    public object CreateCacheEntryOptions(double expiresInMilliseconds)
+    {
+        return new FusionCacheEntryOptions(TimeSpan.FromMilliseconds(expiresInMilliseconds));
+    }
+
+    /// <inheritdoc/>
+    /// <exception cref="ArgumentNullException"></exception>
+    public async Task<byte[]> GetOrDefault(
+        string key,
+        byte[] defaultValue,
+        object? options = null,
+        CancellationToken token = default)
+    {
+        if (key is null)
         {
-            _fusionCache = fusionCache;
+            throw new ArgumentNullException(nameof(key));
         }
 
-        /// <returns>An object of type <see cref="FusionCacheEntryOptions"/>.</returns>
-        /// <inheritdoc/>
-        [Obsolete("Use the double Milliseconds overload")]
-        public object CreateCacheEntryOptions(int expireHours)
+        if (options is not null && options is not FusionCacheEntryOptions)
         {
-            return new FusionCacheEntryOptions(TimeSpan.FromHours(expireHours));
+            throw new ArgumentNullException(nameof(options));
         }
 
-        /// <returns>An object of type <see cref="FusionCacheEntryOptions"/>.</returns>
-        /// <inheritdoc/>
-        public object CreateCacheEntryOptions(double expiresInMilliseconds)
+        return await _fusionCache.GetOrDefaultAsync(key, defaultValue, (FusionCacheEntryOptions?)options, token)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    /// <exception cref="ArgumentNullException"></exception>
+    public async Task<byte[]> GetOrSet(
+        string key,
+        byte[] defaultValue,
+        object? options = null,
+        CancellationToken token = default)
+    {
+        if (key is null)
         {
-            return new FusionCacheEntryOptions(TimeSpan.FromMilliseconds(expiresInMilliseconds));
+            throw new ArgumentNullException(nameof(key));
         }
 
-        /// <inheritdoc/>
-        /// <exception cref="ArgumentNullException"></exception>
-        public async Task<byte[]> GetOrDefault(
-            string key,
-            byte[] defaultValue,
-            object? options = null,
-            CancellationToken token = default)
+        if (options is not null && options is not FusionCacheEntryOptions)
         {
-            if (key is null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-
-            if (options is not null && options is not FusionCacheEntryOptions)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-
-            return await _fusionCache.GetOrDefaultAsync(key, defaultValue, (FusionCacheEntryOptions?)options, token)
-                .ConfigureAwait(false);
+            throw new ArgumentNullException(nameof(options));
         }
 
-        /// <inheritdoc/>
-        /// <exception cref="ArgumentNullException"></exception>
-        public async Task<byte[]> GetOrSet(
-            string key,
-            byte[] defaultValue,
-            object? options = null,
-            CancellationToken token = default)
+        return await _fusionCache.GetOrSetAsync(key, defaultValue, (FusionCacheEntryOptions?)options, token: token)
+            .ConfigureAwait(false);
+    }
+
+    public async Task Remove(string key, CancellationToken token = default)
+    {
+        if (key is null)
         {
-            if (key is null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-
-            if (options is not null && options is not FusionCacheEntryOptions)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-
-            return await _fusionCache.GetOrSetAsync(key, defaultValue, (FusionCacheEntryOptions?)options, token)
-                .ConfigureAwait(false);
+            throw new ArgumentNullException(nameof(key));
         }
 
-        public async Task Remove(string key, CancellationToken token = default)
-        {
-            if (key is null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
+        await _fusionCache.RemoveAsync(key, token: token)
+            .ConfigureAwait(false);
+    }
 
-            await _fusionCache.RemoveAsync(key, token: token)
-                .ConfigureAwait(false);
+    /// <inheritdoc/>
+    /// <exception cref="ArgumentNullException"></exception>
+    public async Task Set(
+        string key,
+        byte[] value,
+        object? options = null,
+        CancellationToken token = default)
+    {
+        if (key is null)
+        {
+            throw new ArgumentNullException(nameof(key));
         }
 
-        /// <inheritdoc/>
-        /// <exception cref="ArgumentNullException"></exception>
-        public async Task Set(
-            string key,
-            byte[] value,
-            object? options = null,
-            CancellationToken token = default)
+        if (options is not null && options is not FusionCacheEntryOptions)
         {
-            if (key is null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-
-            if (options is not null && options is not FusionCacheEntryOptions)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-
-            await _fusionCache.SetAsync(key, value, (FusionCacheEntryOptions?)options, token)
-                .ConfigureAwait(false);
+            throw new ArgumentNullException(nameof(options));
         }
+
+        await _fusionCache.SetAsync(key, value, (FusionCacheEntryOptions?)options, token: token)
+            .ConfigureAwait(false);
     }
 }

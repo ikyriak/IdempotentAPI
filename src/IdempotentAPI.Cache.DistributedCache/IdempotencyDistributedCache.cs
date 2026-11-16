@@ -4,122 +4,121 @@ using System.Threading.Tasks;
 using IdempotentAPI.Cache.Abstractions;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace IdempotentAPI.Cache.DistributedCache
+namespace IdempotentAPI.Cache.DistributedCache;
+
+public class IdempotencyDistributedCache : IIdempotencyCache
 {
-    public class IdempotencyDistributedCache : IIdempotencyCache
+    private readonly IDistributedCache _distributedCache;
+
+    public IdempotencyDistributedCache(IDistributedCache distributedCache)
     {
-        private readonly IDistributedCache _distributedCache;
+        _distributedCache = distributedCache;
+    }
 
-        public IdempotencyDistributedCache(IDistributedCache distributedCache)
+    /// <returns>An object of type <see cref="DistributedCacheEntryOptions"/>.</returns>
+    /// <inheritdoc/>
+    [Obsolete("Use the double Milliseconds overload")]
+    public object CreateCacheEntryOptions(int expireHours)
+    {
+        return new DistributedCacheEntryOptions()
         {
-            _distributedCache = distributedCache;
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(expireHours),
+        };
+    }
+
+    /// <returns>An object of type <see cref="DistributedCacheEntryOptions"/>.</returns>
+    /// <inheritdoc/>
+    public object CreateCacheEntryOptions(double expiresInMilliseconds)
+    {
+        return new DistributedCacheEntryOptions()
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMilliseconds(expiresInMilliseconds),
+        };
+    }
+
+
+    /// <inheritdoc/>
+    public async Task<byte[]> GetOrDefault(
+        string key,
+        byte[] defaultValue,
+        object? options = null,
+        CancellationToken token = default)
+    {
+        if (key is null)
+        {
+            throw new ArgumentNullException(nameof(key));
         }
 
-        /// <returns>An object of type <see cref="DistributedCacheEntryOptions"/>.</returns>
-        /// <inheritdoc/>
-        [Obsolete("Use the double Milliseconds overload")]
-        public object CreateCacheEntryOptions(int expireHours)
+        if (options is not null && options is not DistributedCacheEntryOptions)
         {
-            return new DistributedCacheEntryOptions()
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(expireHours),
-            };
+            throw new ArgumentNullException(nameof(options));
         }
 
-        /// <returns>An object of type <see cref="DistributedCacheEntryOptions"/>.</returns>
-        /// <inheritdoc/>
-        public object CreateCacheEntryOptions(double expiresInMilliseconds)
+        byte[]? cachedData = await _distributedCache.GetAsync(key, token)
+            .ConfigureAwait(false);
+        return cachedData is null ? defaultValue : cachedData;
+    }
+
+    /// <inheritdoc/>
+    public async Task<byte[]> GetOrSet(
+        string key,
+        byte[] defaultValue,
+        object? options = null,
+        CancellationToken token = default)
+    {
+        if (key is null)
         {
-            return new DistributedCacheEntryOptions()
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMilliseconds(expiresInMilliseconds),
-            };
+            throw new ArgumentNullException(nameof(key));
         }
 
-
-        /// <inheritdoc/>
-        public async Task<byte[]> GetOrDefault(
-            string key,
-            byte[] defaultValue,
-            object? options = null,
-            CancellationToken token = default)
+        if (options is not null && options is not DistributedCacheEntryOptions)
         {
-            if (key is null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
+            throw new ArgumentNullException(nameof(options));
+        }
 
-            if (options is not null && options is not DistributedCacheEntryOptions)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-
-            byte[] cachedData = await _distributedCache.GetAsync(key, token)
+        byte[]? cachedData = _distributedCache.Get(key);
+        if (cachedData is null)
+        {
+            await _distributedCache.SetAsync(key, defaultValue, options as DistributedCacheEntryOptions ?? new DistributedCacheEntryOptions(), token)
                 .ConfigureAwait(false);
-            return cachedData is null ? defaultValue : cachedData;
+            return defaultValue;
         }
-
-        /// <inheritdoc/>
-        public async Task<byte[]> GetOrSet(
-            string key,
-            byte[] defaultValue,
-            object? options = null,
-            CancellationToken token = default)
+        else
         {
-            if (key is null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-
-            if (options is not null && options is not DistributedCacheEntryOptions)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-
-            byte[] cachedData = _distributedCache.Get(key);
-            if (cachedData is null)
-            {
-                await _distributedCache.SetAsync(key, defaultValue, (DistributedCacheEntryOptions?)options, token)
-                    .ConfigureAwait(false);
-                return defaultValue;
-            }
-            else
-            {
-                return cachedData;
-            }
+            return cachedData;
         }
+    }
 
-        public async Task Remove(string key, CancellationToken token = default)
+    public async Task Remove(string key, CancellationToken token = default)
+    {
+        if (key is null)
         {
-            if (key is null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-
-            await _distributedCache.RemoveAsync(key, token)
-                .ConfigureAwait(false);
+            throw new ArgumentNullException(nameof(key));
         }
 
-        /// <inheritdoc/>
-        /// <exception cref="ArgumentNullException"></exception>
-        public async Task Set(
-            string key,
-            byte[] value,
-            object? options = null,
-            CancellationToken token = default)
+        await _distributedCache.RemoveAsync(key, token)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    /// <exception cref="ArgumentNullException"></exception>
+    public async Task Set(
+        string key,
+        byte[] value,
+        object? options = null,
+        CancellationToken token = default)
+    {
+        if (key is null)
         {
-            if (key is null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-
-            if (options is not null && options is not DistributedCacheEntryOptions)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-
-            await _distributedCache.SetAsync(key, value, (DistributedCacheEntryOptions?)options, token)
-                .ConfigureAwait(false);
+            throw new ArgumentNullException(nameof(key));
         }
+
+        if (options is not null && options is not DistributedCacheEntryOptions)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        await _distributedCache.SetAsync(key, value, options as DistributedCacheEntryOptions ?? new DistributedCacheEntryOptions(), token)
+            .ConfigureAwait(false);
     }
 }

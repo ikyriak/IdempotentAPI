@@ -1,0 +1,46 @@
+<Project>
+  <PropertyGroup>
+	<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+	<CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <!-- Microsoft / ASP.NET Core -->
+  <ItemGroup>
+	<PackageVersion Include="Microsoft.AspNetCore.Mvc" Version="2.3.14" />
+	<PackageVersion Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.14" />
+	<PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.15" />
+	<PackageVersion Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.1.0" />
+	<PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.15" />
+	<PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.15" />
+	<PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.15" />
+	<PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.15" />
+	<PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.15" />
+	<PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.15" />
+	<PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.15" />
+	<PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.15" />
+  </ItemGroup>
+
+  <!-- Third-party libraries -->
+  <ItemGroup>
+	<PackageVersion Include="DistributedLock.Core" Version="1.0.9" />
+	<PackageVersion Include="DistributedLock.Redis" Version="1.1.1" />
+	<PackageVersion Include="FastEndpoints" Version="9.0.0" />
+	<PackageVersion Include="FastEndpoints.Swagger" Version="9.0.0" />
+	<PackageVersion Include="NodaTime" Version="3.3.7" />
+	<PackageVersion Include="NodaTime.Serialization.SystemTextJson" Version="1.4.0" />
+	<PackageVersion Include="RedLock.net" Version="2.3.2" />
+	<PackageVersion Include="Swashbuckle.AspNetCore" Version="11.0.1" />
+	<PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.9.0" />
+	<PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.9.0" />
+  </ItemGroup>
+
+  <!-- Testing -->
+  <ItemGroup>
+	<PackageVersion Include="coverlet.collector" Version="10.1.0" />
+	<PackageVersion Include="FluentAssertions" Version="8.11.0" />
+	<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
+	<PackageVersion Include="Moq" Version="4.21.0" />
+	<PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
+	<PackageVersion Include="xunit.V3" Version="4.0.3" />
+  </ItemGroup>
+</Project>

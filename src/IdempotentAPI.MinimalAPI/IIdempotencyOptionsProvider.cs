@@ -1,10 +1,9 @@
 ﻿using IdempotentAPI.Core;
 using Microsoft.AspNetCore.Http;
 
-namespace IdempotentAPI.MinimalAPI
+namespace IdempotentAPI.MinimalAPI;
+
+public interface IIdempotencyOptionsProvider
 {
-    public interface IIdempotencyOptionsProvider
-    {
-        public IIdempotencyOptions GetIdempotencyOptions(IHttpContextAccessor httpContextAccessor);
-    }
+    public IIdempotencyOptions GetIdempotencyOptions(IHttpContextAccessor httpContextAccessor);
 }

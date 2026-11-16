@@ -1,4 +1,4 @@
-# Idempotent API (v2.6.0)
+# Idempotent API (v3.0.0)
 
 
 

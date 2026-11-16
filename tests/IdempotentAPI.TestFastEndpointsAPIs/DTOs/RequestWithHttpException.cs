@@ -1,7 +1,6 @@
-﻿namespace IdempotentAPI.TestFastEndpointsAPIs.DTOs
+﻿namespace IdempotentAPI.TestFastEndpointsAPIs.DTOs;
+
+public class RequestWithHttpException
 {
-    public class RequestWithHttpException
-    {
-        public int DelaySeconds { get; set; }
-    }
+    public int DelaySeconds { get; set; }
 }

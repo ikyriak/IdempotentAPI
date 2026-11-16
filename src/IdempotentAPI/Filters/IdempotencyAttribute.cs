@@ -1,87 +1,86 @@
-﻿using System;
-using System.Collections.Generic;
-using IdempotentAPI.AccessCache;
+﻿using IdempotentAPI.AccessCache;
 using IdempotentAPI.Core;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
 
-namespace IdempotentAPI.Filters
+namespace IdempotentAPI.Filters;
+
+/// <summary>
+/// Use Idempotent operations on POST and PATCH HTTP methods
+/// </summary>
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+public class IdempotentAttribute : Attribute, IFilterFactory, IIdempotencyOptions
 {
-    /// <summary>
-    /// Use Idempotent operations on POST and PATCH HTTP methods
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-    public class IdempotentAttribute : Attribute, IFilterFactory, IIdempotencyOptions
+    private TimeSpan _expiresIn = DefaultIdempotencyOptions.ExpiresIn;
+
+    public bool IsReusable => false;
+
+    public bool Enabled { get; set; } = true;
+
+    ///<inheritdoc/>
+    public int ExpireHours
     {
-        private TimeSpan _expiresIn = DefaultIdempotencyOptions.ExpiresIn;
+        get => Convert.ToInt32(_expiresIn.TotalHours);
+        set => _expiresIn = TimeSpan.FromHours(value);
+    }
 
-        public bool IsReusable => false;
+    ///<inheritdoc/>
+    public double ExpiresInMilliseconds
+    {
+        get => _expiresIn.TotalMilliseconds;
+        set => _expiresIn = TimeSpan.FromMilliseconds(value);
+    }
 
-        public bool Enabled { get; set; } = true;
+    ///<inheritdoc/>
+    public string DistributedCacheKeysPrefix { get; set; } = DefaultIdempotencyOptions.DistributedCacheKeysPrefix;
 
-        ///<inheritdoc/>
-        public int ExpireHours
-        {
-            get => Convert.ToInt32(_expiresIn.TotalHours);
-            set => _expiresIn = TimeSpan.FromHours(value);
-        }
+    ///<inheritdoc/>
+    public string HeaderKeyName { get; set; } = DefaultIdempotencyOptions.HeaderKeyName;
 
-        ///<inheritdoc/>
-        public double ExpiresInMilliseconds
-        {
-            get => _expiresIn.TotalMilliseconds;
-            set => _expiresIn = TimeSpan.FromMilliseconds(value);
-        }
+    ///<inheritdoc/>
+    public bool CacheOnlySuccessResponses { get; set; } = DefaultIdempotencyOptions.CacheOnlySuccessResponses;
 
-        ///<inheritdoc/>
-        public string DistributedCacheKeysPrefix { get; set; } = DefaultIdempotencyOptions.DistributedCacheKeysPrefix;
+    ///<inheritdoc/>
+    public double DistributedLockTimeoutMilli { get; set; } = DefaultIdempotencyOptions.DistributedLockTimeoutMilli;
 
-        ///<inheritdoc/>
-        public string HeaderKeyName { get; set; } = DefaultIdempotencyOptions.HeaderKeyName;
+    ///<inheritdoc/>
+    public bool IsIdempotencyOptional { get; set; } = DefaultIdempotencyOptions.IsIdempotencyOptional;
 
-        ///<inheritdoc/>
-        public bool CacheOnlySuccessResponses { get; set; } = DefaultIdempotencyOptions.CacheOnlySuccessResponses;
+    /// <summary>
+    /// By default, idempotency settings are taken from the attribute properties.
+    /// When this flag is set to true, the settings will be taken from the registered <see cref="IIdempotencyOptions"/> in the ServiceCollection
+    /// </summary>
+    public bool UseIdempotencyOption { get; set; } = false;
 
-        ///<inheritdoc/>
-        public double DistributedLockTimeoutMilli { get; set; } = DefaultIdempotencyOptions.DistributedLockTimeoutMilli;
+    public JsonSerializerOptions? SerializerOptions { get => null; set => throw new NotImplementedException(); }
+    public List<Type>? ExcludeRequestSpecialTypes { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
-        ///<inheritdoc/>
-        public bool IsIdempotencyOptional { get; set; } = DefaultIdempotencyOptions.IsIdempotencyOptional;
+    public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
+    {
+        var distributedCache = serviceProvider.GetRequiredService<IIdempotencyAccessCache>();
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
-        /// <summary>
-        /// By default, idempotency settings are taken from the attribute properties.
-        /// When this flag is set to true, the settings will be taken from the registered <see cref="IIdempotencyOptions"/> in the ServiceCollection
-        /// </summary>
-        public bool UseIdempotencyOption { get; set; } = false;
+        var generalIdempotencyOptions = serviceProvider.GetRequiredService<IIdempotencyOptions>();
+        var idempotencyOptions = UseIdempotencyOption ? generalIdempotencyOptions : this;
 
-        public JsonSerializerSettings? SerializerSettings { get => null; set => throw new NotImplementedException(); }
-        public List<Type>? ExcludeRequestSpecialTypes { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        TimeSpan? distributedLockTimeout = idempotencyOptions.DistributedLockTimeoutMilli >= 0
+            ? TimeSpan.FromMilliseconds(idempotencyOptions.DistributedLockTimeoutMilli)
+            : null;
 
-        public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
-        {
-            var distributedCache = (IIdempotencyAccessCache)serviceProvider.GetService(typeof(IIdempotencyAccessCache));
-            var loggerFactory = (ILoggerFactory)serviceProvider.GetService(typeof(ILoggerFactory));
-
-            var generalIdempotencyOptions = serviceProvider.GetRequiredService<IIdempotencyOptions>();
-            var idempotencyOptions = UseIdempotencyOption ? generalIdempotencyOptions : this;
-
-            TimeSpan? distributedLockTimeout = idempotencyOptions.DistributedLockTimeoutMilli >= 0
-                ? TimeSpan.FromMilliseconds(idempotencyOptions.DistributedLockTimeoutMilli)
-                : null;
-
-            return new IdempotencyAttributeFilter(
-                distributedCache,
-                loggerFactory,
-                Enabled,
-                idempotencyOptions.ExpiresInMilliseconds,
-                idempotencyOptions.HeaderKeyName,
-                idempotencyOptions.DistributedCacheKeysPrefix,
-                distributedLockTimeout,
-                idempotencyOptions.CacheOnlySuccessResponses,
-                idempotencyOptions.IsIdempotencyOptional,
-                generalIdempotencyOptions.SerializerSettings);
-        }
+        return new IdempotencyAttributeFilter(
+            distributedCache,
+            loggerFactory,
+            Enabled,
+            idempotencyOptions.ExpiresInMilliseconds,
+            idempotencyOptions.HeaderKeyName,
+            idempotencyOptions.DistributedCacheKeysPrefix,
+            distributedLockTimeout,
+            idempotencyOptions.CacheOnlySuccessResponses,
+            idempotencyOptions.IsIdempotencyOptional,
+            generalIdempotencyOptions.SerializerOptions);
     }
 }

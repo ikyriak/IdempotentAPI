@@ -1,8 +1,7 @@
-﻿namespace IdempotentAPI.UnitTests.Helpers
+﻿namespace IdempotentAPI.UnitTests.Helpers;
+
+public enum ObjectResultEnum
 {
-    public enum ObjectResultEnum
-    {
-        ObjectResult,
-        OkObjectResult,
-    }
+    ObjectResult,
+    OkObjectResult,
 }

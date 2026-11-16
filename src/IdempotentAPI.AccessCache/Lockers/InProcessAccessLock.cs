@@ -1,69 +1,67 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IdempotentAPI.AccessCache.Lockers
+namespace IdempotentAPI.AccessCache.Lockers;
+
+/// <summary>
+/// Value locker
+/// </summary>
+/// <example>
+/// string myValue = "valueToBeLocked"
+/// using (var inProcesslock = new InProcessAccessLock(myValue)){
+///     // ...
+/// }
+/// </example>
+internal sealed class InProcessAccessLock : IDisposable
 {
-    /// <summary>
-    /// Value locker
-    /// </summary>
-    /// <example>
-    /// string myValue = "valueToBeLocked"
-    /// using (var inProcesslock = new InProcessAccessLock(myValue)){
-    ///     // ...
-    /// }
-    /// </example>
-    internal sealed class InProcessAccessLock : IDisposable
+    private static readonly ConcurrentDictionary<string, LockDisposeTracker> lockValueMapper = new ();
+
+    private readonly string _lockedValue;
+
+    public InProcessAccessLock(string valueToLock)
     {
-        private static readonly ConcurrentDictionary<string, LockDisposeTracker> lockValueMapper = new ();
+        _lockedValue = valueToLock;
+    }
 
-        private readonly string _lockedValue;
-
-        public InProcessAccessLock(string valueToLock)
+    public static async Task<InProcessAccessLock> CreateAsync(string valueToLock)
+    {
+        var disposeTracker = lockValueMapper.AddOrUpdate(valueToLock, (_) => new LockDisposeTracker(), (_, disposeTracker) => disposeTracker with
         {
-            _lockedValue = valueToLock;
-        }
+            Count = disposeTracker.Count + 1
+        });
+        await disposeTracker.Semaphore.Value.WaitAsync();
+        return new InProcessAccessLock(valueToLock);
+    }
 
-        public static async Task<InProcessAccessLock> CreateAsync(string valueToLock)
+    public void Dispose()
+    {
+        while (true)
         {
-            var disposeTracker = lockValueMapper.AddOrUpdate(valueToLock, (_) => new LockDisposeTracker(), (_, disposeTracker) => disposeTracker with
+            var minlockValueMapperiLock = lockValueMapper[_lockedValue];
+            var updatedLock = minlockValueMapperiLock with { Count = minlockValueMapperiLock.Count - 1 };
+            if (lockValueMapper.TryUpdate(_lockedValue, updatedLock, minlockValueMapperiLock))
             {
-                Count = disposeTracker.Count + 1
-            });
-            await disposeTracker.Semaphore.Value.WaitAsync();
-            return new InProcessAccessLock(valueToLock);
-        }
-
-        public void Dispose()
-        {
-            while (true)
-            {
-                var minlockValueMapperiLock = lockValueMapper[_lockedValue];
-                var updatedLock = minlockValueMapperiLock with { Count = minlockValueMapperiLock.Count - 1 };
-                if (lockValueMapper.TryUpdate(_lockedValue, updatedLock, minlockValueMapperiLock))
+                if (updatedLock.Count == 0 && lockValueMapper.TryRemove(_lockedValue, out var removedLock))
                 {
-                    if (updatedLock.Count == 0 && lockValueMapper.TryRemove(_lockedValue, out var removedLock))
-                    {
-                        removedLock.Semaphore.Value.Release();
-                        removedLock.Semaphore.Value.Dispose();
-                    }
-                    else
-                    {
-                        minlockValueMapperiLock.Semaphore.Value.Release();
-                    }
-                    break;
+                    removedLock.Semaphore.Value.Release();
+                    removedLock.Semaphore.Value.Dispose();
                 }
+                else
+                {
+                    minlockValueMapperiLock.Semaphore.Value.Release();
+                }
+                break;
             }
         }
+    }
 
-        private sealed record LockDisposeTracker()
-        {
-            public Lazy<SemaphoreSlim> Semaphore { get; } = new(() =>  new SemaphoreSlim(1, 1),
-                LazyThreadSafetyMode.ExecutionAndPublication);
+    private sealed record LockDisposeTracker()
+    {
+        public Lazy<SemaphoreSlim> Semaphore { get; } = new(() =>  new SemaphoreSlim(1, 1),
+            LazyThreadSafetyMode.ExecutionAndPublication);
 
-            public int Count { get; set; } = 1;
-        }
+        public int Count { get; set; } = 1;
     }
 }

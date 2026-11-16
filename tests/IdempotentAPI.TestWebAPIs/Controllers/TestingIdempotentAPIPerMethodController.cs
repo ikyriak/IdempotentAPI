@@ -2,29 +2,28 @@ using IdempotentAPI.Filters;
 using IdempotentAPI.TestWebAPIs.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
-namespace IdempotentAPI.TestWebAPIs.Controllers
+namespace IdempotentAPI.TestWebAPIs.Controllers;
+
+[ApiController]
+[ApiVersion("6.0")]
+[Route("v{version:apiVersion}/[controller]")]
+
+[Consumes("application/json")]
+[Produces("application/json")]
+
+public class TestingIdempotentAPIPerMethodController : ControllerBase
 {
-    [ApiController]
-    [ApiVersion("6.0")]
-    [Route("v{version:apiVersion}/[controller]")]
+    private readonly ILogger<TestingIdempotentAPIController> _logger;
 
-    [Consumes("application/json")]
-    [Produces("application/json")]
-
-    public class TestingIdempotentAPIPerMethodController : ControllerBase
+    public TestingIdempotentAPIPerMethodController(ILogger<TestingIdempotentAPIController> logger)
     {
-        private readonly ILogger<TestingIdempotentAPIController> _logger;
+        _logger = logger;
+    }
 
-        public TestingIdempotentAPIPerMethodController(ILogger<TestingIdempotentAPIController> logger)
-        {
-            _logger = logger;
-        }
-
-        [HttpPost("testUseIdempotencyOption")]
-        [Idempotent(UseIdempotencyOption = true)]
-        public ActionResult TestUseIdempotencyOption()
-        {
-            return Ok(new ResponseDTOs());
-        }
+    [HttpPost("testUseIdempotencyOption")]
+    [Idempotent(UseIdempotencyOption = true)]
+    public ActionResult TestUseIdempotencyOption()
+    {
+        return Ok(new ResponseDTOs());
     }
 }

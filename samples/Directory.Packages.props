@@ -1,0 +1,6 @@
+<Project>
+  <!-- Legacy samples keep inline package versions and opt out of the root Central Package Management. -->
+  <PropertyGroup>
+	<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

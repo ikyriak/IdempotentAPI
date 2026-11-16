@@ -4,92 +4,91 @@ using IdempotentAPI.TestWebAPIs.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using NodaTime;
 
-namespace IdempotentAPI.TestWebAPIs.Controllers
+namespace IdempotentAPI.TestWebAPIs.Controllers;
+
+[ApiController]
+[ApiVersion("6.0")]
+[Route("v{version:apiVersion}/[controller]")]
+
+[Consumes("application/json")]
+[Produces("application/json")]
+
+[Idempotent(CacheOnlySuccessResponses = true, DistributedLockTimeoutMilli = 2000)]
+public class TestingIdempotentAPIController : ControllerBase
 {
-    [ApiController]
-    [ApiVersion("6.0")]
-    [Route("v{version:apiVersion}/[controller]")]
+    private readonly ILogger<TestingIdempotentAPIController> _logger;
 
-    [Consumes("application/json")]
-    [Produces("application/json")]
-
-    [Idempotent(CacheOnlySuccessResponses = true, DistributedLockTimeoutMilli = 2000)]
-    public class TestingIdempotentAPIController : ControllerBase
+    public TestingIdempotentAPIController(ILogger<TestingIdempotentAPIController> logger)
     {
-        private readonly ILogger<TestingIdempotentAPIController> _logger;
+        _logger = logger;
+    }
 
-        public TestingIdempotentAPIController(ILogger<TestingIdempotentAPIController> logger)
+    [HttpPost("test")]
+    public ActionResult Test()
+    {
+        return Ok(new ResponseDTOs());
+    }
+
+    [HttpPost("testobject")]
+    public ResponseDTOs TestObject()
+    {
+        return new ResponseDTOs();
+    }
+
+    [HttpPost("testobjectbody")]
+    public ResponseDTOs TestObject([FromBody] RequestDTOs requestDTOs)
+    {
+        return new ResponseDTOs()
         {
-            _logger = logger;
+            CreatedOn = requestDTOs.CreatedOn,
+            CreatedOnNodaTime = Instant.FromDateTimeUtc(requestDTOs.CreatedOn.ToUniversalTime()),
+            Idempotency = requestDTOs.Idempotency,
+        };
+    }
+
+    [HttpPost("testobjectWithHttpError")]
+    public async Task<ActionResult> TestObjectWithHttpErrorAsync(int delaySeconds, int httpErrorCode)
+    {
+        await Task.Delay(delaySeconds * 1000);
+
+        return StatusCode(httpErrorCode);
+    }
+
+
+    [HttpPost("testobjectWithException")]
+    public async Task<ActionResult> TestObjectWithExceptionAsync(int delaySeconds)
+    {
+        await Task.Delay(delaySeconds * 1000);
+
+        throw new Exception("Something when wrong!");
+    }
+
+
+    [HttpPost("customNotAcceptable406")]
+    public async Task<ActionResult> TestCustomNotAcceptable406Async(
+        [FromHeader(Name = "IdempotencyKey")] string idempotencyKey, int delaySeconds)
+    {
+        if (idempotencyKey is null)
+        {
+            throw new ArgumentNullException(nameof(idempotencyKey));
         }
 
-        [HttpPost("test")]
-        public ActionResult Test()
+        _logger.LogInformation($"Host: {Request.Host.Value} | IdempotencyKey: {idempotencyKey}");
+
+        await Task.Delay(delaySeconds * 1000);
+
+        string message = $"Not Acceptable! {DateTime.Now:s}";
+
+        return new ObjectResult(new ErrorModel
         {
-            return Ok(new ResponseDTOs());
-        }
-
-        [HttpPost("testobject")]
-        public ResponseDTOs TestObject()
+            Title = HttpStatusCode.NotAcceptable,
+            StatusCode = StatusCodes.Status406NotAcceptable,
+            Errors = new[]{
+                message
+            },
+        })
         {
-            return new ResponseDTOs();
-        }
-
-        [HttpPost("testobjectbody")]
-        public ResponseDTOs TestObject([FromBody] RequestDTOs requestDTOs)
-        {
-            return new ResponseDTOs()
-            {
-                CreatedOn = requestDTOs.CreatedOn,
-                CreatedOnNodaTime = Instant.FromDateTimeUtc(requestDTOs.CreatedOn.ToUniversalTime()),
-                Idempotency = requestDTOs.Idempotency,
-            };
-        }
-
-        [HttpPost("testobjectWithHttpError")]
-        public async Task<ActionResult> TestObjectWithHttpErrorAsync(int delaySeconds, int httpErrorCode)
-        {
-            await Task.Delay(delaySeconds * 1000);
-
-            return StatusCode(httpErrorCode);
-        }
-
-
-        [HttpPost("testobjectWithException")]
-        public async Task<ActionResult> TestObjectWithExceptionAsync(int delaySeconds)
-        {
-            await Task.Delay(delaySeconds * 1000);
-
-            throw new Exception("Something when wrong!");
-        }
-
-
-        [HttpPost("customNotAcceptable406")]
-        public async Task<ActionResult> TestCustomNotAcceptable406Async(
-            [FromHeader(Name = "IdempotencyKey")] string idempotencyKey, int delaySeconds)
-        {
-            if (idempotencyKey is null)
-            {
-                throw new ArgumentNullException(nameof(idempotencyKey));
-            }
-
-            _logger.LogInformation($"Host: {Request.Host.Value} | IdempotencyKey: {idempotencyKey}");
-
-            await Task.Delay(delaySeconds * 1000);
-
-            string message = $"Not Acceptable! {DateTime.Now:s}";
-
-            return new ObjectResult(new ErrorModel
-            {
-                Title = HttpStatusCode.NotAcceptable,
-                StatusCode = StatusCodes.Status406NotAcceptable,
-                Errors = new[]{
-                    message
-                },
-            })
-            {
-                StatusCode = StatusCodes.Status406NotAcceptable,
-            };
-        }
+            StatusCode = StatusCodes.Status406NotAcceptable,
+        };
     }
 }

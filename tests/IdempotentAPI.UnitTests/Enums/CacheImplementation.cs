@@ -1,8 +1,7 @@
-﻿namespace IdempotentAPI.UnitTests.Enums
+﻿namespace IdempotentAPI.UnitTests.Enums;
+
+public enum CacheImplementation
 {
-    public enum CacheImplementation
-    {
-        DistributedCache = 0,
-        FusionCache = 1,
-    }
+    DistributedCache = 0,
+    FusionCache = 1,
 }
