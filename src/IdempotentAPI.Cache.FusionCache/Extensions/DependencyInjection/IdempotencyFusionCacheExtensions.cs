@@ -1,6 +1,7 @@
-﻿using System;
-using IdempotentAPI.Cache.Abstractions;
+﻿using IdempotentAPI.Cache.Abstractions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using ZiggyCreatures.Caching.Fusion;
 
 namespace IdempotentAPI.Cache.FusionCache.Extensions.DependencyInjection;
@@ -37,10 +38,13 @@ public static class IdempotencyFusionCacheExtensions
                 options.DistributedCacheCircuitBreakerDuration = distributedCacheCircuitBreakerDuration.Value;
         });
 
-        // Register FusionCache using the new builder approach
+        // Register FusionCache using the new builder approach.
+        // A dedicated MemoryCache is used so that the idempotency entries are not affected
+        // by the SizeLimit (or other settings) of the application's registered IMemoryCache.
         serviceCollection
             .AddFusionCache()
-            .TryWithAutoSetup();
+            .TryWithAutoSetup()
+            .WithMemoryCache(new MemoryCache(new MemoryCacheOptions()));
 
         return serviceCollection;
     }
